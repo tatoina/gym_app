@@ -1,0 +1,47 @@
+{
+  "name": "gymapp",
+  "version": "1.0.0",
+  "description": "Aplicación para trackear entrenamientos de gimnasio con React y Firebase",
+  "main": "index.js",
+  "homepage": ".",
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "generate:icons": "node scripts/generate-icons.js"
+  },
+  "keywords": [
+    "gym",
+    "fitness",
+    "tracker",
+    "react",
+    "firebase"
+  ],
+  "author": "",
+  "license": "ISC",
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "dependencies": {
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "firebase": "^12.5.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-scripts": "^5.0.1",
+    "typescript": "^4.9.5"
+  },
+  "devDependencies": {
+    "pngjs": "^7.0.0"
+  }
+}

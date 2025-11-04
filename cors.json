@@ -1,0 +1,14 @@
+[
+  {
+    "origin": [
+      "http://localhost:3000",
+      "http://localhost:3001",
+      "http://localhost:3002",
+      "https://gymapp-bd0da.firebaseapp.com",
+      "https://gymapp-bd0da.web.app"
+    ],
+    "method": ["GET", "POST", "PUT", "HEAD", "DELETE", "OPTIONS"],
+    "responseHeader": ["Content-Type", "Authorization"],
+    "maxAgeSeconds": 3600
+  }
+]

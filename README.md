@@ -17,7 +17,7 @@ Una aplicación web desarrollada con React y Firebase para trackear entrenamient
 ## 🚀 Tecnologías
 
 - **Frontend**: React 18 con TypeScript
-- **Backend**: Firebase (Authentication + Firestore)
+- **Backend**: Firebase (Authentication + Firestore + Storage)
 - **Estilos**: CSS3 con diseño responsive
 - **Build**: Create React App
 
