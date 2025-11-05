@@ -88,6 +88,15 @@ button:disabled {
   border-radius: 5px;
 }
 
+.success-message {
+  color: #198754;
+  margin: 1rem 0;
+  text-align: center;
+  padding: 0.5rem;
+  background-color: rgba(25, 135, 84, 0.15);
+  border-radius: 5px;
+}
+
 @media (max-width: 480px) {
   .auth-card {
     padding: 1.75rem 1.25rem;

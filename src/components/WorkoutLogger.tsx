@@ -38,7 +38,11 @@ interface Workout {
   notes?: string;
 }
 
-const WorkoutLogger: React.FC = () => {
+interface WorkoutLoggerProps {
+  onNavigateToHistory?: () => void;
+}
+
+const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) => {
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [currentWorkout, setCurrentWorkout] = useState<Workout>({
     date: new Date().toISOString().split('T')[0],
@@ -53,12 +57,15 @@ const WorkoutLogger: React.FC = () => {
   const [machineFormLoading, setMachineFormLoading] = useState(false);
   const [machineFormError, setMachineFormError] = useState('');
   const [machineForm, setMachineForm] = useState({
+    id: '',
     name: '',
     description: '',
-    photoFile: null as File | null
+    photoFile: null as File | null,
+    existingPhotoUrl: ''
   });
   const [machinePreview, setMachinePreview] = useState<string>('');
   const [exerciseError, setExerciseError] = useState('');
+  const [showMachinesManager, setShowMachinesManager] = useState(false);
 
   const loadMachines = async () => {
     if (!auth.currentUser) return;
@@ -140,9 +147,11 @@ const WorkoutLogger: React.FC = () => {
 
   const resetMachineForm = () => {
     setMachineForm({
+      id: '',
       name: '',
       description: '',
-      photoFile: null
+      photoFile: null,
+      existingPhotoUrl: ''
     });
     setMachineFormError('');
     if (machinePreview) {
@@ -151,8 +160,23 @@ const WorkoutLogger: React.FC = () => {
     }
   };
 
-  const openMachineModal = () => {
+  const openMachineModalForNew = () => {
     resetMachineForm();
+    setExerciseError('');
+    setMachineModalOpen(true);
+  };
+
+  const openMachineModalForEdit = (machine: Machine) => {
+    setMachineForm({
+      id: machine.id,
+      name: machine.name,
+      description: machine.description || '',
+      photoFile: null,
+      existingPhotoUrl: machine.photoUrl || ''
+    });
+    if (machine.photoUrl) {
+      setMachinePreview(machine.photoUrl);
+    }
     setExerciseError('');
     setMachineModalOpen(true);
   };
@@ -222,7 +246,7 @@ const WorkoutLogger: React.FC = () => {
       setMachineFormLoading(true);
       setMachineFormError('');
 
-      let uploadedPhotoUrl = '';
+      let uploadedPhotoUrl = machineForm.existingPhotoUrl;
 
       if (machineForm.photoFile) {
         const file = machineForm.photoFile;
@@ -231,28 +255,39 @@ const WorkoutLogger: React.FC = () => {
         uploadedPhotoUrl = await getDownloadURL(fileRef);
       }
 
-      const docRef = await addDoc(collection(db, 'machines'), {
-        userId: auth.currentUser.uid,
-        name: trimmedName,
-        description: trimmedDescription,
-        photoUrl: uploadedPhotoUrl,
-        createdAt: new Date()
-      });
+      if (machineForm.id) {
+        // Editar máquina existente
+        const { doc: docImport, updateDoc } = await import('firebase/firestore');
+        await updateDoc(docImport(db, 'machines', machineForm.id), {
+          name: trimmedName,
+          description: trimmedDescription,
+          photoUrl: uploadedPhotoUrl,
+          updatedAt: new Date()
+        });
+      } else {
+        // Crear nueva máquina
+        const docRef = await addDoc(collection(db, 'machines'), {
+          userId: auth.currentUser.uid,
+          name: trimmedName,
+          description: trimmedDescription,
+          photoUrl: uploadedPhotoUrl,
+          createdAt: new Date()
+        });
 
-      await loadMachines();
+        setNewExercise((prev) => ({
+          ...prev,
+          machineId: docRef.id,
+          machineName: trimmedName,
+          machinePhotoUrl: uploadedPhotoUrl,
+          name: prev.name && prev.name !== prev.machineName ? prev.name : trimmedName
+        }));
 
-      setNewExercise((prev) => ({
-        ...prev,
-        machineId: docRef.id,
-        machineName: trimmedName,
-        machinePhotoUrl: uploadedPhotoUrl,
-        name: prev.name && prev.name !== prev.machineName ? prev.name : trimmedName
-      }));
-
-      if (!showAddForm) {
-        setShowAddForm(true);
+        if (!showAddForm) {
+          setShowAddForm(true);
+        }
       }
 
+      await loadMachines();
       resetMachineForm();
       setMachineModalOpen(false);
     } catch (error) {
@@ -263,7 +298,26 @@ const WorkoutLogger: React.FC = () => {
     }
   };
 
-  const addExercise = () => {
+  const handleDeleteMachine = async (machineId: string, machineName: string) => {
+    if (!window.confirm(`¿Estás seguro de eliminar la máquina "${machineName}"?`)) {
+      return;
+    }
+
+    try {
+      const { doc: docImport, deleteDoc } = await import('firebase/firestore');
+      await deleteDoc(docImport(db, 'machines', machineId));
+      await loadMachines();
+      
+      if (newExercise.machineId === machineId) {
+        setNewExercise(createEmptyExercise());
+      }
+    } catch (error) {
+      console.error('Error deleting machine:', error);
+      alert('Error al eliminar la máquina. Inténtalo nuevamente.');
+    }
+  };
+
+  const addExercise = async () => {
     if (!newExercise.machineId) {
       setExerciseError('Selecciona una máquina antes de agregar el ejercicio.');
       return;
@@ -274,29 +328,52 @@ const WorkoutLogger: React.FC = () => {
       return;
     }
 
-    const machine = machines.find((item) => item.id === newExercise.machineId);
-    const exerciseToAdd: Exercise = {
-      ...newExercise,
-      name: newExercise.name.trim(),
-      machineName: machine?.name || newExercise.machineName,
-      machinePhotoUrl: machine?.photoUrl || newExercise.machinePhotoUrl
-    };
+    if (!auth.currentUser) return;
 
-    setCurrentWorkout((prev) => ({
-      ...prev,
-      exercises: [...prev.exercises, exerciseToAdd]
-    }));
+    try {
+      const machine = machines.find((item) => item.id === newExercise.machineId);
+      
+      // Guardar directamente en Firestore
+      await addDoc(collection(db, 'workouts'), {
+        userId: auth.currentUser.uid,
+        date: currentWorkout.date,
+        name: newExercise.name.trim(),
+        sets: newExercise.sets,
+        reps: newExercise.reps,
+        weight: newExercise.weight,
+        machineId: newExercise.machineId,
+        machineName: machine?.name || newExercise.machineName,
+        machinePhotoUrl: machine?.photoUrl || newExercise.machinePhotoUrl || '',
+        createdAt: new Date()
+      });
 
-    setExerciseError('');
-    setNewExercise(createEmptyExercise());
-    setShowAddForm(false);
+      // Actualizar vista local (solo para mostrar contador)
+      const exerciseToAdd: Exercise = {
+        ...newExercise,
+        name: newExercise.name.trim(),
+        machineName: machine?.name || newExercise.machineName,
+        machinePhotoUrl: machine?.photoUrl || newExercise.machinePhotoUrl
+      };
+
+      setCurrentWorkout((prev) => ({
+        ...prev,
+        exercises: [...prev.exercises, exerciseToAdd]
+      }));
+
+      setExerciseError('');
+      setNewExercise(createEmptyExercise());
+      setShowAddForm(false);
+    } catch (error) {
+      console.error('Error saving exercise:', error);
+      setExerciseError('Error al guardar el ejercicio. Inténtalo nuevamente.');
+    }
   };
 
   const handleAddExerciseClick = () => {
     if (loadingMachines) return;
 
     if (!machines.length) {
-      openMachineModal();
+      openMachineModalForNew();
       return;
     }
 
@@ -368,10 +445,52 @@ const WorkoutLogger: React.FC = () => {
                     ? 'No tienes máquinas registradas todavía.'
                     : `${machines.length} máquina${machines.length > 1 ? 's' : ''} disponibles`}
               </span>
-              <button type="button" className="ghost-button" onClick={openMachineModal}>
-                + Añadir máquina
-              </button>
+              <div className="machines-toolbar-buttons">
+                <button type="button" className="ghost-button" onClick={openMachineModalForNew}>
+                  + Añadir máquina
+                </button>
+                {machines.length > 0 && (
+                  <button type="button" className="ghost-button" onClick={() => setShowMachinesManager(!showMachinesManager)}>
+                    ⚙️ Gestionar
+                  </button>
+                )}
+              </div>
             </div>
+
+            {showMachinesManager && machines.length > 0 && (
+              <div className="machines-list">
+                <h5>Tus Máquinas</h5>
+                {machines.map((machine) => (
+                  <div key={machine.id} className="machine-item">
+                    {machine.photoUrl && (
+                      <img src={machine.photoUrl} alt={machine.name} className="machine-item-photo" />
+                    )}
+                    <div className="machine-item-info">
+                      <strong>{machine.name}</strong>
+                      {machine.description && <p>{machine.description}</p>}
+                    </div>
+                    <div className="machine-item-actions">
+                      <button
+                        type="button"
+                        className="edit-machine-btn"
+                        onClick={() => openMachineModalForEdit(machine)}
+                        aria-label="Editar máquina"
+                      >
+                        ✏️
+                      </button>
+                      <button
+                        type="button"
+                        className="delete-machine-btn"
+                        onClick={() => handleDeleteMachine(machine.id, machine.name)}
+                        aria-label="Eliminar máquina"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
             
             {currentWorkout.exercises.map((exercise, index) => {
               const machineLabel = exercise.machineName || 'Máquina no especificada';
@@ -518,7 +637,7 @@ const WorkoutLogger: React.FC = () => {
                 ) : (
                   <div className="machines-empty-message">
                     <p>Registra tu primera máquina para poder añadir ejercicios.</p>
-                    <button type="button" className="primary-button" onClick={openMachineModal}>
+                    <button type="button" className="primary-button" onClick={openMachineModalForNew}>
                       + Añadir máquina
                     </button>
                   </div>
@@ -535,27 +654,30 @@ const WorkoutLogger: React.FC = () => {
             )}
           </div>
 
-          <div className="form-group">
-            <label>Notas:</label>
-            <textarea
-              value={currentWorkout.notes}
-              onChange={(e) => setCurrentWorkout(prev => ({ ...prev, notes: e.target.value }))}
-              placeholder="Notas adicionales sobre el entrenamiento..."
-            />
-          </div>
-
-          <button 
-            onClick={saveWorkout} 
-            className="save-workout-btn"
-            disabled={currentWorkout.exercises.length === 0}
-          >
-            💾 Guardar Entrenamiento
-          </button>
+          {currentWorkout.exercises.length > 0 && (
+            <div className="success-message-box">
+              ✅ {currentWorkout.exercises.length} ejercicio{currentWorkout.exercises.length > 1 ? 's' : ''} guardado{currentWorkout.exercises.length > 1 ? 's' : ''} hoy
+            </div>
+          )}
         </div>
       </div>
 
       <div className="workout-history">
-        <h3>Historial de Entrenamientos</h3>
+        <h3>📊 Ver Historial Completo</h3>
+        <p style={{marginBottom: '1rem', color: '#666'}}>
+          Visualiza tus entrenamientos, filtra por fecha o máquina, y observa tu evolución con gráficos detallados.
+        </p>
+        <button
+          onClick={() => onNavigateToHistory?.()}
+          className="primary-button"
+          style={{width: '100%', padding: '1rem'}}
+        >
+          Abrir Historial y Estadísticas
+        </button>
+      </div>
+
+      <div className="workout-history" style={{marginTop: '2rem'}}>
+        <h3>Últimos Entrenamientos</h3>
         {workouts.length === 0 ? (
           <p>No tienes entrenamientos registrados aún.</p>
         ) : (

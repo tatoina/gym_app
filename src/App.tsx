@@ -3,11 +3,15 @@ import { onAuthStateChanged, signOut, User } from 'firebase/auth';
 import { auth } from './services/firebase';
 import Auth from './components/Auth';
 import WorkoutLogger from './components/WorkoutLogger';
+import History from './components/History';
 import './App.css';
+
+type View = 'workout' | 'history';
 
 function App() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [currentView, setCurrentView] = useState<View>('workout');
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -54,6 +58,20 @@ function App() {
       <header className="app-header">
         <div className="header-content">
           <h1>🏋️‍♂️ GymApp</h1>
+          <div className="header-nav">
+            <button
+              className={`nav-btn ${currentView === 'workout' ? 'active' : ''}`}
+              onClick={() => setCurrentView('workout')}
+            >
+              💪 Entrenar
+            </button>
+            <button
+              className={`nav-btn ${currentView === 'history' ? 'active' : ''}`}
+              onClick={() => setCurrentView('history')}
+            >
+              📊 Historial
+            </button>
+          </div>
           <div className="user-info">
             <span>Bienvenido, {user.email}</span>
             <button onClick={handleLogout} className="logout-btn">
@@ -63,7 +81,11 @@ function App() {
         </div>
       </header>
       <main>
-        <WorkoutLogger />
+        {currentView === 'workout' ? (
+          <WorkoutLogger onNavigateToHistory={() => setCurrentView('history')} />
+        ) : (
+          <History onBack={() => setCurrentView('workout')} />
+        )}
       </main>
     </div>
   );
