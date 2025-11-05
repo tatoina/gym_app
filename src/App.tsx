@@ -45,7 +45,7 @@ function App() {
     return (
       <div className="App">
         <div className="loading">
-          <h2>🏋️‍♂️ GymApp</h2>
+          <h2>🏋️‍♂️ MAXGYM</h2>
           <p>Cargando...</p>
         </div>
       </div>
@@ -56,7 +56,7 @@ function App() {
     return (
       <div className="App">
         <div className="welcome-header">
-          <h1>🏋️‍♂️ GymApp</h1>
+          <h1>🏋️‍♂️ MAXGYM</h1>
           <p>Tu aplicación para trackear entrenamientos de gimnasio</p>
         </div>
         <Auth onAuthSuccess={() => {}} />
@@ -68,7 +68,7 @@ function App() {
     <div className="App">
       <header className="app-header">
         <div className="header-content">
-          <h1>🏋️‍♂️ GymApp</h1>
+          <h1>🏋️‍♂️ MAXGYM</h1>
           {!isAdmin && (
             <div className="header-nav">
               <button
