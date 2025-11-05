@@ -1,11 +1,34 @@
-# Script de Limpieza de MAX SOCIAL
+# Scripts de Limpieza Pre-Lanzamiento
 
-Este script elimina **TODOS** los posts de la base de datos de MAX SOCIAL.
+Scripts para limpiar datos de prueba antes del lanzamiento oficial de MAXGYM.
 
 ## ⚠️ ADVERTENCIA
-Este script es **IRREVERSIBLE**. Una vez ejecutado, todos los posts serán eliminados permanentemente.
+Estos scripts son **IRREVERSIBLES**. Los datos eliminados no se pueden recuperar.
 
-## 📋 Uso
+## 📋 Scripts Disponibles
+
+### 🌟 `clearPosts.js` - Limpiar MAX SOCIAL
+Elimina **TODOS** los posts de MAX SOCIAL.
+
+```bash
+node scripts/clearPosts.js
+```
+
+### 💪 `clearWorkouts.js` - Limpiar Entrenamientos
+Elimina **TODOS** los entrenamientos registrados (historial completo).
+
+```bash
+node scripts/clearWorkouts.js
+```
+
+### 🔥 `clearAll.js` - Limpieza COMPLETA (RECOMENDADO)
+Elimina **TODOS** los posts Y entrenamientos en una sola ejecución.
+
+```bash
+node scripts/clearAll.js
+```
+
+## � Uso Paso a Paso
 
 ### Antes del lanzamiento oficial:
 
@@ -14,17 +37,17 @@ Este script es **IRREVERSIBLE**. Una vez ejecutado, todos los posts serán elimi
    npm install
    ```
 
-2. **Ejecutar el script**
-   ```bash
-   node scripts/clearPosts.js
-   ```
+2. **Elegir el script según lo que necesites limpiar:**
+   - Solo posts: `node scripts/clearPosts.js`
+   - Solo entrenamientos: `node scripts/clearWorkouts.js`
+   - **Todo (recomendado para pre-lanzamiento)**: `node scripts/clearAll.js`
 
 3. **El script hará:**
-   - Mostrar advertencia durante 3 segundos
-   - Contar cuántos posts hay
+   - Mostrar advertencia con tiempo de cancelación
+   - Contar cuántos registros hay
    - Eliminarlos todos uno por uno
    - Mostrar progreso en tiempo real
-   - Confirmar cuando termine
+   - Mostrar resumen al finalizar
 
 ## 🎯 Cuándo usar
 
