@@ -27,25 +27,19 @@ interface HistoryProps {
 
 const History: React.FC<HistoryProps> = ({ onBack }) => {
   // Calcular fechas por defecto: última semana
-  const getDefaultDates = () => {
-    const today = new Date();
-    const weekAgo = new Date();
-    weekAgo.setDate(today.getDate() - 7);
-    
-    return {
-      from: weekAgo.toISOString().split('T')[0],
-      to: today.toISOString().split('T')[0]
-    };
-  };
-
-  const defaultDates = getDefaultDates();
+  const today = new Date();
+  const weekAgo = new Date();
+  weekAgo.setDate(today.getDate() - 7);
+  
+  const defaultDateFrom = weekAgo.toISOString().split('T')[0];
+  const defaultDateTo = today.toISOString().split('T')[0];
 
   const [workouts, setWorkouts] = useState<WorkoutRecord[]>([]);
   const [machines, setMachines] = useState<Machine[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterMachine, setFilterMachine] = useState<string>('');
-  const [filterDateFrom, setFilterDateFrom] = useState<string>(defaultDates.from);
-  const [filterDateTo, setFilterDateTo] = useState<string>(defaultDates.to);
+  const [filterDateFrom, setFilterDateFrom] = useState<string>(defaultDateFrom);
+  const [filterDateTo, setFilterDateTo] = useState<string>(defaultDateTo);
   const [groupBy, setGroupBy] = useState<'date' | 'machine'>('date');
 
   useEffect(() => {
