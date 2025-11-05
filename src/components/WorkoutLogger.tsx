@@ -326,6 +326,11 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
       return;
     }
 
+    // Validar que los valores numéricos sean válidos
+    const sets = typeof newExercise.sets === 'number' ? newExercise.sets : parseInt(newExercise.sets as any) || 1;
+    const reps = typeof newExercise.reps === 'number' ? newExercise.reps : parseInt(newExercise.reps as any) || 1;
+    const weight = typeof newExercise.weight === 'number' ? newExercise.weight : parseFloat(newExercise.weight as any) || 0;
+
     if (!auth.currentUser) return;
 
     try {
@@ -336,9 +341,9 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
         userId: auth.currentUser.uid,
         date: currentWorkout.date,
         name: newExercise.name.trim(),
-        sets: newExercise.sets,
-        reps: newExercise.reps,
-        weight: newExercise.weight,
+        sets: sets,
+        reps: reps,
+        weight: weight,
         machineId: newExercise.machineId,
         machineName: machine?.name || newExercise.machineName,
         machinePhotoUrl: machine?.photoUrl || newExercise.machinePhotoUrl || '',
@@ -348,6 +353,9 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
       // Actualizar vista local (solo para mostrar contador)
       const exerciseToAdd: Exercise = {
         ...newExercise,
+        sets: sets,
+        reps: reps,
+        weight: weight,
         name: newExercise.name.trim(),
         machineName: machine?.name || newExercise.machineName,
         machinePhotoUrl: machine?.photoUrl || newExercise.machinePhotoUrl
@@ -559,11 +567,15 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
                           min="1"
                           value={newExercise.sets}
                           onChange={(e) => {
-                            const parsed = parseInt(e.target.value, 10);
-                            setNewExercise((prev) => ({
-                              ...prev,
-                              sets: Number.isNaN(parsed) ? 1 : Math.max(1, parsed)
-                            }));
+                            const value = e.target.value;
+                            if (value === '') {
+                              setNewExercise((prev) => ({ ...prev, sets: '' as any }));
+                            } else {
+                              const parsed = parseInt(value, 10);
+                              if (!Number.isNaN(parsed)) {
+                                setNewExercise((prev) => ({ ...prev, sets: Math.max(1, parsed) }));
+                              }
+                            }
                           }}
                         />
                       </div>
@@ -575,11 +587,15 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
                           min="1"
                           value={newExercise.reps}
                           onChange={(e) => {
-                            const parsed = parseInt(e.target.value, 10);
-                            setNewExercise((prev) => ({
-                              ...prev,
-                              reps: Number.isNaN(parsed) ? 1 : Math.max(1, parsed)
-                            }));
+                            const value = e.target.value;
+                            if (value === '') {
+                              setNewExercise((prev) => ({ ...prev, reps: '' as any }));
+                            } else {
+                              const parsed = parseInt(value, 10);
+                              if (!Number.isNaN(parsed)) {
+                                setNewExercise((prev) => ({ ...prev, reps: Math.max(1, parsed) }));
+                              }
+                            }
                           }}
                         />
                       </div>
@@ -592,11 +608,15 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
                           step="0.5"
                           value={newExercise.weight}
                           onChange={(e) => {
-                            const parsed = parseFloat(e.target.value);
-                            setNewExercise((prev) => ({
-                              ...prev,
-                              weight: Number.isNaN(parsed) ? 0 : Math.max(0, parsed)
-                            }));
+                            const value = e.target.value;
+                            if (value === '') {
+                              setNewExercise((prev) => ({ ...prev, weight: '' as any }));
+                            } else {
+                              const parsed = parseFloat(value);
+                              if (!Number.isNaN(parsed)) {
+                                setNewExercise((prev) => ({ ...prev, weight: Math.max(0, parsed) }));
+                              }
+                            }
                           }}
                         />
                       </div>
