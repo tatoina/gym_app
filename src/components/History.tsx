@@ -56,11 +56,15 @@ const History: React.FC<HistoryProps> = ({ onBack }) => {
         ...(doc.data() as Omit<WorkoutRecord, 'id'>)
       }));
       
+      console.log('Workouts cargados:', workoutsData.length, workoutsData);
+      
       // Ordenar por fecha y createdAt en el cliente
       workoutsData.sort((a, b) => {
         const dateCompare = b.date.localeCompare(a.date);
         if (dateCompare !== 0) return dateCompare;
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        const dateA = a.createdAt instanceof Date ? a.createdAt : new Date((a.createdAt as any)?.seconds * 1000);
+        const dateB = b.createdAt instanceof Date ? b.createdAt : new Date((b.createdAt as any)?.seconds * 1000);
+        return dateB.getTime() - dateA.getTime();
       });
       
       setWorkouts(workoutsData);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, addDoc, getDocs, query, where, orderBy } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, where, orderBy, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { auth, db, storage } from '../services/firebase';
 import './WorkoutLogger.css';
@@ -347,7 +347,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
         machineId: newExercise.machineId,
         machineName: machine?.name || newExercise.machineName,
         machinePhotoUrl: machine?.photoUrl || newExercise.machinePhotoUrl || '',
-        createdAt: new Date()
+        createdAt: serverTimestamp()
       });
 
       // Actualizar vista local (solo para mostrar contador)
