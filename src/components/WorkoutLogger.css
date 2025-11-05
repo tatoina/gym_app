@@ -63,6 +63,18 @@
   transition: all 0.3s ease;
 }
 
+.workout-form input[type="date"] {
+  cursor: pointer;
+  color-scheme: dark;
+  position: relative;
+}
+
+.workout-form input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  filter: invert(0.8);
+  font-size: 1.2rem;
+}
+
 .workout-form textarea {
   height: 80px;
   resize: vertical;

@@ -73,6 +73,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
   const [postPhoto, setPostPhoto] = useState<File | null>(null);
   const [postPhotoPreview, setPostPhotoPreview] = useState<string>('');
   const [publishingPost, setPublishingPost] = useState(false);
+  const [todayExercisesCount, setTodayExercisesCount] = useState(0);
 
   const loadMachines = async () => {
     if (!auth.currentUser) return;
@@ -141,12 +142,33 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
   }, [machines, showAddForm]);
 
   useEffect(() => {
+    loadTodayExercisesCount();
+  }, [currentWorkout.date]);
+
+  useEffect(() => {
     return () => {
       if (machinePreview) {
         URL.revokeObjectURL(machinePreview);
       }
     };
   }, [machinePreview]);
+
+  const loadTodayExercisesCount = async () => {
+    if (!auth.currentUser) return;
+    
+    try {
+      const workoutsRef = collection(db, 'workouts');
+      const q = query(
+        workoutsRef,
+        where('userId', '==', auth.currentUser.uid),
+        where('date', '==', currentWorkout.date)
+      );
+      const snapshot = await getDocs(q);
+      setTodayExercisesCount(snapshot.size);
+    } catch (error) {
+      console.error('Error loading today exercises count:', error);
+    }
+  };
 
   const resetMachineForm = () => {
     setMachineForm({
@@ -373,6 +395,9 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
         ...prev,
         exercises: updatedExercises
       }));
+
+      // Actualizar contador de ejercicios de hoy
+      setTodayExercisesCount(prev => prev + 1);
 
       setExerciseError('');
       setNewExercise(createEmptyExercise());
@@ -738,13 +763,13 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
             )}
           </div>
 
-          {currentWorkout.exercises.length > 0 && (
+          {todayExercisesCount > 0 && (
             <div className="success-message-box">
-              ✅ {currentWorkout.exercises.length} ejercicio{currentWorkout.exercises.length > 1 ? 's' : ''} guardado{currentWorkout.exercises.length > 1 ? 's' : ''} hoy
+              ✅ {todayExercisesCount} ejercicio{todayExercisesCount > 1 ? 's' : ''} guardado{todayExercisesCount > 1 ? 's' : ''} hoy
             </div>
           )}
 
-          {sharePublicly && currentWorkout.exercises.length > 0 && (
+          {sharePublicly && todayExercisesCount > 0 && (
             <button
               className="publish-button"
               onClick={() => setShowPublishModal(true)}
