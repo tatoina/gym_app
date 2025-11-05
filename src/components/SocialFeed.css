@@ -198,6 +198,37 @@
   font-family: 'Courier New', monospace;
 }
 
+.post-comment {
+  margin-top: 20px;
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  border-left: 3px solid #667eea;
+}
+
+.post-comment p {
+  color: #e0e0e0;
+  line-height: 1.6;
+  margin: 0;
+  font-size: 15px;
+  white-space: pre-wrap;
+}
+
+.post-photo {
+  margin-top: 20px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.post-photo img {
+  width: 100%;
+  height: auto;
+  display: block;
+  max-height: 500px;
+  object-fit: contain;
+}
+
 .post-actions {
   padding: 15px 20px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);

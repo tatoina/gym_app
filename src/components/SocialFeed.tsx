@@ -17,6 +17,8 @@ interface Post {
   timestamp: Date;
   likes: string[]; // Array de userIds que dieron like
   date: string; // Fecha del entrenamiento
+  comment?: string; // Comentario opcional
+  photoUrl?: string; // URL de la foto opcional
 }
 
 const SocialFeed: React.FC = () => {
@@ -45,7 +47,9 @@ const SocialFeed: React.FC = () => {
           workouts: data.workouts,
           timestamp: data.timestamp?.toDate() || new Date(),
           likes: data.likes || [],
-          date: data.date
+          date: data.date,
+          comment: data.comment || '',
+          photoUrl: data.photoUrl || ''
         };
       });
       
@@ -209,6 +213,18 @@ const SocialFeed: React.FC = () => {
                       </div>
                     ))}
                   </div>
+
+                  {post.comment && (
+                    <div className="post-comment">
+                      <p>{post.comment}</p>
+                    </div>
+                  )}
+
+                  {post.photoUrl && (
+                    <div className="post-photo">
+                      <img src={post.photoUrl} alt="Foto del entrenamiento" />
+                    </div>
+                  )}
                 </div>
 
                 <div className="post-actions">

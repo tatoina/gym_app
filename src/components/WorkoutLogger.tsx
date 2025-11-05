@@ -68,6 +68,11 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
   const [exerciseError, setExerciseError] = useState('');
   const [showMachinesManager, setShowMachinesManager] = useState(false);
   const [sharePublicly, setSharePublicly] = useState(false);
+  const [showPublishModal, setShowPublishModal] = useState(false);
+  const [postComment, setPostComment] = useState('');
+  const [postPhoto, setPostPhoto] = useState<File | null>(null);
+  const [postPhotoPreview, setPostPhotoPreview] = useState<string>('');
+  const [publishingPost, setPublishingPost] = useState(false);
 
   const loadMachines = async () => {
     if (!auth.currentUser) return;
@@ -369,11 +374,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
         exercises: updatedExercises
       }));
 
-      // Si está activado "Compartir públicamente", crear/actualizar post
-      if (sharePublicly && auth.currentUser) {
-        await createOrUpdatePost(updatedExercises);
-      }
-
       setExerciseError('');
       setNewExercise(createEmptyExercise());
       setShowAddForm(false);
@@ -383,20 +383,25 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
     }
   };
 
-  const createOrUpdatePost = async (exercises: Exercise[]) => {
-    if (!auth.currentUser || exercises.length === 0) return;
+  const handlePublishWorkout = async () => {
+    if (!auth.currentUser || currentWorkout.exercises.length === 0) {
+      alert('Agrega al menos un ejercicio antes de publicar.');
+      return;
+    }
+
+    setPublishingPost(true);
 
     try {
-      // Buscar si ya existe un post para este usuario y fecha
-      const postsRef = collection(db, 'posts');
-      const q = query(
-        postsRef,
-        where('userId', '==', auth.currentUser.uid),
-        where('date', '==', currentWorkout.date)
-      );
-      const existingPosts = await getDocs(q);
+      let photoUrl = '';
 
-      const workoutsData = exercises.map(ex => ({
+      // Subir foto si existe
+      if (postPhoto) {
+        const photoRef = ref(storage, `posts/${auth.currentUser.uid}/${Date.now()}_${postPhoto.name}`);
+        await uploadBytes(photoRef, postPhoto);
+        photoUrl = await getDownloadURL(photoRef);
+      }
+
+      const workoutsData = currentWorkout.exercises.map(ex => ({
         machineName: ex.machineName || ex.name,
         sets: ex.sets,
         reps: ex.reps,
@@ -410,22 +415,38 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
         workouts: workoutsData,
         date: currentWorkout.date,
         timestamp: serverTimestamp(),
-        likes: []
+        likes: [],
+        comment: postComment.trim(),
+        photoUrl: photoUrl
       };
 
-      if (existingPosts.empty) {
-        // Crear nuevo post
-        await addDoc(collection(db, 'posts'), postData);
-      } else {
-        // Actualizar post existente
-        const postDoc = existingPosts.docs[0];
-        await addDoc(collection(db, 'posts'), {
-          ...postData,
-          likes: postDoc.data().likes || []
-        });
-      }
+      await addDoc(collection(db, 'posts'), postData);
+
+      // Resetear formulario de publicación
+      setShowPublishModal(false);
+      setPostComment('');
+      setPostPhoto(null);
+      setPostPhotoPreview('');
+      setSharePublicly(false);
+
+      alert('¡Entrenamiento publicado en MAX SOCIAL! 🎉');
     } catch (error) {
-      console.error('Error creating/updating post:', error);
+      console.error('Error publishing workout:', error);
+      alert('Error al publicar. Inténtalo de nuevo.');
+    } finally {
+      setPublishingPost(false);
+    }
+  };
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPostPhoto(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPostPhotoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -722,8 +743,83 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
               ✅ {currentWorkout.exercises.length} ejercicio{currentWorkout.exercises.length > 1 ? 's' : ''} guardado{currentWorkout.exercises.length > 1 ? 's' : ''} hoy
             </div>
           )}
+
+          {sharePublicly && currentWorkout.exercises.length > 0 && (
+            <button
+              className="publish-button"
+              onClick={() => setShowPublishModal(true)}
+            >
+              🌟 Publicar en MAX SOCIAL
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Modal para publicar */}
+      {showPublishModal && (
+        <div className="modal-overlay" onClick={() => setShowPublishModal(false)}>
+          <div className="modal-content publish-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>🌟 Publicar en MAX SOCIAL</h3>
+            
+            <div className="publish-summary">
+              <p><strong>{currentWorkout.exercises.length}</strong> ejercicio{currentWorkout.exercises.length > 1 ? 's' : ''}</p>
+              <p>Fecha: <strong>{currentWorkout.date}</strong></p>
+            </div>
+
+            <div className="form-group">
+              <label>💬 Comentario (opcional)</label>
+              <textarea
+                value={postComment}
+                onChange={(e) => setPostComment(e.target.value)}
+                placeholder="¿Cómo fue tu entrenamiento? Comparte tu experiencia..."
+                rows={4}
+                maxLength={500}
+              />
+              <span className="char-count">{postComment.length}/500</span>
+            </div>
+
+            <div className="form-group">
+              <label>📸 Foto (opcional)</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoChange}
+              />
+              {postPhotoPreview && (
+                <div className="photo-preview">
+                  <img src={postPhotoPreview} alt="Preview" />
+                  <button 
+                    className="remove-photo-btn"
+                    onClick={() => {
+                      setPostPhoto(null);
+                      setPostPhotoPreview('');
+                    }}
+                  >
+                    ✕ Eliminar foto
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="modal-actions">
+              <button
+                className="secondary-button"
+                onClick={() => setShowPublishModal(false)}
+                disabled={publishingPost}
+              >
+                Cancelar
+              </button>
+              <button
+                className="primary-button"
+                onClick={handlePublishWorkout}
+                disabled={publishingPost}
+              >
+                {publishingPost ? 'Publicando...' : '🚀 Publicar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="workout-history">
         <h3>📊 Ver Historial Completo</h3>
