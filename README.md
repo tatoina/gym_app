@@ -1,17 +1,28 @@
 # gym_app
 
-## 🏋️‍♂️ GymApp - Tracker de Entrenamientos
+## 🏋️‍♂️ MAXGYM - Tracker de Entrenamientos
 
-Una aplicación web desarrollada con React y Firebase para trackear entrenamientos de gimnasio.
+Una aplicación web profesional desarrollada con React y Firebase para trackear entrenamientos de gimnasio con sistema de asignación de tablas.
 
 ## ✨ Características
 
-- **Autenticación de usuarios**: Registro e inicio de sesión con email y contraseña
+### Para Usuarios
+- **Autenticación completa**: Registro con nombre/apellido, login y recuperación de contraseña
 - **Registro de entrenamientos**: Añade ejercicios con series, repeticiones y peso
-- **Historial completo**: Visualiza todos tus entrenamientos anteriores
-- **Máquinas personalizadas**: Crea tu catálogo de máquinas con foto y descripción
+- **Historial con estadísticas**: Visualiza entrenamientos con filtros y gráficos de evolución
+- **Tabla asignada**: Consulta los ejercicios que tu monitor te ha asignado
+- **Máquinas personalizadas**: Visualiza el catálogo de máquinas con foto y descripción
+
+### Para Monitores (max@max.es)
+- **Panel de administración**: Gestión completa de usuarios
+- **Asignación de tablas**: Asigna ejercicios personalizados a cada usuario
+- **Configuración detallada**: Define series, repeticiones y notas para cada ejercicio
+- **Gestión de máquinas**: CRUD completo del catálogo de máquinas
+
+### Técnicas
 - **Interfaz responsive**: Experiencia mobile-first adaptable a cualquier pantalla
 - **PWA instalable**: Se puede instalar en Android, iOS (Safari) y escritorio
+- **Tema oscuro**: Diseño moderno con paleta negro/gris
 - **Tiempo real**: Datos sincronizados con Firebase Firestore
 
 ## 🚀 Tecnologías

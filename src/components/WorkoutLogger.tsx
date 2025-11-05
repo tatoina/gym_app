@@ -19,6 +19,8 @@ interface Machine {
   name: string;
   description?: string;
   photoUrl?: string;
+  userId?: string; // Si está vacío o es null, es máquina global (del admin)
+  isGlobal?: boolean; // Indica si es máquina global del gimnasio
 }
 
 const createEmptyExercise = (): Exercise => ({
@@ -43,7 +45,6 @@ interface WorkoutLoggerProps {
 }
 
 const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) => {
-  const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [currentWorkout, setCurrentWorkout] = useState<Workout>({
     date: new Date().toISOString().split('T')[0],
     exercises: [],
@@ -72,18 +73,35 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
 
     try {
       setLoadingMachines(true);
-      const machinesQuery = query(
+      
+      // Cargar máquinas globales (del admin, isGlobal = true)
+      const globalMachinesQuery = query(
         collection(db, 'machines'),
-        where('userId', '==', auth.currentUser.uid)
+        where('isGlobal', '==', true)
       );
-      const snapshot = await getDocs(machinesQuery);
-      const machinesData: Machine[] = snapshot.docs.map((docSnap) => ({
+      const globalSnapshot = await getDocs(globalMachinesQuery);
+      const globalMachines: Machine[] = globalSnapshot.docs.map((docSnap) => ({
         id: docSnap.id,
         ...(docSnap.data() as Omit<Machine, 'id'>)
       }));
 
-      machinesData.sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
-      setMachines(machinesData);
+      // Cargar máquinas personales del usuario (incluye las antiguas sin isGlobal)
+      const personalMachinesQuery = query(
+        collection(db, 'machines'),
+        where('userId', '==', auth.currentUser.uid)
+      );
+      const personalSnapshot = await getDocs(personalMachinesQuery);
+      const personalMachines: Machine[] = personalSnapshot.docs
+        .map((docSnap) => ({
+          id: docSnap.id,
+          ...(docSnap.data() as Omit<Machine, 'id'>)
+        }))
+        .filter((machine) => machine.isGlobal !== true); // Excluir solo las que sean explícitamente globales
+
+      // Combinar ambas listas y ordenar
+      const allMachines = [...globalMachines, ...personalMachines];
+      allMachines.sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
+      setMachines(allMachines);
     } catch (error) {
       console.error('Error loading machines:', error);
     } finally {
@@ -92,7 +110,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
   };
 
   useEffect(() => {
-    loadWorkouts();
     loadMachines();
   }, []);
 
@@ -124,26 +141,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
       }
     };
   }, [machinePreview]);
-
-  const loadWorkouts = async () => {
-    if (!auth.currentUser) return;
-
-    try {
-      const q = query(
-        collection(db, 'workouts'),
-        where('userId', '==', auth.currentUser.uid),
-        orderBy('date', 'desc')
-      );
-      const querySnapshot = await getDocs(q);
-      const workoutsData: Workout[] = [];
-      querySnapshot.forEach((doc) => {
-        workoutsData.push({ id: doc.id, ...doc.data() } as Workout);
-      });
-      setWorkouts(workoutsData);
-    } catch (error) {
-      console.error('Error loading workouts:', error);
-    }
-  };
 
   const resetMachineForm = () => {
     setMachineForm({
@@ -268,6 +265,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
         // Crear nueva máquina
         const docRef = await addDoc(collection(db, 'machines'), {
           userId: auth.currentUser.uid,
+          isGlobal: false,
           name: trimmedName,
           description: trimmedDescription,
           photoUrl: uploadedPhotoUrl,
@@ -380,30 +378,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
     setExerciseError('');
     setNewExercise(createEmptyExercise());
     setShowAddForm(true);
-  };
-
-  const saveWorkout = async () => {
-    if (!auth.currentUser || currentWorkout.exercises.length === 0) return;
-
-    try {
-      await addDoc(collection(db, 'workouts'), {
-        ...currentWorkout,
-        userId: auth.currentUser.uid,
-        createdAt: new Date()
-      });
-
-      setCurrentWorkout({
-        date: new Date().toISOString().split('T')[0],
-        exercises: [],
-        notes: ''
-      });
-
-      await loadWorkouts();
-      alert('¡Entrenamiento guardado con éxito!');
-    } catch (error) {
-      console.error('Error saving workout:', error);
-      alert('Error al guardar el entrenamiento');
-    }
   };
 
   const removeExercise = (index: number) => {
@@ -519,7 +493,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
               );
             })}
 
-            {showAddForm ? (
+            {showAddForm && (
               <div className="add-exercise-form">
                 {machines.length > 0 ? (
                   <>
@@ -533,7 +507,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
                         <option value="">Selecciona una máquina</option>
                         {machines.map((machine) => (
                           <option key={machine.id} value={machine.id}>
-                            {machine.name}
+                            {machine.isGlobal ? '🏋️ ' : '👤 '}{machine.name}
                           </option>
                         ))}
                       </select>
@@ -548,8 +522,13 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
                             className="machine-summary-photo"
                           />
                         )}
-                        <div>
-                          <p className="machine-summary-name">{selectedMachine.name}</p>
+                        <div className="machine-summary-info">
+                          <div className="machine-summary-header">
+                            <p className="machine-summary-name">{selectedMachine.name}</p>
+                            <span className={`machine-badge ${selectedMachine.isGlobal ? 'global' : 'personal'}`}>
+                              {selectedMachine.isGlobal ? '🏋️ Gimnasio' : '👤 Personal'}
+                            </span>
+                          </div>
                           {selectedMachine.description && (
                             <p className="machine-summary-description">{selectedMachine.description}</p>
                           )}
@@ -636,14 +615,13 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
                   </>
                 ) : (
                   <div className="machines-empty-message">
-                    <p>Registra tu primera máquina para poder añadir ejercicios.</p>
-                    <button type="button" className="primary-button" onClick={openMachineModalForNew}>
-                      + Añadir máquina
-                    </button>
+                    <p>Cargando máquinas...</p>
                   </div>
                 )}
               </div>
-            ) : (
+            )}
+
+            {!showAddForm && (
               <button
                 onClick={handleAddExerciseClick}
                 className="add-exercise-btn"
@@ -664,7 +642,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
 
       <div className="workout-history">
         <h3>📊 Ver Historial Completo</h3>
-        <p style={{marginBottom: '1rem', color: '#666'}}>
+        <p style={{marginBottom: '1rem', color: '#b0b0b0'}}>
           Visualiza tus entrenamientos, filtra por fecha o máquina, y observa tu evolución con gráficos detallados.
         </p>
         <button
@@ -674,47 +652,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
         >
           Abrir Historial y Estadísticas
         </button>
-      </div>
-
-      <div className="workout-history" style={{marginTop: '2rem'}}>
-        <h3>Últimos Entrenamientos</h3>
-        {workouts.length === 0 ? (
-          <p>No tienes entrenamientos registrados aún.</p>
-        ) : (
-          workouts.map((workout, index) => (
-            <div key={workout.id || index} className="workout-item">
-              <h4>{new Date(workout.date).toLocaleDateString('es-ES')}</h4>
-              <div className="exercises-list">
-                {workout.exercises.map((exercise, i) => {
-                  const machineLabel = exercise.machineName || exercise.name || 'Máquina no especificada';
-                  const hasCustomName = exercise.name && exercise.machineName && exercise.name !== exercise.machineName;
-
-                  return (
-                    <div key={i} className="exercise-summary">
-                      <div className="exercise-summary-header">
-                        {exercise.machinePhotoUrl && (
-                          <img
-                            src={exercise.machinePhotoUrl}
-                            alt={machineLabel}
-                            className="exercise-summary-photo"
-                          />
-                        )}
-                        <div>
-                          <p className="exercise-summary-machine">{machineLabel}</p>
-                          {hasCustomName && <p className="exercise-summary-name">{exercise.name}</p>}
-                        </div>
-                      </div>
-                      <p className="exercise-summary-meta">
-                        {exercise.sets} series × {exercise.reps} repeticiones @ {exercise.weight} kg
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-              {workout.notes && <p className="workout-notes">📝 {workout.notes}</p>}
-            </div>
-          ))
-        )}
       </div>
 
       {machineModalOpen && (

@@ -27,7 +27,22 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
 
     try {
       if (isLogin) {
-        await signInWithEmailAndPassword(auth, email, password);
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        
+        // Verificar si el usuario tiene documento en Firestore, si no, crearlo
+        const { getDoc } = await import('firebase/firestore');
+        const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
+        
+        if (!userDoc.exists()) {
+          // Crear documento para usuarios que no lo tienen
+          await setDoc(doc(db, 'users', userCredential.user.uid), {
+            firstName: 'Usuario',
+            lastName: '',
+            email: userCredential.user.email || email,
+            createdAt: new Date()
+          });
+        }
+        
         onAuthSuccess();
       } else {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);

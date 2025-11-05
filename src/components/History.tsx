@@ -58,16 +58,17 @@ const History: React.FC<HistoryProps> = ({ onBack }) => {
       }));
       setWorkouts(workoutsData);
 
-      // Cargar máquinas
-      const machinesQuery = query(
-        collection(db, 'machines'),
-        where('userId', '==', auth.currentUser.uid)
-      );
-      const machinesSnapshot = await getDocs(machinesQuery);
-      const machinesData: Machine[] = machinesSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        name: doc.data().name
-      }));
+      // Extraer máquinas únicas de los entrenamientos del usuario
+      const uniqueMachinesMap = new Map<string, Machine>();
+      workoutsData.forEach((workout) => {
+        if (workout.machineId && workout.machineName) {
+          uniqueMachinesMap.set(workout.machineId, {
+            id: workout.machineId,
+            name: workout.machineName
+          });
+        }
+      });
+      const machinesData: Machine[] = Array.from(uniqueMachinesMap.values());
       setMachines(machinesData);
     } catch (error) {
       console.error('Error loading data:', error);

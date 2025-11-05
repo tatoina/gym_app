@@ -351,15 +351,46 @@
   box-shadow: 0 6px 12px rgba(13, 110, 253, 0.25);
 }
 
+.machine-summary-info {
+  flex: 1;
+}
+
+.machine-summary-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .machine-summary-name {
   margin: 0;
   font-weight: 600;
-  color: #14213d;
+  color: #e0e0e0;
+}
+
+.machine-badge {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.machine-badge.global {
+  background: rgba(81, 207, 102, 0.2);
+  color: #51cf66;
+  border: 1px solid rgba(81, 207, 102, 0.3);
+}
+
+.machine-badge.personal {
+  background: rgba(116, 145, 255, 0.2);
+  color: #7491ff;
+  border: 1px solid rgba(116, 145, 255, 0.3);
 }
 
 .machine-summary-description {
   margin: 0.35rem 0 0;
-  color: #495057;
+  color: #b0b0b0;
   font-size: 0.9rem;
 }
 
