@@ -44,17 +44,27 @@ const History: React.FC<HistoryProps> = ({ onBack }) => {
     try {
       setLoading(true);
 
-      // Cargar entrenamientos
+      // Cargar entrenamientos (sin orderBy para evitar índice compuesto)
       const workoutsQuery = query(
         collection(db, 'workouts'),
-        where('userId', '==', auth.currentUser.uid),
-        orderBy('createdAt', 'desc')
+        where('userId', '==', auth.currentUser.uid)
       );
       const workoutsSnapshot = await getDocs(workoutsQuery);
-      const workoutsData: WorkoutRecord[] = workoutsSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...(doc.data() as Omit<WorkoutRecord, 'id'>)
-      }));
+      const workoutsData: WorkoutRecord[] = workoutsSnapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          date: data.date,
+          name: data.name,
+          sets: data.sets,
+          reps: data.reps,
+          weight: data.weight,
+          machineId: data.machineId,
+          machineName: data.machineName,
+          machinePhotoUrl: data.machinePhotoUrl,
+          createdAt: data.createdAt
+        };
+      });
       
       console.log('Workouts cargados:', workoutsData.length, workoutsData);
       
@@ -62,9 +72,28 @@ const History: React.FC<HistoryProps> = ({ onBack }) => {
       workoutsData.sort((a, b) => {
         const dateCompare = b.date.localeCompare(a.date);
         if (dateCompare !== 0) return dateCompare;
-        const dateA = a.createdAt instanceof Date ? a.createdAt : new Date((a.createdAt as any)?.seconds * 1000);
-        const dateB = b.createdAt instanceof Date ? b.createdAt : new Date((b.createdAt as any)?.seconds * 1000);
-        return dateB.getTime() - dateA.getTime();
+        
+        // Manejar tanto Timestamps de Firestore como objetos Date
+        let timeA = 0;
+        let timeB = 0;
+        
+        if (a.createdAt) {
+          if (typeof (a.createdAt as any).seconds === 'number') {
+            timeA = (a.createdAt as any).seconds * 1000;
+          } else if (a.createdAt instanceof Date) {
+            timeA = a.createdAt.getTime();
+          }
+        }
+        
+        if (b.createdAt) {
+          if (typeof (b.createdAt as any).seconds === 'number') {
+            timeB = (b.createdAt as any).seconds * 1000;
+          } else if (b.createdAt instanceof Date) {
+            timeB = b.createdAt.getTime();
+          }
+        }
+        
+        return timeB - timeA;
       });
       
       setWorkouts(workoutsData);
