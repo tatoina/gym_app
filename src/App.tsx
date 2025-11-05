@@ -6,9 +6,10 @@ import WorkoutLogger from './components/WorkoutLogger';
 import History from './components/History';
 import AssignedTable from './components/AssignedTable';
 import AdminPanel from './components/AdminPanel';
+import SocialFeed from './components/SocialFeed';
 import './App.css';
 
-type View = 'workout' | 'history' | 'assigned' | 'admin';
+type View = 'workout' | 'history' | 'assigned' | 'social' | 'admin';
 
 const ADMIN_EMAIL = 'max@max.es';
 
@@ -89,6 +90,12 @@ function App() {
               >
                 📋 Mi Tabla
               </button>
+              <button
+                className={`nav-btn ${currentView === 'social' ? 'active' : ''}`}
+                onClick={() => setCurrentView('social')}
+              >
+                🌟 MAX SOCIAL
+              </button>
             </div>
           )}
           <div className="user-info">
@@ -111,6 +118,7 @@ function App() {
               <History onBack={() => setCurrentView('workout')} />
             )}
             {currentView === 'assigned' && <AssignedTable />}
+            {currentView === 'social' && <SocialFeed />}
           </>
         )}
       </main>

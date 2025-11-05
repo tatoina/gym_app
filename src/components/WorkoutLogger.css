@@ -16,6 +16,33 @@
   margin-bottom: 1rem;
 }
 
+.workout-form .share-toggle {
+  background: rgba(255, 215, 0, 0.1);
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+.workout-form .checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  margin: 0;
+}
+
+.workout-form .checkbox-label input[type="checkbox"] {
+  width: auto;
+  cursor: pointer;
+  transform: scale(1.2);
+}
+
+.workout-form .checkbox-label span {
+  color: #FFD700;
+  font-weight: 600;
+  font-size: 15px;
+}
+
 .workout-form label {
   display: block;
   margin-bottom: 0.5rem;

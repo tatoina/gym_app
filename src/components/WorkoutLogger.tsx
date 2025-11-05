@@ -67,6 +67,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
   const [machinePreview, setMachinePreview] = useState<string>('');
   const [exerciseError, setExerciseError] = useState('');
   const [showMachinesManager, setShowMachinesManager] = useState(false);
+  const [sharePublicly, setSharePublicly] = useState(false);
 
   const loadMachines = async () => {
     if (!auth.currentUser) return;
@@ -361,10 +362,17 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
         machinePhotoUrl: machine?.photoUrl || newExercise.machinePhotoUrl
       };
 
+      const updatedExercises = [...currentWorkout.exercises, exerciseToAdd];
+
       setCurrentWorkout((prev) => ({
         ...prev,
-        exercises: [...prev.exercises, exerciseToAdd]
+        exercises: updatedExercises
       }));
+
+      // Si está activado "Compartir públicamente", crear/actualizar post
+      if (sharePublicly && auth.currentUser) {
+        await createOrUpdatePost(updatedExercises);
+      }
 
       setExerciseError('');
       setNewExercise(createEmptyExercise());
@@ -372,6 +380,52 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
     } catch (error) {
       console.error('Error saving exercise:', error);
       setExerciseError('Error al guardar el ejercicio. Inténtalo nuevamente.');
+    }
+  };
+
+  const createOrUpdatePost = async (exercises: Exercise[]) => {
+    if (!auth.currentUser || exercises.length === 0) return;
+
+    try {
+      // Buscar si ya existe un post para este usuario y fecha
+      const postsRef = collection(db, 'posts');
+      const q = query(
+        postsRef,
+        where('userId', '==', auth.currentUser.uid),
+        where('date', '==', currentWorkout.date)
+      );
+      const existingPosts = await getDocs(q);
+
+      const workoutsData = exercises.map(ex => ({
+        machineName: ex.machineName || ex.name,
+        sets: ex.sets,
+        reps: ex.reps,
+        weight: ex.weight
+      }));
+
+      const postData = {
+        userId: auth.currentUser.uid,
+        userName: auth.currentUser.displayName || 'Usuario',
+        userEmail: auth.currentUser.email || '',
+        workouts: workoutsData,
+        date: currentWorkout.date,
+        timestamp: serverTimestamp(),
+        likes: []
+      };
+
+      if (existingPosts.empty) {
+        // Crear nuevo post
+        await addDoc(collection(db, 'posts'), postData);
+      } else {
+        // Actualizar post existente
+        const postDoc = existingPosts.docs[0];
+        await addDoc(collection(db, 'posts'), {
+          ...postData,
+          likes: postDoc.data().likes || []
+        });
+      }
+    } catch (error) {
+      console.error('Error creating/updating post:', error);
     }
   };
 
@@ -414,6 +468,17 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
               value={currentWorkout.date}
               onChange={(e) => setCurrentWorkout(prev => ({ ...prev, date: e.target.value }))}
             />
+          </div>
+
+          <div className="form-group share-toggle">
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                checked={sharePublicly}
+                onChange={(e) => setSharePublicly(e.target.checked)}
+              />
+              <span>🌟 Compartir públicamente en MAX SOCIAL</span>
+            </label>
           </div>
 
           <div className="exercises-section">
