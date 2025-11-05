@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, orderBy, getDocs, doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs, doc, updateDoc, arrayUnion, arrayRemove, deleteDoc } from 'firebase/firestore';
 import { auth, db } from '../services/firebase';
 import './SocialFeed.css';
 
@@ -90,6 +90,20 @@ const SocialFeed: React.FC = () => {
     }
   };
 
+  const handleDeletePost = async (postId: string) => {
+    const confirmed = window.confirm('¿Estás seguro de que quieres eliminar esta publicación?');
+    
+    if (!confirmed) return;
+
+    try {
+      await deleteDoc(doc(db, 'posts', postId));
+      setPosts(posts.filter(post => post.id !== postId));
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      alert('Error al eliminar la publicación. Inténtalo de nuevo.');
+    }
+  };
+
   const formatDate = (date: Date) => {
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
@@ -154,6 +168,15 @@ const SocialFeed: React.FC = () => {
                     <span className="user-name">{post.userEmail.split('@')[0]}</span>
                     <span className="post-time">{formatDate(post.timestamp)}</span>
                   </div>
+                  {post.userId === currentUserId && (
+                    <button 
+                      className="delete-post-btn"
+                      onClick={() => handleDeletePost(post.id)}
+                      title="Eliminar publicación"
+                    >
+                      🗑️
+                    </button>
+                  )}
                 </div>
 
                 <div className="post-content">
