@@ -68,6 +68,9 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
     return (
       <div className="auth-container">
         <div className="auth-card">
+          <div className="auth-logo">
+            <img src="/icons/icon-512.png" alt="MAXGYM Logo" />
+          </div>
           <h2>Recuperar Contraseña</h2>
           
           <form onSubmit={handleResetPassword}>
@@ -111,6 +114,9 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
   return (
     <div className="auth-container">
       <div className="auth-card">
+        <div className="auth-logo">
+          <img src="/icons/icon-512.png" alt="MAXGYM Logo" />
+        </div>
         <h2>{isLogin ? 'Iniciar Sesión' : 'Registrarse'}</h2>
         
         <form onSubmit={handleSubmit}>

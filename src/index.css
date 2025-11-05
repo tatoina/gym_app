@@ -4,8 +4,8 @@ body {
     'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: linear-gradient(180deg, #e7f1ff 0%, #eef2ff 40%, #f8f9fa 100%);
-  color: #1f2933;
+  background: linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%);
+  color: #e0e0e0;
 }
 
 code {
@@ -19,4 +19,14 @@ code {
 
 a {
   color: inherit;
+}
+
+h2, h3, h4, h5 {
+  color: #e0e0e0;
+}
+
+input::placeholder,
+textarea::placeholder,
+select {
+  color: #666;
 }
