@@ -48,7 +48,6 @@ const History: React.FC<HistoryProps> = ({ onBack }) => {
       const workoutsQuery = query(
         collection(db, 'workouts'),
         where('userId', '==', auth.currentUser.uid),
-        orderBy('date', 'desc'),
         orderBy('createdAt', 'desc')
       );
       const workoutsSnapshot = await getDocs(workoutsQuery);
@@ -56,6 +55,14 @@ const History: React.FC<HistoryProps> = ({ onBack }) => {
         id: doc.id,
         ...(doc.data() as Omit<WorkoutRecord, 'id'>)
       }));
+      
+      // Ordenar por fecha y createdAt en el cliente
+      workoutsData.sort((a, b) => {
+        const dateCompare = b.date.localeCompare(a.date);
+        if (dateCompare !== 0) return dateCompare;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+      
       setWorkouts(workoutsData);
 
       // Extraer máquinas únicas de los entrenamientos del usuario
