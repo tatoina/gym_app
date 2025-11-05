@@ -110,6 +110,56 @@
   font-weight: bold;
 }
 
+.max-weights-by-machine {
+  background: linear-gradient(145deg, #2d2d2d 0%, #1f1f1f 100%);
+  padding: 25px;
+  border-radius: 12px;
+  margin-bottom: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.max-weights-by-machine h3 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: #e0e0e0;
+  font-size: 20px;
+}
+
+.machine-max-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 15px;
+}
+
+.machine-max-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 15px 20px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.machine-max-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.machine-name {
+  color: #e0e0e0;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.machine-weight {
+  color: #4CAF50;
+  font-weight: bold;
+  font-size: 18px;
+}
+
 .grouped-workouts {
   display: flex;
   flex-direction: column;

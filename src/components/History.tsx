@@ -26,12 +26,26 @@ interface HistoryProps {
 }
 
 const History: React.FC<HistoryProps> = ({ onBack }) => {
+  // Calcular fechas por defecto: última semana
+  const getDefaultDates = () => {
+    const today = new Date();
+    const weekAgo = new Date();
+    weekAgo.setDate(today.getDate() - 7);
+    
+    return {
+      from: weekAgo.toISOString().split('T')[0],
+      to: today.toISOString().split('T')[0]
+    };
+  };
+
+  const defaultDates = getDefaultDates();
+
   const [workouts, setWorkouts] = useState<WorkoutRecord[]>([]);
   const [machines, setMachines] = useState<Machine[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterMachine, setFilterMachine] = useState<string>('');
-  const [filterDateFrom, setFilterDateFrom] = useState<string>('');
-  const [filterDateTo, setFilterDateTo] = useState<string>('');
+  const [filterDateFrom, setFilterDateFrom] = useState<string>(defaultDates.from);
+  const [filterDateTo, setFilterDateTo] = useState<string>(defaultDates.to);
   const [groupBy, setGroupBy] = useState<'date' | 'machine'>('date');
 
   useEffect(() => {
@@ -123,6 +137,25 @@ const History: React.FC<HistoryProps> = ({ onBack }) => {
     if (filterDateTo && workout.date > filterDateTo) return false;
     return true;
   });
+
+  // Calcular peso máximo por máquina
+  const getMaxWeightByMachine = () => {
+    const maxByMachine = new Map<string, { name: string; weight: number }>();
+    
+    filteredWorkouts.forEach((workout) => {
+      const currentWeight = Number(workout.weight) || 0;
+      const existing = maxByMachine.get(workout.machineId);
+      
+      if (!existing || currentWeight > existing.weight) {
+        maxByMachine.set(workout.machineId, {
+          name: workout.machineName,
+          weight: currentWeight
+        });
+      }
+    });
+    
+    return Array.from(maxByMachine.values()).sort((a, b) => b.weight - a.weight);
+  };
 
   const groupedData = (): [string, WorkoutRecord[]][] => {
     if (groupBy === 'date') {
@@ -219,9 +252,11 @@ const History: React.FC<HistoryProps> = ({ onBack }) => {
           <p className="stat-value">{filteredWorkouts.length}</p>
         </div>
         <div className="stat-card">
-          <h4>Peso Total Levantado</h4>
+          <h4>Peso Máximo Alcanzado</h4>
           <p className="stat-value">
-            {filteredWorkouts.reduce((sum, w) => sum + w.weight * w.sets * w.reps, 0).toFixed(0)} kg
+            {filteredWorkouts.length > 0 
+              ? Math.max(...filteredWorkouts.map(w => Number(w.weight) || 0)).toFixed(0)
+              : 0} kg
           </p>
         </div>
         <div className="stat-card">
@@ -231,6 +266,20 @@ const History: React.FC<HistoryProps> = ({ onBack }) => {
           </p>
         </div>
       </div>
+
+      {filteredWorkouts.length > 0 && (
+        <div className="max-weights-by-machine">
+          <h3>Peso Máximo por Máquina</h3>
+          <div className="machine-max-grid">
+            {getMaxWeightByMachine().map((machine, index) => (
+              <div key={index} className="machine-max-card">
+                <span className="machine-name">{machine.name}</span>
+                <span className="machine-weight">{machine.weight.toFixed(0)} kg</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grouped-workouts">
         {groupedData().map(([key, records]) => {
