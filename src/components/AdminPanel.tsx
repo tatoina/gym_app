@@ -329,7 +329,7 @@ const AdminPanel: React.FC = () => {
     setShowMachineForm(true);
   };
 
-  const deleteMachine = async (machine: Machine) => {
+  const deleteMachine = async (machine: Machine, forceDelete = false) => {
     try {
       setMessage(null);
       
@@ -337,24 +337,47 @@ const AdminPanel: React.FC = () => {
       const tablesQuery = query(collection(db, 'assignedTables'));
       const tablesSnapshot = await getDocs(tablesQuery);
       
-      let isBeingUsed = false;
+      const affectedTables: { docId: string, exercises: any[], userId: string }[] = [];
+      
       tablesSnapshot.forEach(doc => {
         const data = doc.data();
         if (data.exercises && data.exercises.some((ex: any) => ex.machineId === machine.id)) {
-          isBeingUsed = true;
+          affectedTables.push({
+            docId: doc.id,
+            exercises: data.exercises,
+            userId: data.userId
+          });
         }
       });
 
-      if (isBeingUsed) {
-        setMessage({ 
-          type: 'error', 
-          text: 'No se puede eliminar la máquina porque está siendo usada en tablas asignadas' 
-        });
+      // Si está siendo usada y no es eliminación forzada, mostrar información
+      if (affectedTables.length > 0 && !forceDelete) {
+        // Actualizar el estado para mostrar el modal con información detallada
+        setMachineToDelete({ 
+          ...machine, 
+          affectedTables: affectedTables.length,
+          needsConfirmation: true 
+        } as any);
         return;
       }
 
-      // Eliminar documento de Firestore
-      await deleteDoc(doc(db, 'machines', machine.id));
+      // Proceder con la eliminación
+      const batch = writeBatch(db);
+
+      // Eliminar la máquina
+      batch.delete(doc(db, 'machines', machine.id));
+
+      // Si hay tablas afectadas, actualizar cada una eliminando los ejercicios con esta máquina
+      affectedTables.forEach(({ docId, exercises }) => {
+        const updatedExercises = exercises.filter((ex: any) => ex.machineId !== machine.id);
+        const tableRef = doc(db, 'assignedTables', docId);
+        batch.update(tableRef, { 
+          exercises: updatedExercises,
+          updatedAt: serverTimestamp()
+        });
+      });
+
+      await batch.commit();
 
       // Eliminar foto de Storage si existe
       if (machine.photoUrl) {
@@ -363,11 +386,14 @@ const AdminPanel: React.FC = () => {
           await deleteObject(photoRef);
         } catch (storageError) {
           console.log('Error deleting photo from storage:', storageError);
-          // No fallar si no se puede eliminar la foto
         }
       }
 
-      setMessage({ type: 'success', text: 'Máquina eliminada correctamente' });
+      const message = affectedTables.length > 0 
+        ? `Máquina eliminada correctamente. Se han actualizado ${affectedTables.length} tabla(s) de usuarios.`
+        : 'Máquina eliminada correctamente';
+
+      setMessage({ type: 'success', text: message });
       setMachineToDelete(null);
       await loadData();
     } catch (error) {
@@ -502,8 +528,29 @@ const AdminPanel: React.FC = () => {
           <div className="modal-overlay">
             <div className="modal-content delete-modal">
               <h3>⚠️ Confirmar Eliminación</h3>
-              <p>¿Estás seguro de que quieres eliminar la máquina <strong>"{machineToDelete.name}"</strong>?</p>
-              <p className="warning-text">Esta acción no se puede deshacer.</p>
+              
+              {(machineToDelete as any).needsConfirmation && (
+                <div className="delete-warning">
+                  <div className="warning-content">
+                    <p><strong>Esta máquina está siendo usada en {(machineToDelete as any).affectedTables} tabla(s) de usuarios.</strong></p>
+                    <p>Si procedes con la eliminación:</p>
+                    <ul>
+                      <li>La máquina <strong>"{machineToDelete.name}"</strong> será eliminada permanentemente</li>
+                      <li>Los ejercicios con esta máquina serán removidos de todas las tablas de usuarios</li>
+                      <li>Los usuarios afectados perderán esos ejercicios de sus rutinas actuales</li>
+                    </ul>
+                    <p>¿Estás seguro de que quieres continuar?</p>
+                  </div>
+                </div>
+              )}
+              
+              {!(machineToDelete as any).needsConfirmation && (
+                <>
+                  <p>¿Estás seguro de que quieres eliminar la máquina <strong>"{machineToDelete.name}"</strong>?</p>
+                  <p className="warning-text">Esta acción no se puede deshacer.</p>
+                </>
+              )}
+              
               <div className="modal-actions">
                 <button 
                   onClick={() => setMachineToDelete(null)}
@@ -512,10 +559,10 @@ const AdminPanel: React.FC = () => {
                   Cancelar
                 </button>
                 <button 
-                  onClick={() => deleteMachine(machineToDelete)}
+                  onClick={() => deleteMachine(machineToDelete, true)}
                   className="confirm-delete-btn"
                 >
-                  🗑️ Eliminar
+                  {(machineToDelete as any).needsConfirmation ? '⚠️ Confirmar Eliminación' : '🗑️ Eliminar'}
                 </button>
               </div>
             </div>
