@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, query, where, doc, setDoc, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, getDocs, query, where, doc, setDoc, addDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { auth, db, storage } from '../services/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import './AdminPanel.css';
@@ -34,6 +34,8 @@ interface AssignedTableData {
   assignedByName: string;
   createdAt: any;
   updatedAt: any;
+  status: 'ACTIVA' | 'COMPLETADA';
+  completedAt?: any;
 }
 
 const AdminPanel: React.FC = () => {
@@ -184,24 +186,33 @@ const AdminPanel: React.FC = () => {
         assignedBy: auth.currentUser.uid,
         assignedByName: currentUserData ? `${currentUserData.firstName} ${currentUserData.lastName}` : 'Monitor',
         createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
+        updatedAt: serverTimestamp(),
+        status: 'ACTIVA'
       };
 
-      // Buscar si ya existe una tabla para este usuario
+      // Buscar tablas activas existentes para este usuario
       const q = query(
         collection(db, 'assignedTables'),
-        where('userId', '==', selectedUserId)
+        where('userId', '==', selectedUserId),
+        where('status', '==', 'ACTIVA')
       );
       const snapshot = await getDocs(q);
 
-      if (!snapshot.empty) {
-        // Actualizar existente
-        const docId = snapshot.docs[0].id;
-        await setDoc(doc(db, 'assignedTables', docId), tableData);
-      } else {
-        // Crear nueva
-        await addDoc(collection(db, 'assignedTables'), tableData);
-      }
+      // Marcar todas las tablas activas como completadas
+      const batch = writeBatch(db);
+      snapshot.docs.forEach((docSnapshot) => {
+        const docRef = doc(db, 'assignedTables', docSnapshot.id);
+        batch.update(docRef, {
+          status: 'COMPLETADA',
+          updatedAt: serverTimestamp()
+        });
+      });
+
+      // Crear la nueva tabla activa
+      const newTableRef = doc(collection(db, 'assignedTables'));
+      batch.set(newTableRef, tableData);
+
+      await batch.commit();
 
       setMessage({ 
         type: 'success', 

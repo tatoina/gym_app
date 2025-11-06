@@ -6,6 +6,13 @@
 
 .assigned-table-header {
   margin-bottom: 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.assigned-table-header div {
+  flex: 1;
 }
 
 .assigned-table-header h1 {
@@ -13,6 +20,24 @@
   color: #e0e0e0;
   font-size: 28px;
   font-weight: 700;
+}
+
+.history-button {
+  padding: 10px 20px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #e0e0e0;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.history-button:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.25);
 }
 
 .assigned-by {
@@ -173,5 +198,110 @@
   .exercise-photo {
     width: 100%;
     height: 200px;
+  }
+}
+
+/* Estilos para múltiples tablas */
+.tables-count {
+  color: #b0b0b0;
+  font-size: 14px;
+  margin: 5px 0 0 0;
+}
+
+.table-card {
+  background: linear-gradient(145deg, #2d2d2d 0%, #1f1f1f 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  margin-bottom: 30px;
+  overflow: hidden;
+}
+
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 20px 20px 15px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.table-info h2 {
+  margin: 0 0 8px 0;
+  color: #FFD700;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.table-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-active {
+  background: rgba(76, 175, 80, 0.2);
+  color: #4CAF50;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.complete-button {
+  padding: 8px 16px;
+  background: linear-gradient(145deg, #4CAF50, #45a049);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.complete-button:hover {
+  background: linear-gradient(145deg, #45a049, #4CAF50);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+.complete-button:active {
+  transform: translateY(0);
+}
+
+/* Responsive para acciones de tabla */
+@media (max-width: 768px) {
+  .assigned-table-header {
+    flex-direction: column;
+    gap: 15px;
+    align-items: stretch;
+  }
+  
+  .history-button {
+    align-self: flex-start;
+  }
+  
+  .table-header {
+    flex-direction: column;
+    gap: 15px;
+    align-items: stretch;
+  }
+  
+  .table-actions {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .complete-button {
+    padding: 10px 16px;
+    font-size: 14px;
   }
 }
