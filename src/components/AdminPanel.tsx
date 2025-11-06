@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, query, where, doc, setDoc, addDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { collection, getDocs, query, where, doc, setDoc, addDoc, serverTimestamp, writeBatch, deleteDoc, updateDoc } from 'firebase/firestore';
 import { auth, db, storage } from '../services/firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import './AdminPanel.css';
 
 interface User {
@@ -15,6 +15,8 @@ interface Machine {
   id: string;
   name: string;
   photoUrl?: string;
+  description?: string;
+  isGlobal?: boolean;
 }
 
 interface AssignedExercise {
@@ -60,12 +62,16 @@ const AdminPanel: React.FC = () => {
   // Formulario para nueva máquina global
   const [showMachineForm, setShowMachineForm] = useState(false);
   const [machineForm, setMachineForm] = useState({
+    id: '',
     name: '',
     description: '',
     photoFile: null as File | null,
-    photoPreview: ''
+    photoPreview: '',
+    existingPhotoUrl: ''
   });
   const [machineFormLoading, setMachineFormLoading] = useState(false);
+  const [editingMachine, setEditingMachine] = useState<Machine | null>(null);
+  const [machineToDelete, setMachineToDelete] = useState<Machine | null>(null);
 
   useEffect(() => {
     loadData();
@@ -248,30 +254,125 @@ const AdminPanel: React.FC = () => {
       setMachineFormLoading(true);
       setMessage(null);
 
-      let photoUrl = '';
+      let photoUrl = machineForm.existingPhotoUrl;
+      
+      // Si hay una nueva foto, subirla
       if (machineForm.photoFile) {
         const fileRef = ref(storage, `machines/global/${Date.now()}-${machineForm.photoFile.name}`);
         await uploadBytes(fileRef, machineForm.photoFile);
         photoUrl = await getDownloadURL(fileRef);
+
+        // Si estamos editando y había una foto anterior, eliminarla
+        if (editingMachine && machineForm.existingPhotoUrl) {
+          try {
+            const oldPhotoRef = ref(storage, machineForm.existingPhotoUrl);
+            await deleteObject(oldPhotoRef);
+          } catch (error) {
+            console.log('Error deleting old photo:', error);
+          }
+        }
       }
 
-      await addDoc(collection(db, 'machines'), {
+      const machineData = {
         isGlobal: true,
         name: machineForm.name.trim(),
         description: machineForm.description.trim(),
         photoUrl: photoUrl,
-        createdAt: new Date()
-      });
+        updatedAt: new Date()
+      };
 
-      setMessage({ type: 'success', text: 'Máquina global creada correctamente' });
-      setMachineForm({ name: '', description: '', photoFile: null, photoPreview: '' });
-      setShowMachineForm(false);
+      if (editingMachine) {
+        // Actualizar máquina existente
+        await updateDoc(doc(db, 'machines', machineForm.id), machineData);
+      } else {
+        // Crear nueva máquina
+        await addDoc(collection(db, 'machines'), {
+          ...machineData,
+          createdAt: new Date()
+        });
+      }
+
+      setMessage({ type: 'success', text: editingMachine ? 'Máquina actualizada correctamente' : 'Máquina global creada correctamente' });
+      resetMachineForm();
       await loadData();
     } catch (error) {
-      console.error('Error creating global machine:', error);
-      setMessage({ type: 'error', text: 'Error al crear la máquina' });
+      console.error('Error saving global machine:', error);
+      setMessage({ type: 'error', text: 'Error al guardar la máquina' });
     } finally {
       setMachineFormLoading(false);
+    }
+  };
+
+  const resetMachineForm = () => {
+    setMachineForm({ 
+      id: '',
+      name: '', 
+      description: '', 
+      photoFile: null, 
+      photoPreview: '',
+      existingPhotoUrl: ''
+    });
+    setShowMachineForm(false);
+    setEditingMachine(null);
+  };
+
+  const startEditMachine = (machine: Machine) => {
+    setEditingMachine(machine);
+    setMachineForm({
+      id: machine.id,
+      name: machine.name,
+      description: machine.description || '',
+      photoFile: null,
+      photoPreview: machine.photoUrl || '',
+      existingPhotoUrl: machine.photoUrl || ''
+    });
+    setShowMachineForm(true);
+  };
+
+  const deleteMachine = async (machine: Machine) => {
+    try {
+      setMessage(null);
+      
+      // Verificar si la máquina está siendo usada en tablas asignadas
+      const tablesQuery = query(collection(db, 'assignedTables'));
+      const tablesSnapshot = await getDocs(tablesQuery);
+      
+      let isBeingUsed = false;
+      tablesSnapshot.forEach(doc => {
+        const data = doc.data();
+        if (data.exercises && data.exercises.some((ex: any) => ex.machineId === machine.id)) {
+          isBeingUsed = true;
+        }
+      });
+
+      if (isBeingUsed) {
+        setMessage({ 
+          type: 'error', 
+          text: 'No se puede eliminar la máquina porque está siendo usada en tablas asignadas' 
+        });
+        return;
+      }
+
+      // Eliminar documento de Firestore
+      await deleteDoc(doc(db, 'machines', machine.id));
+
+      // Eliminar foto de Storage si existe
+      if (machine.photoUrl) {
+        try {
+          const photoRef = ref(storage, machine.photoUrl);
+          await deleteObject(photoRef);
+        } catch (storageError) {
+          console.log('Error deleting photo from storage:', storageError);
+          // No fallar si no se puede eliminar la foto
+        }
+      }
+
+      setMessage({ type: 'success', text: 'Máquina eliminada correctamente' });
+      setMachineToDelete(null);
+      await loadData();
+    } catch (error) {
+      console.error('Error deleting machine:', error);
+      setMessage({ type: 'error', text: 'Error al eliminar la máquina' });
     }
   };
 
@@ -347,22 +448,79 @@ const AdminPanel: React.FC = () => {
               </div>
 
               <button type="submit" disabled={machineFormLoading} className="submit-machine-btn">
-                {machineFormLoading ? 'Creando...' : '💾 Crear Máquina Global'}
+                {machineFormLoading ? (editingMachine ? 'Actualizando...' : 'Creando...') : (editingMachine ? '💾 Actualizar Máquina' : '💾 Crear Máquina Global')}
               </button>
+              {editingMachine && (
+                <button type="button" onClick={resetMachineForm} className="cancel-edit-btn">
+                  ✖ Cancelar Edición
+                </button>
+              )}
             </form>
           )}
 
           <div className="machines-list">
             {machines.map((machine) => (
               <div key={machine.id} className="machine-card">
-                {machine.photoUrl && (
-                  <img src={machine.photoUrl} alt={machine.name} className="machine-photo" />
+                <div className="machine-info">
+                  {machine.photoUrl && (
+                    <img src={machine.photoUrl} alt={machine.name} className="machine-photo" />
+                  )}
+                  <div className="machine-details">
+                    <span className="machine-name">{machine.name}</span>
+                    {machine.description && (
+                      <span className="machine-description">{machine.description}</span>
+                    )}
+                    <span className="machine-type">{machine.isGlobal ? '🌐 Global' : '👤 Personal'}</span>
+                  </div>
+                </div>
+                
+                {machine.isGlobal && (
+                  <div className="machine-actions">
+                    <button 
+                      onClick={() => startEditMachine(machine)}
+                      className="edit-machine-btn"
+                      title="Editar máquina"
+                    >
+                      ✏️
+                    </button>
+                    <button 
+                      onClick={() => setMachineToDelete(machine)}
+                      className="delete-machine-btn"
+                      title="Eliminar máquina"
+                    >
+                      🗑️
+                    </button>
+                  </div>
                 )}
-                <span className="machine-name">{machine.name}</span>
               </div>
             ))}
           </div>
         </div>
+
+        {/* Modal de confirmación para eliminar */}
+        {machineToDelete && (
+          <div className="modal-overlay">
+            <div className="modal-content delete-modal">
+              <h3>⚠️ Confirmar Eliminación</h3>
+              <p>¿Estás seguro de que quieres eliminar la máquina <strong>"{machineToDelete.name}"</strong>?</p>
+              <p className="warning-text">Esta acción no se puede deshacer.</p>
+              <div className="modal-actions">
+                <button 
+                  onClick={() => setMachineToDelete(null)}
+                  className="cancel-btn"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={() => deleteMachine(machineToDelete)}
+                  className="confirm-delete-btn"
+                >
+                  🗑️ Eliminar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="divider"></div>
 
