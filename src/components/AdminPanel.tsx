@@ -332,6 +332,7 @@ const AdminPanel: React.FC = () => {
   const deleteMachine = async (machine: Machine, forceDelete = false) => {
     try {
       setMessage(null);
+      console.log('Attempting to delete machine:', machine.name, 'forceDelete:', forceDelete);
       
       // Verificar si la máquina está siendo usada en tablas asignadas
       const tablesQuery = query(collection(db, 'assignedTables'));
@@ -350,8 +351,11 @@ const AdminPanel: React.FC = () => {
         }
       });
 
+      console.log('Affected tables found:', affectedTables.length);
+
       // Si está siendo usada y no es eliminación forzada, mostrar información
       if (affectedTables.length > 0 && !forceDelete) {
+        console.log('Showing confirmation modal for machine with affected tables');
         // Actualizar el estado para mostrar el modal con información detallada
         setMachineToDelete({ 
           ...machine, 
@@ -360,6 +364,8 @@ const AdminPanel: React.FC = () => {
         } as any);
         return;
       }
+
+      console.log('Proceeding with deletion...');
 
       // Proceder con la eliminación
       const batch = writeBatch(db);
