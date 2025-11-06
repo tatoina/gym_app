@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { auth, db } from '../services/firebase';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import './History.css';
 
 interface WorkoutRecord {
@@ -174,14 +175,38 @@ const History: React.FC<HistoryProps> = ({ onBack }) => {
 
   const getEvolutionData = (machineId: string) => {
     const machineWorkouts = workouts
-      .filter((w) => w.machineId === machineId)
+      .filter((w) => w.machineId === machineId && w.date >= filterDateFrom && w.date <= filterDateTo)
       .sort((a, b) => a.date.localeCompare(b.date));
 
-    return machineWorkouts.map((w) => ({
+    return machineWorkouts.map((w, index) => ({
       date: w.date,
-      weight: w.weight,
-      volume: w.sets * w.reps * w.weight
+      displayDate: new Date(w.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }),
+      weight: Number(w.weight) || 0,
+      volume: (Number(w.sets) || 0) * (Number(w.reps) || 0) * (Number(w.weight) || 0),
+      sets: w.sets,
+      reps: w.reps,
+      ejercicio: index + 1
     }));
+  };
+
+  const getAllMachinesEvolutionData = () => {
+    const machinesData = machines.map(machine => {
+      const machineEvolution = getEvolutionData(machine.id);
+      const maxWeight = Math.max(...machineEvolution.map(d => d.weight), 0);
+      const totalVolume = machineEvolution.reduce((sum, d) => sum + d.volume, 0);
+      const workoutsCount = machineEvolution.length;
+      
+      return {
+        machineName: machine.name,
+        machineId: machine.id,
+        maxWeight,
+        totalVolume,
+        workoutsCount,
+        evolution: machineEvolution
+      };
+    }).filter(m => m.workoutsCount > 0);
+
+    return machinesData.sort((a, b) => b.maxWeight - a.maxWeight);
   };
 
   if (loading) {
@@ -272,6 +297,132 @@ const History: React.FC<HistoryProps> = ({ onBack }) => {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {filteredWorkouts.length > 0 && (
+        <div className="evolution-charts-section">
+          <h3>📈 Gráficos de Evolución por Máquina</h3>
+          
+          {filterMachine ? (
+            // Mostrar gráfico detallado de una máquina específica
+            (() => {
+              const evolutionData = getEvolutionData(filterMachine);
+              const machineName = machines.find(m => m.id === filterMachine)?.name || 'Máquina';
+              
+              return evolutionData.length > 1 ? (
+                <div className="single-machine-chart">
+                  <h4>Evolución de {machineName}</h4>
+                  <ResponsiveContainer width="100%" height={400}>
+                    <LineChart data={evolutionData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                      <XAxis 
+                        dataKey="displayDate" 
+                        stroke="#b0b0b0"
+                        tick={{ fill: '#b0b0b0' }}
+                      />
+                      <YAxis 
+                        stroke="#b0b0b0"
+                        tick={{ fill: '#b0b0b0' }}
+                        label={{ value: 'Peso (kg)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: '#b0b0b0' } }}
+                      />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: '#2d2d2d', 
+                          border: '1px solid #FFD700',
+                          borderRadius: '8px',
+                          color: '#e0e0e0'
+                        }}
+                        formatter={(value: any, name: string) => [
+                          `${value}${name === 'weight' ? ' kg' : name === 'volume' ? ' kg*rep' : ''}`,
+                          name === 'weight' ? 'Peso' : name === 'volume' ? 'Volumen' : name
+                        ]}
+                        labelFormatter={(label) => `Fecha: ${label}`}
+                      />
+                      <Line 
+                        type="monotone" 
+                        dataKey="weight" 
+                        stroke="#FFD700" 
+                        strokeWidth={3}
+                        dot={{ fill: '#FFD700', r: 6 }}
+                        activeDot={{ r: 8, fill: '#FFA500' }}
+                      />
+                      <Line 
+                        type="monotone" 
+                        dataKey="volume" 
+                        stroke="#00bcd4" 
+                        strokeWidth={2}
+                        dot={{ fill: '#00bcd4', r: 4 }}
+                        opacity={0.7}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                  <div className="chart-legend">
+                    <span className="legend-item">
+                      <span className="legend-color" style={{ backgroundColor: '#FFD700' }}></span>
+                      Peso máximo por sesión
+                    </span>
+                    <span className="legend-item">
+                      <span className="legend-color" style={{ backgroundColor: '#00bcd4' }}></span>
+                      Volumen total (sets × reps × peso)
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <p className="no-chart-data">Se necesitan al menos 2 entrenamientos para mostrar tendencia</p>
+              );
+            })()
+          ) : (
+            // Mostrar gráficos múltiples de todas las máquinas
+            <div className="multiple-machines-charts">
+              {getAllMachinesEvolutionData().slice(0, 6).map((machineData) => (
+                <div key={machineData.machineId} className="machine-chart-card">
+                  <h4>{machineData.machineName}</h4>
+                  <div className="machine-stats">
+                    <span>Máx: {machineData.maxWeight}kg</span>
+                    <span>{machineData.workoutsCount} entrenamientos</span>
+                  </div>
+                  {machineData.evolution.length > 1 ? (
+                    <ResponsiveContainer width="100%" height={200}>
+                      <LineChart data={machineData.evolution}>
+                        <XAxis 
+                          dataKey="displayDate" 
+                          stroke="#b0b0b0"
+                          tick={{ fontSize: 10, fill: '#b0b0b0' }}
+                          interval="preserveStartEnd"
+                        />
+                        <YAxis 
+                          stroke="#b0b0b0"
+                          tick={{ fontSize: 10, fill: '#b0b0b0' }}
+                          domain={['dataMin - 5', 'dataMax + 5']}
+                        />
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: '#2d2d2d', 
+                            border: '1px solid #FFD700',
+                            borderRadius: '4px',
+                            fontSize: '12px'
+                          }}
+                          formatter={(value) => [`${value} kg`, 'Peso']}
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="weight" 
+                          stroke="#FFD700" 
+                          strokeWidth={2}
+                          dot={{ fill: '#FFD700', r: 3 }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="single-point-chart">
+                      <span>Solo 1 entrenamiento registrado</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

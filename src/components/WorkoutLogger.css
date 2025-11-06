@@ -43,6 +43,65 @@
   font-size: 15px;
 }
 
+.social-fields {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 215, 0, 0.2);
+}
+
+.social-fields .form-group {
+  margin-bottom: 1rem;
+}
+
+.social-fields label {
+  color: #FFD700;
+}
+
+.char-count {
+  display: block;
+  text-align: right;
+  font-size: 0.85rem;
+  color: #808080;
+  margin-top: 0.25rem;
+}
+
+.photo-preview-small {
+  margin-top: 0.75rem;
+  position: relative;
+  display: inline-block;
+}
+
+.photo-preview-small img {
+  max-width: 150px;
+  max-height: 150px;
+  border-radius: 8px;
+  border: 2px solid rgba(255, 215, 0, 0.3);
+}
+
+.remove-photo-btn-small {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #ff4444;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+}
+
+.remove-photo-btn-small:hover {
+  background: #cc0000;
+  transform: scale(1.1);
+}
+
 .workout-form label {
   display: block;
   margin-bottom: 0.5rem;

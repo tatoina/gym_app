@@ -1,0 +1,22 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Regla para verificar autenticación
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Fotos de máquinas - solo el usuario autenticado puede subir
+    match /machines/{userId}/{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Fotos de posts sociales - solo el usuario autenticado puede subir
+    match /posts/{userId}/{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && request.auth.uid == userId;
+    }
+  }
+}
