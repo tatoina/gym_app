@@ -18,8 +18,8 @@ interface AssignedTableData {
   exercises: AssignedExercise[];
   assignedBy: string;
   assignedByName: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: any;
+  updatedAt: any; // Puede ser Date o Timestamp de Firestore
 }
 
 const AssignedTable: React.FC = () => {
@@ -85,11 +85,28 @@ const AssignedTable: React.FC = () => {
             Asignada por: <strong>{assignedTable.assignedByName}</strong>
           </p>
           <p className="assigned-date">
-            Última actualización: {new Date(assignedTable.updatedAt).toLocaleDateString('es-ES', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric'
-            })}
+            Última actualización: {(() => {
+              try {
+                if (!assignedTable.updatedAt) return 'No disponible';
+                
+                let date;
+                if (assignedTable.updatedAt.seconds) {
+                  // Es un Timestamp de Firestore
+                  date = new Date(assignedTable.updatedAt.seconds * 1000);
+                } else {
+                  // Es un Date normal
+                  date = new Date(assignedTable.updatedAt);
+                }
+                
+                return date.toLocaleDateString('es-ES', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                });
+              } catch (error) {
+                return 'No disponible';
+              }
+            })()}
           </p>
         </div>
       </header>
