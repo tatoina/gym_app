@@ -1,9 +1,10 @@
 name: Deploy to Firebase Hosting
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:  # Solo ejecución manual desde GitHub
+  # push:  # Desactivado - despliegue manual solamente
+  #   branches:
+  #     - main
 
 jobs:
   build-and-deploy:
