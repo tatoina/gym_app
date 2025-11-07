@@ -187,27 +187,79 @@
 
 /* Responsive */
 @media (max-width: 768px) {
+  .tables-history-container {
+    padding: 1rem 0.75rem;
+  }
+
   .history-header {
     flex-direction: column;
-    gap: 15px;
+    gap: 1rem;
     align-items: stretch;
+    margin-bottom: 1.5rem;
   }
-  
+
+  .history-header h1 {
+    font-size: 1.5rem;
+  }
+
   .back-button {
     align-self: flex-start;
+    padding: 0.75rem 1.25rem;
+    font-size: 0.95rem;
   }
-  
+
+  .completed-table-card {
+    margin-bottom: 1.5rem;
+  }
+
   .completed-table-card .table-header {
     flex-direction: column;
-    gap: 15px;
+    gap: 1rem;
     align-items: stretch;
+    padding: 1.25rem;
   }
-  
+
+  .completed-table-card .table-info h2 {
+    font-size: 1.25rem;
+  }
+
+  .completed-table-card .table-info p {
+    font-size: 0.9rem;
+  }
+
+  .status-badge {
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+    align-self: flex-start;
+  }
+
   .exercises-grid {
     grid-template-columns: 1fr;
+    gap: 0.75rem;
+    padding: 1rem;
   }
-  
+
   .exercise-summary-card {
-    padding: 12px;
+    padding: 1rem;
+  }
+
+  .exercise-summary-card strong {
+    font-size: 0.95rem;
+  }
+
+  .exercise-summary-card div {
+    font-size: 0.85rem;
+  }
+
+  .empty-history {
+    padding: 2.5rem 1.5rem;
+  }
+
+  .empty-history h2 {
+    font-size: 1.25rem;
+  }
+
+  .empty-history p {
+    font-size: 0.95rem;
   }
 }

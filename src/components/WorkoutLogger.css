@@ -679,29 +679,99 @@
 
 @media (max-width: 768px) {
   .workout-logger {
-    padding: 1.25rem 0.75rem 2.5rem;
+    padding: 1rem 0.5rem 2.5rem;
+  }
+
+  .current-workout {
+    padding: 1rem;
   }
 
   .machines-toolbar {
     flex-direction: column;
     align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .machine-item {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .machine-item-photo {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+  }
+
+  .machine-item-info {
+    padding: 0.5rem 0;
+  }
+
+  .machine-item-info strong {
+    font-size: 1.1rem;
+    margin-bottom: 0.3rem;
+  }
+
+  .machine-item-info p {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+    font-size: 0.9rem;
+    line-height: 1.4;
+  }
+
+  .machine-item-actions {
+    justify-content: flex-end;
+    gap: 0.75rem;
+  }
+
+  .edit-machine-btn,
+  .delete-machine-btn {
+    padding: 0.5rem 0.9rem;
+    font-size: 1.2rem;
   }
 
   .exercise-item {
     grid-template-columns: 1fr;
     align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .exercise-info {
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+  }
+
+  .exercise-machine-photo {
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+  }
+
+  .exercise-machine-name {
+    font-size: 1.1rem;
+    margin-top: 0.5rem;
+  }
+
+  .exercise-name {
+    font-size: 0.95rem;
   }
 
   .exercise-meta {
-    font-size: 0.9rem;
+    font-size: 1rem;
+    padding: 0.5rem 0;
   }
 
   .remove-btn {
     align-self: flex-end;
+    padding: 0.5rem 0.8rem;
+    font-size: 1.2rem;
   }
 
   .metrics-grid {
-    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
   }
 
   .form-actions {
@@ -713,16 +783,48 @@
   .add-exercise-form .primary-button,
   .add-exercise-form .secondary-button {
     width: 100%;
+    padding: 0.9rem 1.5rem;
+    font-size: 1rem;
   }
 
   .machine-summary {
     flex-direction: column;
     align-items: flex-start;
+    gap: 0.5rem;
   }
 
   .save-workout-btn {
+    font-size: 1.1rem;
+    padding: 1rem 1.5rem;
+  }
+
+  .workout-form label {
+    font-size: 0.95rem;
+  }
+
+  .workout-form input,
+  .workout-form textarea,
+  .workout-form select {
     font-size: 1rem;
-    padding: 0.85rem 1.5rem;
+    padding: 0.85rem;
+  }
+
+  .social-fields {
+    margin-top: 1.25rem;
+    padding-top: 1.25rem;
+  }
+
+  .checkbox-label span {
+    font-size: 1rem;
+  }
+
+  .photo-preview-small img {
+    max-width: 100%;
+    max-height: 200px;
+  }
+
+  .add-exercise-form {
+    padding: 1rem;
   }
 }
 

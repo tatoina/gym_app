@@ -251,30 +251,127 @@
 
 @media (max-width: 768px) {
   .admin-panel-container {
-    padding: 15px;
+    padding: 1rem 0.75rem;
   }
 
   .admin-header h1 {
-    font-size: 24px;
+    font-size: 1.5rem;
+  }
+
+  .admin-header p {
+    font-size: 0.95rem;
   }
 
   .user-selector-section,
   .exercises-builder-section {
-    padding: 20px;
+    padding: 1.25rem;
+  }
+
+  .user-selector-section h2,
+  .exercises-builder-section h2 {
+    font-size: 1.25rem;
+  }
+
+  .user-list {
+    gap: 0.75rem;
+  }
+
+  .user-card {
+    padding: 1rem;
+  }
+
+  .user-card h3 {
+    font-size: 1.1rem;
+  }
+
+  .user-card p {
+    font-size: 0.9rem;
   }
 
   .metrics-row {
     grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .exercise-list {
+    gap: 0.75rem;
   }
 
   .exercise-info {
     flex-direction: column;
     align-items: flex-start;
+    gap: 0.75rem;
   }
 
   .exercise-thumb {
     width: 100%;
-    height: 150px;
+    height: 180px;
+    object-fit: cover;
+  }
+
+  .exercise-details h4 {
+    font-size: 1.1rem;
+  }
+
+  .exercise-details p {
+    font-size: 0.9rem;
+  }
+
+  .assign-btn,
+  .success-btn {
+    padding: 0.9rem 1.5rem;
+    font-size: 1rem;
+  }
+
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    font-size: 1rem;
+    padding: 0.85rem;
+  }
+
+  .machine-form-actions {
+    flex-direction: column;
+  }
+
+  .machine-form-actions button {
+    width: 100%;
+    padding: 0.9rem 1.5rem;
+  }
+
+  .modal-content {
+    width: 95%;
+    max-width: none;
+    padding: 1.25rem;
+  }
+
+  .delete-modal h3 {
+    font-size: 1.1rem;
+  }
+
+  .delete-warning {
+    padding: 1rem;
+    margin: 1rem 0;
+  }
+
+  .delete-warning .warning-content p {
+    font-size: 0.9rem;
+  }
+
+  .delete-warning .warning-content li {
+    font-size: 0.85rem;
+  }
+
+  .modal-actions {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .cancel-btn,
+  .confirm-delete-btn {
+    width: 100%;
+    padding: 0.85rem 1.25rem;
+    font-size: 1rem;
   }
 }
 

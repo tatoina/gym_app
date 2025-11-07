@@ -339,42 +339,93 @@
 
 @media (max-width: 768px) {
   .history-container {
-    padding: 15px;
+    padding: 1rem 0.75rem;
   }
 
   .history-header {
     flex-direction: column;
-    gap: 15px;
+    gap: 1rem;
     align-items: flex-start;
   }
 
   .history-header h1 {
-    font-size: 24px;
+    font-size: 1.5rem;
   }
 
   .filters-grid {
     grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .filters-grid input,
+  .filters-grid select {
+    font-size: 1rem;
+    padding: 0.85rem;
   }
 
   .stats-summary {
     grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .stat-card h3 {
+    font-size: 0.85rem;
+  }
+
+  .stat-card p {
+    font-size: 1.5rem;
   }
 
   .chart-container {
     overflow-x: auto;
     justify-content: flex-start;
+    padding: 0.5rem 0;
   }
 
   .workout-record {
-    grid-template-columns: auto 1fr;
-    gap: 10px;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+
+  .workout-record-date {
+    text-align: left;
+  }
+
+  .workout-record-date h3 {
+    font-size: 1rem;
+  }
+
+  .workout-record-date p {
+    font-size: 0.85rem;
   }
 
   .workout-record-stats {
-    grid-column: 2;
+    grid-column: 1;
     align-items: flex-start;
-    flex-direction: row;
-    gap: 10px;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .workout-record-stat {
+    font-size: 0.9rem;
+  }
+
+  .workout-exercises {
+    padding: 1rem;
+    gap: 0.75rem;
+  }
+
+  .exercise-card {
+    padding: 0.85rem;
+  }
+
+  .exercise-card strong {
+    font-size: 0.95rem;
+  }
+
+  .exercise-card div {
+    font-size: 0.85rem;
   }
 }
 
@@ -471,15 +522,57 @@
 
 /* Responsive para gráficos */
 @media (max-width: 768px) {
+  .evolution-charts-section {
+    padding: 1rem;
+  }
+
+  .evolution-charts-section h3 {
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+  }
+
+  .single-machine-chart h4 {
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+  }
+
+  .chart-legend {
+    justify-content: flex-start;
+    gap: 1rem;
+  }
+
+  .legend-item {
+    font-size: 0.85rem;
+  }
+
   .multiple-machines-charts {
     grid-template-columns: 1fr;
+    gap: 1rem;
   }
-  
+
   .machine-chart-card {
-    min-height: 250px;
+    min-height: 280px;
+    padding: 1rem;
   }
-  
-  .chart-legend {
-    justify-content: center;
+
+  .machine-chart-card h4 {
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .machine-stats {
+    font-size: 0.8rem;
+    margin-bottom: 1rem;
+  }
+
+  .single-point-chart {
+    height: 200px;
+    font-size: 0.9rem;
+    padding: 1rem;
+  }
+
+  .no-chart-data {
+    padding: 2rem 1rem;
+    font-size: 0.9rem;
   }
 }

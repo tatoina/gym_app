@@ -268,34 +268,136 @@
 
 @media (max-width: 768px) {
   .social-feed {
-    padding: 15px;
+    padding: 1rem 0.75rem;
   }
 
   .feed-header {
-    padding: 20px 15px;
+    padding: 1.5rem 1rem;
+    margin-bottom: 1.5rem;
   }
 
   .feed-header h2 {
-    font-size: 24px;
+    font-size: 1.5rem;
   }
 
-  .workout-summary {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-    padding: 15px;
-  }
-
-  .stat-value {
-    font-size: 20px;
+  .feed-header p {
+    font-size: 0.95rem;
   }
 
   .post-card {
     border-radius: 12px;
   }
 
+  .post-header {
+    padding: 1rem;
+    flex-wrap: wrap;
+  }
+
   .user-avatar {
     width: 40px;
     height: 40px;
-    font-size: 18px;
+    font-size: 1rem;
+  }
+
+  .user-name {
+    font-size: 0.95rem;
+  }
+
+  .post-time {
+    font-size: 0.8rem;
+  }
+
+  .delete-post-btn {
+    position: static;
+    transform: none;
+    margin-left: auto;
+    padding: 0.5rem 0.75rem;
+    font-size: 1rem;
+  }
+
+  .delete-post-btn:hover {
+    transform: scale(1.05);
+  }
+
+  .post-content {
+    padding: 1rem;
+  }
+
+  .post-date {
+    font-size: 0.85rem;
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .workout-summary {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .stat-label {
+    font-size: 0.7rem;
+  }
+
+  .stat-value {
+    font-size: 1.25rem;
+  }
+
+  .workout-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.85rem;
+  }
+
+  .workout-machine {
+    font-size: 0.95rem;
+  }
+
+  .workout-details {
+    font-size: 0.85rem;
+  }
+
+  .post-comment {
+    padding: 1rem;
+    margin-top: 1rem;
+  }
+
+  .post-comment p {
+    font-size: 0.95rem;
+  }
+
+  .post-photo {
+    margin-top: 1rem;
+  }
+
+  .post-photo img {
+    max-height: 300px;
+  }
+
+  .post-actions {
+    padding: 1rem;
+    gap: 0.75rem;
+  }
+
+  .like-button {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.95rem;
+    flex: 1;
+    justify-content: center;
+  }
+
+  .loading-posts,
+  .no-posts {
+    padding: 2.5rem 1.25rem;
+  }
+
+  .no-posts h3 {
+    font-size: 1.1rem;
+  }
+
+  .no-posts p {
+    font-size: 0.95rem;
   }
 }
