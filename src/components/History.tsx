@@ -42,7 +42,6 @@ const History: React.FC<HistoryProps> = ({ onBack }) => {
   const [filterMachine, setFilterMachine] = useState<string>('');
   const [filterDateFrom, setFilterDateFrom] = useState<string>(defaultDateFrom);
   const [filterDateTo, setFilterDateTo] = useState<string>(defaultDateTo);
-  const [groupBy, setGroupBy] = useState<'date' | 'machine'>('date');
   const [expandedDate, setExpandedDate] = useState<string | null>(null);
 
   useEffect(() => {
@@ -155,24 +154,12 @@ const History: React.FC<HistoryProps> = ({ onBack }) => {
   };
 
   const groupedData = (): [string, WorkoutRecord[]][] => {
-    if (groupBy === 'date') {
-      const byDate: { [date: string]: WorkoutRecord[] } = {};
-      filteredWorkouts.forEach((w) => {
-        if (!byDate[w.date]) byDate[w.date] = [];
-        byDate[w.date].push(w);
-      });
-      return Object.entries(byDate).sort((a, b) => b[0].localeCompare(a[0]));
-    } else {
-      const byMachine: { [machineId: string]: WorkoutRecord[] } = {};
-      filteredWorkouts.forEach((w) => {
-        if (!byMachine[w.machineId]) byMachine[w.machineId] = [];
-        byMachine[w.machineId].push(w);
-      });
-      return Object.entries(byMachine).map(([machineId, records]) => [
-        records[0].machineName,
-        records
-      ] as [string, WorkoutRecord[]]);
-    }
+    const byDate: { [date: string]: WorkoutRecord[] } = {};
+    filteredWorkouts.forEach((w) => {
+      if (!byDate[w.date]) byDate[w.date] = [];
+      byDate[w.date].push(w);
+    });
+    return Object.entries(byDate).sort((a, b) => b[0].localeCompare(a[0]));
   };
 
   const getEvolutionData = (machineId: string) => {
@@ -256,35 +243,6 @@ const History: React.FC<HistoryProps> = ({ onBack }) => {
               onChange={(e) => setFilterDateTo(e.target.value)}
             />
           </div>
-
-          <div className="filter-group">
-            <label>Agrupar por:</label>
-            <select value={groupBy} onChange={(e) => setGroupBy(e.target.value as 'date' | 'machine')}>
-              <option value="date">Fecha</option>
-              <option value="machine">Máquina</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <div className="stats-summary">
-        <div className="stat-card">
-          <h4>Total Ejercicios</h4>
-          <p className="stat-value">{filteredWorkouts.length}</p>
-        </div>
-        <div className="stat-card">
-          <h4>Peso Máximo Alcanzado</h4>
-          <p className="stat-value">
-            {filteredWorkouts.length > 0 
-              ? Math.max(...filteredWorkouts.map(w => Number(w.weight) || 0)).toFixed(0)
-              : 0} kg
-          </p>
-        </div>
-        <div className="stat-card">
-          <h4>Días Entrenados</h4>
-          <p className="stat-value">
-            {new Set(filteredWorkouts.map((w) => w.date)).size}
-          </p>
         </div>
       </div>
 
@@ -431,14 +389,12 @@ const History: React.FC<HistoryProps> = ({ onBack }) => {
       <div className="grouped-workouts">
         {groupedData().map(([key, records]) => {
           const isExpanded = expandedDate === key;
-          const dateFormatted = groupBy === 'date'
-            ? new Date(key).toLocaleDateString('es-ES', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-              })
-            : key;
+          const dateFormatted = new Date(key).toLocaleDateString('es-ES', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          });
           
           return (
             <div key={key} className="workout-group">
@@ -461,22 +417,6 @@ const History: React.FC<HistoryProps> = ({ onBack }) => {
 
               {isExpanded && (
                 <div className="exercises-detail">
-                  {groupBy === 'machine' && records.length > 0 && (
-                    <div className="evolution-chart">
-                      <h4>Evolución de peso</h4>
-                      <div className="chart-container">
-                        {getEvolutionData(records[0].machineId).map((point, idx) => (
-                          <div key={idx} className="chart-point">
-                            <div className="chart-bar" style={{ height: `${(point.weight / 100) * 150}px` }}>
-                              <span className="chart-value">{point.weight}kg</span>
-                            </div>
-                            <span className="chart-label">{new Date(point.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
                   <div className="exercises-table-container">
                     <table className="exercises-table">
                       <thead>
@@ -492,14 +432,7 @@ const History: React.FC<HistoryProps> = ({ onBack }) => {
                         {records.map((workout) => (
                           <tr key={workout.id}>
                             <td className="col-machine">
-                              <div className="machine-name-cell">
-                                {workout.machineName}
-                                {groupBy === 'machine' && (
-                                  <span className="workout-date-badge">
-                                    {new Date(workout.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}
-                                  </span>
-                                )}
-                              </div>
+                              {workout.machineName}
                             </td>
                             <td className="col-compact">{workout.sets}</td>
                             <td className="col-compact">{workout.reps}</td>
