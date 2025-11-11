@@ -14,6 +14,7 @@ interface User {
 interface Machine {
   id: string;
   name: string;
+  number?: number;
   category?: string;
   photoUrl?: string;
   description?: string;
@@ -79,6 +80,7 @@ const AdminPanel: React.FC = () => {
   const [machineForm, setMachineForm] = useState({
     id: '',
     name: '',
+    number: 1 as string | number,
     category: '',
     description: '',
     photoFile: null as File | null,
@@ -92,8 +94,8 @@ const AdminPanel: React.FC = () => {
   const [categoryFilter, setCategoryFilter] = useState<string>('Todas');
   const [showMachinesSection, setShowMachinesSection] = useState(false);
   const [currentTableDate, setCurrentTableDate] = useState<Date | null>(null);
+  const [activeTab, setActiveTab] = useState<'maquinas' | 'tablas' | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [activeTab, setActiveTab] = useState<'tablas' | 'maquinas' | null>(null);
 
   useEffect(() => {
     loadData();
@@ -130,6 +132,18 @@ const AdminPanel: React.FC = () => {
         id: doc.id,
         ...doc.data()
       } as Machine));
+      
+      // Asignar números automáticamente a máquinas sin número
+      const machinesWithoutNumber = machinesData.filter(m => !m.number);
+      if (machinesWithoutNumber.length > 0) {
+        let nextNumber = 1;
+        for (const machine of machinesWithoutNumber) {
+          await updateDoc(doc(db, 'machines', machine.id), { number: nextNumber });
+          machine.number = nextNumber;
+          nextNumber++;
+        }
+      }
+      
       setMachines(machinesData);
 
       // Cargar notificaciones no leídas
@@ -348,6 +362,23 @@ const AdminPanel: React.FC = () => {
       return;
     }
 
+    if (!machineForm.number || machineForm.number === '') {
+      setMessage({ type: 'error', text: 'El número de máquina es obligatorio' });
+      return;
+    }
+
+    // Validar que no exista otra máquina con el mismo número
+    const duplicateNumber = machines.find(m => 
+      m.number === Number(machineForm.number) && m.id !== machineForm.id
+    );
+    if (duplicateNumber) {
+      setMessage({ 
+        type: 'error', 
+        text: `Ya existe una máquina con el número ${machineForm.number}: "${duplicateNumber.name}"` 
+      });
+      return;
+    }
+
     try {
       setMachineFormLoading(true);
       setMessage(null);
@@ -374,6 +405,7 @@ const AdminPanel: React.FC = () => {
       const machineData = {
         isGlobal: true,
         name: machineForm.name.trim(),
+        number: Number(machineForm.number),
         category: machineForm.category.trim(),
         description: machineForm.description.trim(),
         photoUrl: photoUrl,
@@ -403,9 +435,13 @@ const AdminPanel: React.FC = () => {
   };
 
   const resetMachineForm = () => {
+    // Calcular el siguiente número disponible
+    const maxNumber = machines.length > 0 ? Math.max(...machines.map(m => m.number || 0)) : 0;
+    
     setMachineForm({ 
       id: '',
-      name: '', 
+      name: '',
+      number: maxNumber + 1,
       category: '',
       description: '', 
       photoFile: null, 
@@ -416,11 +452,28 @@ const AdminPanel: React.FC = () => {
     setEditingMachine(null);
   };
 
+  const openNewMachineForm = () => {
+    const maxNumber = machines.length > 0 ? Math.max(...machines.map(m => m.number || 0)) : 0;
+    setMachineForm({
+      id: '',
+      name: '',
+      number: maxNumber + 1,
+      category: '',
+      description: '',
+      photoFile: null,
+      photoPreview: '',
+      existingPhotoUrl: ''
+    });
+    setShowMachineForm(true);
+    setEditingMachine(null);
+  };
+
   const startEditMachine = (machine: Machine) => {
     setEditingMachine(machine);
     setMachineForm({
       id: machine.id,
       name: machine.name,
+      number: machine.number || 1,
       category: machine.category || '',
       description: machine.description || '',
       photoFile: null,
@@ -519,7 +572,7 @@ const AdminPanel: React.FC = () => {
       <div className="admin-header">
         <div className="admin-title-section">
           <h1>Panel de Administración</h1>
-          <p>Bienvenido, Max - Gestiona usuarios, máquinas y tablas de entrenamiento</p>
+          <p>Bienvenido, Max - Gestión de máquinas y tablas de entrenamiento</p>
         </div>
         <div className="admin-user-info">
           <div className="admin-avatar" onClick={() => setShowUserMenu(!showUserMenu)}>
@@ -635,15 +688,12 @@ const AdminPanel: React.FC = () => {
       )}
 
       <div className="admin-content">
-        {/* SECCIÓN DE GESTIÓN DE MÁQUINAS - Solo visible cuando activeTab === 'maquinas' */}
+        {/* Sección de Máquinas Globales (mostrar solo si activeTab === 'maquinas') */}
         {activeTab === 'maquinas' && (
-          <>
-            {/* Sección de Máquinas Globales */}
-            {(
           <div className="global-machines-section" style={{ marginBottom: '40px' }}>
             <div className="section-header">
               <h3>🏋️ Máquinas del Gimnasio ({machines.length})</h3>
-            <div style={{ display: 'flex', gap: '10px' }}>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
               {machines.length === 0 && (
                 <button 
                   onClick={importDefaultMachines}
@@ -663,7 +713,7 @@ const AdminPanel: React.FC = () => {
                 </button>
               )}
               <button 
-                onClick={() => setShowMachineForm(!showMachineForm)}
+                onClick={() => showMachineForm ? setShowMachineForm(false) : openNewMachineForm()}
                 className="toggle-machine-form-btn"
               >
                 {showMachineForm ? '✖ Cancelar' : '➕ Nueva Máquina'}
@@ -680,6 +730,18 @@ const AdminPanel: React.FC = () => {
                   value={machineForm.name}
                   onChange={(e) => setMachineForm({ ...machineForm, name: e.target.value })}
                   placeholder="Ej: Press de banca"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Número de máquina *</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={machineForm.number}
+                  onChange={(e) => setMachineForm({ ...machineForm, number: e.target.value })}
+                  placeholder="Ej: 1, 2, 3..."
                   required
                 />
               </div>
@@ -712,7 +774,38 @@ const AdminPanel: React.FC = () => {
                   onChange={handleMachinePhotoChange}
                 />
                 {machineForm.photoPreview && (
-                  <img src={machineForm.photoPreview} alt="Preview" className="photo-preview" />
+                  <div style={{ position: 'relative', display: 'inline-block', marginTop: '10px' }}>
+                    <img src={machineForm.photoPreview} alt="Preview" className="photo-preview" />
+                    <button
+                      type="button"
+                      onClick={() => setMachineForm({ 
+                        ...machineForm, 
+                        photoFile: null, 
+                        photoPreview: '', 
+                        existingPhotoUrl: '' 
+                      })}
+                      style={{
+                        position: 'absolute',
+                        top: '5px',
+                        right: '5px',
+                        background: 'rgba(245, 87, 108, 0.9)',
+                        border: 'none',
+                        color: 'white',
+                        borderRadius: '50%',
+                        width: '30px',
+                        height: '30px',
+                        cursor: 'pointer',
+                        fontSize: '16px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 'bold'
+                      }}
+                      title="Eliminar foto"
+                    >
+                      ✖
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -765,7 +858,9 @@ const AdminPanel: React.FC = () => {
                     <img src={machine.photoUrl} alt={machine.name} className="machine-photo" />
                   )}
                   <div className="machine-details">
-                    <span className="machine-name">{machine.name}</span>
+                    <span className="machine-name">
+                      {machine.number ? `#${machine.number} - ` : ''}{machine.name}
+                    </span>
                     {machine.category && (
                       <span className="machine-category">🏷️ {machine.category}</span>
                     )}
@@ -844,30 +939,28 @@ const AdminPanel: React.FC = () => {
           </div>
           )}
         </div>
-            )}
-          </>
         )}
 
-        {/* SECCIÓN DE GESTIÓN DE TABLAS - Solo visible cuando activeTab === 'tablas' */}
+        {/* Sección de asignación de tablas (mostrar solo si activeTab === 'tablas') */}
         {activeTab === 'tablas' && (
-          <>
-            <div className="user-selector-section">
-          <h3>Seleccionar Usuario</h3>
-          <select
-            value={selectedUserId}
-            onChange={(e) => setSelectedUserId(e.target.value)}
-            className="user-select"
-          >
-            <option value="">-- Selecciona un usuario --</option>
-            {users.map((user) => (
-              <option key={user.id} value={user.id}>
-                {user.firstName} {user.lastName} ({user.email})
-              </option>
-            ))}
-          </select>
-        </div>
+        <>
+          <div className="user-selector-section">
+            <h3>Seleccionar Usuario</h3>
+            <select
+              value={selectedUserId}
+              onChange={(e) => setSelectedUserId(e.target.value)}
+              className="user-select"
+            >
+              <option value="">-- Selecciona un usuario --</option>
+              {users.map((user) => (
+                <option key={user.id} value={user.id}>
+                  {user.firstName} {user.lastName} ({user.email})
+                </option>
+              ))}
+            </select>
+          </div>
 
-        {selectedUserId && (
+          {selectedUserId && (
           <>
             <div className="exercises-builder-section">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
@@ -1022,8 +1115,8 @@ const AdminPanel: React.FC = () => {
               </button>
             </div>
           </>
-        )}
-          </>
+          )}
+        </>
         )}
       </div>
     </div>

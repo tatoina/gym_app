@@ -7,7 +7,13 @@ service firebase.storage {
       return request.auth != null;
     }
     
-    // Fotos de máquinas - solo el usuario autenticado puede subir
+    // Fotos de máquinas globales - cualquier usuario autenticado puede subir
+    match /machines/global/{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+    
+    // Fotos de máquinas de usuario - solo el usuario autenticado puede subir
     match /machines/{userId}/{allPaths=**} {
       allow read: if isAuthenticated();
       allow write: if isAuthenticated() && request.auth.uid == userId;
