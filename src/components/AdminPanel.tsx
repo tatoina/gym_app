@@ -92,6 +92,7 @@ const AdminPanel: React.FC = () => {
   const [categoryFilter, setCategoryFilter] = useState<string>('Todas');
   const [showMachinesSection, setShowMachinesSection] = useState(false);
   const [currentTableDate, setCurrentTableDate] = useState<Date | null>(null);
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -513,6 +514,22 @@ const AdminPanel: React.FC = () => {
 
   return (
     <div className="admin-panel-container">
+      {/* Header de Admin con Avatar */}
+      <div className="admin-header">
+        <div className="admin-user-info">
+          <div className="admin-avatar" onClick={() => setShowUserMenu(!showUserMenu)}>
+            M
+          </div>
+          {showUserMenu && (
+            <div className="user-menu">
+              <button onClick={() => auth.signOut()}>
+                Cerrar Sesión
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
       {message && (
         <div className={`admin-message ${message.type}`}>
           {message.text}
