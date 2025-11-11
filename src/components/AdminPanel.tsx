@@ -882,47 +882,40 @@ const AdminPanel: React.FC = () => {
                   <table className="exercises-table">
                     <thead>
                       <tr>
-                        <th>Máquina</th>
-                        <th style={{ textAlign: 'center' }}>Series</th>
-                        <th style={{ textAlign: 'center' }}>Repeticiones</th>
-                        <th style={{ textAlign: 'center' }}>Peso</th>
-                        <th style={{ width: '50px' }}></th>
+                        <th className="col-machine">Máquina</th>
+                        <th className="col-compact">S</th>
+                        <th className="col-compact">R</th>
+                        <th className="col-compact">P</th>
+                        <th className="col-delete"></th>
                       </tr>
                     </thead>
                     <tbody>
                       {exercises.map((exercise, index) => (
                         <tr key={index}>
-                          <td>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <td className="col-machine">
+                            <div className="machine-cell">
                               {exercise.machinePhotoUrl && (
                                 <img 
                                   src={exercise.machinePhotoUrl} 
                                   alt={exercise.machineName} 
-                                  style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px' }}
+                                  className="machine-thumb"
                                 />
                               )}
-                              <div>
+                              <div className="machine-info">
                                 <strong>{exercise.machineName}</strong>
-                                {exercise.notes && <div style={{ fontSize: '12px', color: '#999' }}>"{exercise.notes}"</div>}
+                                {exercise.notes && <div className="exercise-note">"{exercise.notes}"</div>}
                               </div>
                             </div>
                           </td>
-                          <td style={{ textAlign: 'center' }}>{exercise.series}</td>
-                          <td style={{ textAlign: 'center' }}>{exercise.reps}</td>
-                          <td style={{ textAlign: 'center', color: exercise.weight ? '#fff' : '#888' }}>
-                            {exercise.weight ? `${exercise.weight} kg` : '-'}
+                          <td className="col-compact">{exercise.series}</td>
+                          <td className="col-compact">{exercise.reps}</td>
+                          <td className="col-compact" style={{ color: exercise.weight ? '#fff' : '#888' }}>
+                            {exercise.weight || '-'}
                           </td>
-                          <td style={{ textAlign: 'center' }}>
+                          <td className="col-delete">
                             <button 
                               onClick={() => removeExercise(index)} 
                               className="remove-exercise-btn"
-                              style={{
-                                background: 'transparent',
-                                border: 'none',
-                                cursor: 'pointer',
-                                fontSize: '18px',
-                                padding: '5px'
-                              }}
                             >
                               ❌
                             </button>
@@ -979,8 +972,9 @@ const AdminPanel: React.FC = () => {
                       type="number"
                       min="0"
                       step="0.5"
-                      value={newExercise.weight || 0}
-                      onChange={(e) => setNewExercise({ ...newExercise, weight: parseFloat(e.target.value) || 0 })}
+                      placeholder="0"
+                      value={newExercise.weight || ''}
+                      onChange={(e) => setNewExercise({ ...newExercise, weight: e.target.value ? parseFloat(e.target.value) : undefined })}
                     />
                   </div>
                 </div>
