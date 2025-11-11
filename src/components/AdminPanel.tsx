@@ -513,25 +513,6 @@ const AdminPanel: React.FC = () => {
 
   return (
     <div className="admin-panel-container">
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '20px' }}>
-        <button 
-          className="back-button"
-          onClick={() => window.history.back()}
-          style={{
-            padding: '10px 16px',
-            background: 'rgba(255, 255, 255, 0.05)',
-            color: '#e0e0e0',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            fontSize: '13px',
-            fontWeight: '600'
-          }}
-        >
-          ← Volver
-        </button>
-      </div>
-
       {message && (
         <div className={`admin-message ${message.type}`}>
           {message.text}

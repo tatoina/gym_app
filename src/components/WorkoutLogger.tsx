@@ -504,25 +504,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
 
   return (
     <div className="workout-logger">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2>📝 Registrar Entrenamiento</h2>
-        <button 
-          className="back-button"
-          onClick={() => window.history.back()}
-          style={{
-            padding: '8px 16px',
-            background: 'rgba(255, 255, 255, 0.05)',
-            color: '#e0e0e0',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            fontSize: '13px',
-            fontWeight: '600'
-          }}
-        >
-          ← Volver
-        </button>
-      </div>
+      <h2 style={{ marginBottom: '20px', fontSize: '20px' }}>💪 Entrenar</h2>
       
       <div className="current-workout">
         <h3>Entrenamiento Actual</h3>

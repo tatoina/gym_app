@@ -66,50 +66,53 @@ function App() {
     );
   }
 
+  const getUserInitials = () => {
+    if (!user?.email) return 'U';
+    const email = user.email;
+    return email.substring(0, 2).toUpperCase();
+  };
+
+  const [showUserMenu, setShowUserMenu] = useState(false);
+
   return (
     <div className="App">
-      <header className="app-header">
-        <div className="header-content">
-          <h1>🏋️‍♂️ MAXGYM</h1>
-          {!isAdmin && (
-            <div className="header-nav">
-              <button
-                className={`nav-btn ${currentView === 'workout' ? 'active' : ''}`}
-                onClick={() => setCurrentView('workout')}
-              >
-                💪 Entrenar
+      {!isAdmin && (
+        <>
+          <div className="user-avatar-button" onClick={() => setShowUserMenu(!showUserMenu)}>
+            {getUserInitials()}
+          </div>
+          
+          {showUserMenu && (
+            <div className="user-dropdown-menu">
+              <div className="user-menu-email">{user.email}</div>
+              <button onClick={handleLogout} className="user-menu-logout">
+                🚪 Cerrar Sesión
               </button>
-              <button
-                className={`nav-btn ${currentView === 'history' ? 'active' : ''}`}
-                onClick={() => setCurrentView('history')}
-              >
-                📊 Historial
-              </button>
-              <button
-                className={`nav-btn ${currentView === 'assigned' ? 'active' : ''}`}
-                onClick={() => setCurrentView('assigned')}
-              >
-                📋 Mi Tabla
-              </button>
-              {/* FUNCIONALIDAD SOCIAL DESACTIVADA TEMPORALMENTE - FUTURO */}
-              {/*
-              <button
-                className={`nav-btn ${currentView === 'social' ? 'active' : ''}`}
-                onClick={() => setCurrentView('social')}
-              >
-                🌟 MAX SOCIAL
-              </button>
-              */}
             </div>
           )}
-          <div className="user-info">
-            <span>Bienvenido, {user.email}</span>
-            <button onClick={handleLogout} className="logout-btn">
-              Cerrar Sesión
+
+          <nav className="main-navigation">
+            <button
+              className={`main-nav-btn ${currentView === 'workout' ? 'active' : ''}`}
+              onClick={() => setCurrentView('workout')}
+            >
+              � Entrenar
             </button>
-          </div>
-        </div>
-      </header>
+            <button
+              className={`main-nav-btn ${currentView === 'history' ? 'active' : ''}`}
+              onClick={() => setCurrentView('history')}
+            >
+              � Historial
+            </button>
+            <button
+              className={`main-nav-btn ${currentView === 'assigned' ? 'active' : ''}`}
+              onClick={() => setCurrentView('assigned')}
+            >
+              📋 Mis Tablas
+            </button>
+          </nav>
+        </>
+      )}
       <main>
         {isAdmin ? (
           <AdminPanel />

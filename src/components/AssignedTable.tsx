@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, doc, updateDoc, serverTimestamp, addDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc, serverTimestamp, addDoc, orderBy } from 'firebase/firestore';
 import { auth, db } from '../services/firebase';
 import TablesHistory from './TablesHistory';
 import './AssignedTable.css';
@@ -24,6 +24,7 @@ interface AssignedTableData {
   updatedAt: any;
   status: 'ACTIVA' | 'COMPLETADA';
   completedAt?: any;
+  tableNumber?: number;
 }
 
 const AssignedTable: React.FC = () => {
@@ -44,19 +45,36 @@ const AssignedTable: React.FC = () => {
 
     try {
       setLoading(true);
-      const q = query(
+      
+      // Cargar todas las tablas (activas y completadas) para numerarlas correctamente
+      const allTablesQuery = query(
+        collection(db, 'assignedTables'),
+        where('userId', '==', auth.currentUser.uid),
+        orderBy('createdAt', 'asc')
+      );
+      const allSnapshot = await getDocs(allTablesQuery);
+      
+      // Crear mapa de ID a número de tabla
+      const tableNumbers: { [key: string]: number } = {};
+      allSnapshot.docs.forEach((doc, index) => {
+        tableNumbers[doc.id] = index + 1;
+      });
+      
+      // Cargar solo las tablas activas
+      const activeQuery = query(
         collection(db, 'assignedTables'),
         where('userId', '==', auth.currentUser.uid),
         where('status', '==', 'ACTIVA')
       );
       
-      const snapshot = await getDocs(q);
+      const activeSnapshot = await getDocs(activeQuery);
       
       const tables: AssignedTableData[] = [];
-      snapshot.forEach((doc) => {
+      activeSnapshot.forEach((doc) => {
         tables.push({
           id: doc.id,
-          ...(doc.data() as Omit<AssignedTableData, 'id'>)
+          tableNumber: tableNumbers[doc.id],
+          ...(doc.data() as Omit<AssignedTableData, 'id' | 'tableNumber'>)
         });
       });
       
@@ -155,7 +173,7 @@ const AssignedTable: React.FC = () => {
     <div className="assigned-table-container">
       <header className="assigned-table-header">
         <div>
-          <h1>📋 Mi Tabla</h1>
+          <h1>📋 MIS TABLAS</h1>
         </div>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           <button 
@@ -170,14 +188,7 @@ const AssignedTable: React.FC = () => {
             onClick={() => setShowHistory(true)}
             title="Ver historial de tablas"
           >
-            �
-          </button>
-          <button 
-            className="back-button"
-            onClick={() => window.history.back()}
-            title="Volver"
-          >
-            ← Volver
+            📚
           </button>
         </div>
       </header>
@@ -186,7 +197,7 @@ const AssignedTable: React.FC = () => {
         <div key={table.id} className="table-card">
           <div className="table-header">
             <div className="table-info">
-              <h2>Tabla #{table.id.slice(-6)}</h2>
+              <h2>Tabla #{table.tableNumber || '?'}</h2>
               <p className="assigned-by">
                 Asignada por: <strong>{table.assignedByName}</strong>
               </p>
