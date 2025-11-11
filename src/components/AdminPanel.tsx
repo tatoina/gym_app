@@ -873,27 +873,7 @@ const AdminPanel: React.FC = () => {
         {/* SECCIÓN DE GESTIÓN DE TABLAS - Solo visible cuando activeTab === 'tablas' */}
         {activeTab === 'tablas' && (
           <>
-            {/* Sección de asignación de tablas */}
-            <div className="main-actions" style={{ marginBottom: '20px' }}>
-              <div
-            className="section-title-banner"
-            style={{
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              border: 'none',
-              color: 'white',
-              padding: '15px 30px',
-              borderRadius: '12px',
-              fontWeight: 'bold',
-              fontSize: '16px',
-              boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
-              textAlign: 'center'
-            }}
-          >
-            📋 ASIGNACIÓN DE TABLAS
-          </div>
-        </div>
-
-        <div className="user-selector-section">
+            <div className="user-selector-section">
           <h3>Seleccionar Usuario</h3>
           <select
             value={selectedUserId}
