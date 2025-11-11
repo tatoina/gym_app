@@ -43,6 +43,7 @@ const History: React.FC<HistoryProps> = ({ onBack }) => {
   const [filterDateFrom, setFilterDateFrom] = useState<string>(defaultDateFrom);
   const [filterDateTo, setFilterDateTo] = useState<string>(defaultDateTo);
   const [groupBy, setGroupBy] = useState<'date' | 'machine'>('date');
+  const [expandedDate, setExpandedDate] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -429,61 +430,98 @@ const History: React.FC<HistoryProps> = ({ onBack }) => {
 
       <div className="grouped-workouts">
         {groupedData().map(([key, records]) => {
+          const isExpanded = expandedDate === key;
+          const dateFormatted = groupBy === 'date'
+            ? new Date(key).toLocaleDateString('es-ES', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              })
+            : key;
+          
           return (
             <div key={key} className="workout-group">
-              <h3 className="group-title">
-                {groupBy === 'date'
-                  ? new Date(key).toLocaleDateString('es-ES', {
-                      weekday: 'long',
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })
-                  : key}
-              </h3>
+              <div 
+                className="group-header clickable"
+                onClick={() => setExpandedDate(isExpanded ? null : key)}
+              >
+                <h3 className="group-title">
+                  📋 {dateFormatted}
+                </h3>
+                <div className="group-header-right">
+                  <span className="exercises-count-badge">
+                    {records.length} ejercicio{records.length > 1 ? 's' : ''}
+                  </span>
+                  <button className="expand-button">
+                    {isExpanded ? '▲' : '▼'}
+                  </button>
+                </div>
+              </div>
 
-              {groupBy === 'machine' && records.length > 0 && (
-                <div className="evolution-chart">
-                  <h4>Evolución de peso</h4>
-                  <div className="chart-container">
-                    {getEvolutionData(records[0].machineId).map((point, idx) => (
-                      <div key={idx} className="chart-point">
-                        <div className="chart-bar" style={{ height: `${(point.weight / 100) * 150}px` }}>
-                          <span className="chart-value">{point.weight}kg</span>
-                        </div>
-                        <span className="chart-label">{new Date(point.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}</span>
+              {isExpanded && (
+                <div className="exercises-detail">
+                  {groupBy === 'machine' && records.length > 0 && (
+                    <div className="evolution-chart">
+                      <h4>Evolución de peso</h4>
+                      <div className="chart-container">
+                        {getEvolutionData(records[0].machineId).map((point, idx) => (
+                          <div key={idx} className="chart-point">
+                            <div className="chart-bar" style={{ height: `${(point.weight / 100) * 150}px` }}>
+                              <span className="chart-value">{point.weight}kg</span>
+                            </div>
+                            <span className="chart-label">{new Date(point.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}</span>
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    </div>
+                  )}
+
+                  <div className="exercises-table-container">
+                    <table className="exercises-table">
+                      <thead>
+                        <tr>
+                          <th className="col-machine">Máquina</th>
+                          <th className="col-compact">S</th>
+                          <th className="col-compact">R</th>
+                          <th className="col-compact">P</th>
+                          <th className="col-photo">Foto</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {records.map((workout) => (
+                          <tr key={workout.id}>
+                            <td className="col-machine">
+                              <div className="machine-name-cell">
+                                {workout.machineName}
+                                {groupBy === 'machine' && (
+                                  <span className="workout-date-badge">
+                                    {new Date(workout.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="col-compact">{workout.sets}</td>
+                            <td className="col-compact">{workout.reps}</td>
+                            <td className="col-compact">{workout.weight}</td>
+                            <td className="col-photo">
+                              {workout.machinePhotoUrl ? (
+                                <img
+                                  src={workout.machinePhotoUrl}
+                                  alt={workout.machineName}
+                                  className="machine-thumb"
+                                />
+                              ) : (
+                                <span className="no-photo">-</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               )}
-
-              <div className="workout-records-list">
-                {records.map((workout) => (
-                  <div key={workout.id} className="workout-record">
-                    {workout.machinePhotoUrl && (
-                      <img
-                        src={workout.machinePhotoUrl}
-                        alt={workout.machineName}
-                        className="workout-record-photo"
-                      />
-                    )}
-                    <div className="workout-record-info">
-                      <strong>{workout.name}</strong>
-                      <p className="workout-record-machine">{workout.machineName}</p>
-                      {groupBy === 'machine' && (
-                        <p className="workout-record-date">
-                          {new Date(workout.date).toLocaleDateString('es-ES')}
-                        </p>
-                      )}
-                    </div>
-                    <div className="workout-record-stats">
-                      <span>{workout.sets} × {workout.reps}</span>
-                      <span className="weight-badge">{workout.weight} kg</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
             </div>
           );
         })}

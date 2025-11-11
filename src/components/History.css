@@ -170,19 +170,70 @@
   background: linear-gradient(145deg, #2d2d2d 0%, #1f1f1f 100%);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
-  padding: 20px;
+  overflow: hidden;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
+.group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.group-header.clickable {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.group-header.clickable:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
 .group-title {
-  margin-top: 0;
-  margin-bottom: 20px;
+  margin: 0;
   color: #e0e0e0;
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 600;
-  padding-bottom: 10px;
-  border-bottom: 2px solid rgba(255, 255, 255, 0.2);
   text-transform: capitalize;
+}
+
+.group-header-right {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.exercises-count-badge {
+  background: rgba(102, 126, 234, 0.2);
+  color: #667eea;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid rgba(102, 126, 234, 0.3);
+}
+
+.expand-button {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #e0e0e0;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.expand-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.exercises-detail {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 20px;
 }
 
 .evolution-chart {
@@ -574,5 +625,154 @@
   .no-chart-data {
     padding: 2rem 1rem;
     font-size: 0.9rem;
+  }
+}
+
+/* Estilos para tabla de ejercicios (formato profesional) */
+.exercises-table-container {
+  overflow-x: auto;
+  margin-top: 15px;
+}
+
+.exercises-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.exercises-table thead {
+  background: rgba(102, 126, 234, 0.15);
+  border-bottom: 2px solid rgba(102, 126, 234, 0.3);
+}
+
+.exercises-table th {
+  padding: 12px 8px;
+  text-align: left;
+  color: #b0b0b0;
+  font-weight: 600;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.exercises-table tbody tr {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: background-color 0.2s ease;
+}
+
+.exercises-table tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.exercises-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.exercises-table td {
+  padding: 12px 8px;
+  color: #e0e0e0;
+  font-size: 14px;
+  vertical-align: middle;
+}
+
+.col-machine {
+  min-width: 150px;
+  font-weight: 500;
+}
+
+.col-compact {
+  width: 50px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.col-photo {
+  width: 80px;
+  text-align: center;
+}
+
+.machine-name-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.workout-date-badge {
+  background: rgba(255, 193, 7, 0.15);
+  color: #ffc107;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  display: inline-block;
+  width: fit-content;
+}
+
+.machine-thumb {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.no-photo {
+  color: #666;
+  font-style: italic;
+  font-size: 12px;
+}
+
+@media (max-width: 768px) {
+  .group-header {
+    padding: 15px;
+  }
+
+  .group-title {
+    font-size: 15px;
+  }
+
+  .exercises-count-badge {
+    font-size: 11px;
+    padding: 3px 8px;
+  }
+
+  .expand-button {
+    padding: 4px 8px;
+    font-size: 12px;
+  }
+
+  .exercises-detail {
+    padding: 12px;
+  }
+
+  .exercises-table th,
+  .exercises-table td {
+    padding: 8px 4px;
+    font-size: 12px;
+  }
+
+  .col-machine {
+    min-width: 120px;
+  }
+
+  .col-compact {
+    width: 35px;
+  }
+
+  .col-photo {
+    width: 60px;
+  }
+
+  .machine-thumb {
+    width: 40px;
+    height: 40px;
+  }
+
+  .workout-date-badge {
+    font-size: 10px;
+    padding: 2px 6px;
   }
 }
