@@ -6,7 +6,8 @@ import WorkoutLogger from './components/WorkoutLogger';
 import History from './components/History';
 import AssignedTable from './components/AssignedTable';
 import AdminPanel from './components/AdminPanel';
-import { requestNotificationPermission, setupMessageListener } from './services/notifications';
+// PUSH NOTIFICATIONS DESACTIVADAS - No funcionan en Safari iOS
+// import { requestNotificationPermission, setupMessageListener } from './services/notifications';
 // FUNCIONALIDAD SOCIAL DESACTIVADA TEMPORALMENTE - FUTURO
 // import SocialFeed from './components/SocialFeed';
 import './App.css';
@@ -32,13 +33,13 @@ function App() {
       if (adminStatus) {
         setCurrentView('admin');
         
-        // Solicitar permiso de notificaciones para el admin
-        try {
-          await requestNotificationPermission();
-          setupMessageListener();
-        } catch (error) {
-          console.error('Error setting up notifications:', error);
-        }
+        // PUSH NOTIFICATIONS DESACTIVADAS - Ahora usa email
+        // try {
+        //   await requestNotificationPermission();
+        //   setupMessageListener();
+        // } catch (error) {
+        //   console.error('Error setting up notifications:', error);
+        // }
       }
       
       setLoading(false);

@@ -4,7 +4,7 @@ import { db, auth } from './firebase';
 
 // VAPID Key - Necesitarás generarla en Firebase Console
 // Ve a: Project Settings > Cloud Messaging > Web Push certificates
-const VAPID_KEY = 'REEMPLAZAR_CON_TU_VAPID_KEY';
+const VAPID_KEY = 'BGN9GGbRXOE1Tl6O65-8UfltFnFxIdR_UaCF3QA_uZrzeRHb30xmeaH_AFwvFR9aJAViuCtE1KPl4AQSH9HUzYs';
 
 export const requestNotificationPermission = async () => {
   try {
