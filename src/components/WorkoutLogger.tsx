@@ -504,7 +504,25 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
 
   return (
     <div className="workout-logger">
-      <h2>📝 Registrar Entrenamiento</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <h2>📝 Registrar Entrenamiento</h2>
+        <button 
+          className="back-button"
+          onClick={() => window.history.back()}
+          style={{
+            padding: '8px 16px',
+            background: 'rgba(255, 255, 255, 0.05)',
+            color: '#e0e0e0',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontSize: '13px',
+            fontWeight: '600'
+          }}
+        >
+          ← Volver
+        </button>
+      </div>
       
       <div className="current-workout">
         <h3>Entrenamiento Actual</h3>
@@ -802,10 +820,10 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
 
                     <div className="form-actions">
                       <button type="button" onClick={addExercise} className="primary-button">
-                        Agregar ejercicio
+                        ➕ Agregar
                       </button>
                       <button type="button" onClick={() => setShowAddForm(false)} className="secondary-button">
-                        Cancelar
+                        ✖ Cancelar
                       </button>
                     </div>
                   </>
@@ -823,7 +841,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
                 className="add-exercise-btn"
                 disabled={loadingMachines}
               >
-                {loadingMachines ? 'Cargando máquinas...' : '+ Agregar Ejercicio'}
+                {loadingMachines ? '⏳ Cargando...' : '➕ Agregar Ejercicio'}
               </button>
             )}
           </div>

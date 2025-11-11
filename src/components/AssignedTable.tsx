@@ -155,31 +155,29 @@ const AssignedTable: React.FC = () => {
     <div className="assigned-table-container">
       <header className="assigned-table-header">
         <div>
-          <h1>📋 Mis Tablas de Ejercicios</h1>
-          <p className="tables-count">{assignedTables.length} tabla{assignedTables.length > 1 ? 's' : ''} activa{assignedTables.length > 1 ? 's' : ''}</p>
+          <h1>📋 Mi Tabla</h1>
         </div>
-        <div style={{ display: 'flex', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           <button 
-            className="request-change-button"
+            className="icon-button"
             onClick={() => setShowRequestModal(true)}
-            style={{
-              background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-              border: 'none',
-              color: 'white',
-              padding: '10px 20px',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontWeight: 'bold',
-              fontSize: '14px'
-            }}
+            title="Solicitar cambio de tabla"
           >
-            💬 Solicitar Cambio
+            💬
           </button>
           <button 
-            className="history-button"
+            className="icon-button"
             onClick={() => setShowHistory(true)}
+            title="Ver historial de tablas"
           >
-            📚 Ver Historial
+            �
+          </button>
+          <button 
+            className="back-button"
+            onClick={() => window.history.back()}
+            title="Volver"
+          >
+            ← Volver
           </button>
         </div>
       </header>
@@ -214,15 +212,6 @@ const AssignedTable: React.FC = () => {
                   }
                 })()}
               </p>
-            </div>
-            <div className="table-actions">
-              <span className="status-badge status-active">🟢 ACTIVA</span>
-              <button 
-                className="complete-button"
-                onClick={() => markTableAsCompleted(table.id)}
-              >
-                ✅ Marcar como Completada
-              </button>
             </div>
           </div>
 
@@ -324,7 +313,7 @@ const AssignedTable: React.FC = () => {
                   fontWeight: 'bold'
                 }}
               >
-                {sendingRequest ? '⏳ Enviando...' : '📤 Enviar Solicitud'}
+                {sendingRequest ? '⏳' : '📤'} {sendingRequest ? 'Enviando...' : 'Enviar'}
               </button>
               <button
                 onClick={() => setShowRequestModal(false)}
@@ -337,7 +326,7 @@ const AssignedTable: React.FC = () => {
                   cursor: 'pointer'
                 }}
               >
-                Cancelar
+                ✖ Cancelar
               </button>
             </div>
           </div>
@@ -372,7 +361,7 @@ const AssignedTable: React.FC = () => {
                 fontWeight: 'bold'
               }}
             >
-              Cerrar
+              ✖ Cerrar
             </button>
           </div>
         </div>

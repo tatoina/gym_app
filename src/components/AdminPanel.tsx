@@ -514,8 +514,26 @@ const AdminPanel: React.FC = () => {
   return (
     <div className="admin-panel-container">
       <header className="admin-header">
-        <h1>⚙️ Panel de Administración</h1>
-        <p>Asigna tablas de ejercicios a tus usuarios</p>
+        <div>
+          <h1>⚙️ Panel Admin</h1>
+          <p>Asigna tablas de ejercicios a tus usuarios</p>
+        </div>
+        <button 
+          className="back-button"
+          onClick={() => window.history.back()}
+          style={{
+            padding: '10px 16px',
+            background: 'rgba(255, 255, 255, 0.05)',
+            color: '#e0e0e0',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontSize: '13px',
+            fontWeight: '600'
+          }}
+        >
+          ← Volver
+        </button>
       </header>
 
       {message && (
@@ -1001,7 +1019,7 @@ const AdminPanel: React.FC = () => {
                 disabled={saving || exercises.length === 0}
                 className="save-table-btn"
               >
-                {saving ? 'Guardando...' : '💾 Guardar y Asignar Tabla'}
+                {saving ? '⏳ Guardando...' : '💾 Guardar Tabla'}
               </button>
             </div>
           </>
