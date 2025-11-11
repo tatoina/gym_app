@@ -513,11 +513,7 @@ const AdminPanel: React.FC = () => {
 
   return (
     <div className="admin-panel-container">
-      <header className="admin-header">
-        <div>
-          <h1>⚙️ Panel Admin</h1>
-          <p>Asigna tablas de ejercicios a tus usuarios</p>
-        </div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '20px' }}>
         <button 
           className="back-button"
           onClick={() => window.history.back()}
@@ -534,7 +530,7 @@ const AdminPanel: React.FC = () => {
         >
           ← Volver
         </button>
-      </header>
+      </div>
 
       {message && (
         <div className={`admin-message ${message.type}`}>
@@ -851,6 +847,26 @@ const AdminPanel: React.FC = () => {
         )}
 
         <div className="divider"></div>
+
+        {/* Sección de asignación de tablas */}
+        <div className="main-actions" style={{ marginBottom: '20px' }}>
+          <div
+            className="section-title-banner"
+            style={{
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              border: 'none',
+              color: 'white',
+              padding: '15px 30px',
+              borderRadius: '12px',
+              fontWeight: 'bold',
+              fontSize: '16px',
+              boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
+              textAlign: 'center'
+            }}
+          >
+            📋 ASIGNACIÓN DE TABLAS
+          </div>
+        </div>
 
         <div className="user-selector-section">
           <h3>Seleccionar Usuario</h3>
