@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Obtener VAPID Key - Firebase</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #e0e0e0;
+        }
+        .step {
+            background: #2d2d2d;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border: 2px solid #667eea;
+        }
+        h1 {
+            color: #667eea;
+        }
+        h2 {
+            color: #ffd700;
+        }
+        .code {
+            background: #000;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .warning {
+            background: #ff9800;
+            color: #000;
+            padding: 10px;
+            border-radius: 5px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .success {
+            background: #4caf50;
+            color: #fff;
+            padding: 10px;
+            border-radius: 5px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔔 Configuración de Notificaciones Push</h1>
+    
+    <div class="step">
+        <h2>Paso 1: Obtener VAPID Key</h2>
+        <p>Haz clic en este enlace para abrir la configuración de Firebase Cloud Messaging:</p>
+        <p><a href="https://console.firebase.google.com/project/gymapp-bd0da/settings/cloudmessaging" target="_blank">
+            Abrir Firebase Console - Cloud Messaging
+        </a></p>
+        <p>Una vez allí:</p>
+        <ol>
+            <li>Busca la sección <strong>"Web configuration"</strong></li>
+            <li>Busca <strong>"Web Push certificates"</strong></li>
+            <li>Si NO hay ninguna clave generada, haz clic en <strong>"Generate key pair"</strong></li>
+            <li>Copia la clave que aparece (empieza con "B..." y tiene ~80 caracteres)</li>
+        </ol>
+    </div>
+
+    <div class="step">
+        <h2>Paso 2: Pegar la VAPID Key en el código</h2>
+        <p>Abre el archivo:</p>
+        <div class="code">src/services/notifications.ts</div>
+        <p>Busca la línea 6 y reemplaza:</p>
+        <div class="code">const VAPID_KEY = 'REEMPLAZAR_CON_TU_VAPID_KEY';</div>
+        <p>Por:</p>
+        <div class="code">const VAPID_KEY = 'TU_CLAVE_AQUÍ';</div>
+    </div>
+
+    <div class="step">
+        <h2>Paso 3: Compilar y Desplegar</h2>
+        <p>Ejecuta estos comandos en la terminal:</p>
+        <div class="code">
+npm run build<br>
+firebase deploy --only hosting
+        </div>
+    </div>
+
+    <div class="step">
+        <h2>Paso 4: Probar las Notificaciones</h2>
+        <ol>
+            <li>Inicia sesión como <strong>max@max.es</strong></li>
+            <li>Acepta los permisos de notificación cuando se soliciten</li>
+            <li>Abre otra ventana en modo incógnito</li>
+            <li>Inicia sesión con otro usuario</li>
+            <li>Ve a "Mis Tablas" y haz clic en el botón 💬</li>
+            <li>Envía una solicitud de cambio</li>
+            <li>Max debería recibir una notificación push! 🎉</li>
+        </ol>
+    </div>
+
+    <div class="warning">
+        ⚠️ IMPORTANTE: Las notificaciones push solo funcionan en:
+        <ul>
+            <li>Chrome (Windows, Mac, Android)</li>
+            <li>Firefox (Windows, Mac, Android)</li>
+            <li>Edge (Windows, Mac)</li>
+            <li>NO funciona en Safari iOS</li>
+        </ul>
+    </div>
+
+    <div class="success">
+        ✅ La Cloud Function ya está desplegada y funcionando!<br>
+        ✅ El Service Worker ya está configurado!<br>
+        ⏳ Solo falta completar los pasos 1-3 para activar las notificaciones.
+    </div>
+</body>
+</html>
