@@ -523,7 +523,7 @@ const AdminPanel: React.FC = () => {
         </div>
         <div className="admin-user-info">
           <div className="admin-avatar" onClick={() => setShowUserMenu(!showUserMenu)}>
-            M
+            <img src="/icons/maxgym.png" alt="MAXGYM Logo" className="admin-avatar-logo" />
           </div>
           {showUserMenu && (
             <div className="user-menu">
@@ -538,16 +538,16 @@ const AdminPanel: React.FC = () => {
       {/* Navegación de secciones */}
       <div className="admin-navigation">
         <button 
-          className={`nav-tab ${activeTab === 'tablas' ? 'active' : ''}`}
-          onClick={() => setActiveTab(activeTab === 'tablas' ? null : 'tablas')}
-        >
-          {activeTab === 'tablas' ? '✖ Cerrar' : '📋'} Gestión de Tablas
-        </button>
-        <button 
           className={`nav-tab ${activeTab === 'maquinas' ? 'active' : ''}`}
           onClick={() => setActiveTab(activeTab === 'maquinas' ? null : 'maquinas')}
         >
           {activeTab === 'maquinas' ? '✖ Cerrar' : '🏋️'} Gestión de Máquinas
+        </button>
+        <button 
+          className={`nav-tab ${activeTab === 'tablas' ? 'active' : ''}`}
+          onClick={() => setActiveTab(activeTab === 'tablas' ? null : 'tablas')}
+        >
+          {activeTab === 'tablas' ? '✖ Cerrar' : '📋'} Gestión de Tablas
         </button>
       </div>
 
