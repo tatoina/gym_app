@@ -263,3 +263,102 @@
     font-size: 0.95rem;
   }
 }
+
+/* Estilos para tabla expandible */
+.table-header.clickable {
+  transition: background 0.2s ease;
+}
+
+.table-header.clickable:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.expand-button {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #e0e0e0;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  transition: all 0.2s ease;
+}
+
+.expand-button:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+.exercises-detail {
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.2);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.exercises-detail .exercises-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.exercises-detail .exercises-table thead {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.exercises-detail .exercises-table th {
+  padding: 12px;
+  text-align: left;
+  color: #fff;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.exercises-detail .exercises-table th.col-compact {
+  text-align: center;
+  width: 40px;
+}
+
+.exercises-detail .exercises-table td {
+  padding: 12px;
+  color: #e0e0e0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 13px;
+}
+
+.exercises-detail .exercises-table td.col-compact {
+  text-align: center;
+  font-size: 13px;
+}
+
+.exercises-detail .exercises-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.status-completed {
+  background: rgba(76, 175, 80, 0.2);
+  color: #4caf50;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+@media (max-width: 768px) {
+  .expand-button {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+  
+  .exercises-detail {
+    padding: 15px 10px;
+  }
+  
+  .exercises-detail .exercises-table th,
+  .exercises-detail .exercises-table td {
+    padding: 8px 6px;
+    font-size: 12px;
+  }
+}

@@ -9,6 +9,7 @@ interface AssignedExercise {
   machinePhotoUrl?: string;
   series: number;
   reps: number;
+  weight?: number;
   notes?: string;
 }
 
@@ -21,7 +22,7 @@ interface CompletedTable {
   createdAt: any;
   updatedAt: any;
   status: 'COMPLETADA';
-  completedAt: any;
+  completedAt?: any;
 }
 
 interface TablesHistoryProps {
@@ -31,6 +32,7 @@ interface TablesHistoryProps {
 const TablesHistory: React.FC<TablesHistoryProps> = ({ onBack }) => {
   const [completedTables, setCompletedTables] = useState<CompletedTable[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expandedTableId, setExpandedTableId] = useState<string | null>(null);
 
   useEffect(() => {
     loadCompletedTables();
@@ -45,7 +47,7 @@ const TablesHistory: React.FC<TablesHistoryProps> = ({ onBack }) => {
         collection(db, 'assignedTables'),
         where('userId', '==', auth.currentUser.uid),
         where('status', '==', 'COMPLETADA'),
-        orderBy('completedAt', 'desc')
+        orderBy('updatedAt', 'desc')
       );
       
       const snapshot = await getDocs(q);
@@ -127,50 +129,83 @@ const TablesHistory: React.FC<TablesHistoryProps> = ({ onBack }) => {
         </button>
       </header>
 
-      {completedTables.map((table) => (
-        <div key={table.id} className="completed-table-card">
-          <div className="table-header">
-            <div className="table-info">
-              <h2>Tabla #{table.id.slice(-6)}</h2>
-              <p className="assigned-by">
-                Asignada por: <strong>{table.assignedByName}</strong>
-              </p>
-              <div className="table-dates">
-                <p className="created-date">
-                  Creada: {formatDate(table.createdAt)}
-                </p>
-                <p className="completed-date">
-                  ✅ Completada: {formatDate(table.completedAt)}
+      {completedTables.map((table) => {
+        const isExpanded = expandedTableId === table.id;
+        
+        return (
+          <div key={table.id} className="completed-table-card">
+            <div 
+              className="table-header clickable"
+              onClick={() => setExpandedTableId(isExpanded ? null : table.id)}
+              style={{ cursor: 'pointer' }}
+            >
+              <div className="table-info">
+                <h2>📋 Tabla del {formatDate(table.createdAt)}</h2>
+                <p className="assigned-by">
+                  Por: <strong>{table.assignedByName}</strong> • {table.exercises.length} ejercicios
                 </p>
               </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span className="status-badge status-completed">✅ Anterior</span>
+                <button 
+                  className="expand-button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setExpandedTableId(isExpanded ? null : table.id);
+                  }}
+                >
+                  {isExpanded ? '▲' : '▼'}
+                </button>
+              </div>
             </div>
-            <div className="table-status">
-              <span className="status-badge status-completed">✅ COMPLETADA</span>
-            </div>
-          </div>
 
-          <div className="exercises-summary">
-            <h3>Ejercicios ({table.exercises.length})</h3>
-            <div className="exercises-grid">
-              {table.exercises.map((exercise: AssignedExercise, index: number) => (
-                <div key={index} className="exercise-summary-card">
-                  {exercise.machinePhotoUrl && (
-                    <img
-                      src={exercise.machinePhotoUrl}
-                      alt={exercise.machineName}
-                      className="exercise-summary-photo"
-                    />
-                  )}
-                  <div className="exercise-summary-info">
-                    <h4>{exercise.machineName}</h4>
-                    <p>{exercise.series} × {exercise.reps}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+            {isExpanded && (
+              <div className="exercises-detail">
+                <table className="exercises-table">
+                  <thead>
+                    <tr>
+                      <th>Máquina</th>
+                      <th className="col-compact">S</th>
+                      <th className="col-compact">R</th>
+                      <th className="col-compact">P</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {table.exercises.map((exercise: AssignedExercise, index: number) => (
+                      <tr key={index}>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {exercise.machinePhotoUrl && (
+                              <img 
+                                src={exercise.machinePhotoUrl} 
+                                alt={exercise.machineName}
+                                style={{ width: '35px', height: '35px', objectFit: 'cover', borderRadius: '4px' }}
+                              />
+                            )}
+                            <div>
+                              <strong>{exercise.machineName}</strong>
+                              {exercise.notes && (
+                                <div style={{ fontSize: '11px', color: '#999', marginTop: '2px' }}>
+                                  💡 {exercise.notes}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="col-compact">{exercise.series}</td>
+                        <td className="col-compact">{exercise.reps}</td>
+                        <td className="col-compact" style={{ color: (exercise as any).weight ? '#fff' : '#888' }}>
+                          {(exercise as any).weight || '-'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 };
