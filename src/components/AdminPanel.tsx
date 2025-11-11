@@ -14,6 +14,7 @@ interface User {
 interface Machine {
   id: string;
   name: string;
+  category?: string;
   photoUrl?: string;
   description?: string;
   isGlobal?: boolean;
@@ -64,6 +65,7 @@ const AdminPanel: React.FC = () => {
   const [machineForm, setMachineForm] = useState({
     id: '',
     name: '',
+    category: '',
     description: '',
     photoFile: null as File | null,
     photoPreview: '',
@@ -72,6 +74,9 @@ const AdminPanel: React.FC = () => {
   const [machineFormLoading, setMachineFormLoading] = useState(false);
   const [editingMachine, setEditingMachine] = useState<Machine | null>(null);
   const [machineToDelete, setMachineToDelete] = useState<Machine | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState<string>('Todas');
+  const [showMachinesSection, setShowMachinesSection] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -243,6 +248,57 @@ const AdminPanel: React.FC = () => {
     }
   };
 
+  const importDefaultMachines = async () => {
+    if (!window.confirm('¿Importar 20 máquinas de ejemplo? Esta acción añadirá máquinas globales a la base de datos.')) {
+      return;
+    }
+
+    setImporting(true);
+    const defaultMachines = [
+      { name: "Press de Banca", category: "Pecho", description: "Press horizontal con barra para desarrollo de pectoral" },
+      { name: "Press Inclinado", category: "Pecho", description: "Press en banco inclinado para pectoral superior" },
+      { name: "Aperturas con Mancuernas", category: "Pecho", description: "Ejercicio de aislamiento para pectoral" },
+      { name: "Sentadilla con Barra", category: "Piernas", description: "Sentadilla completa con barra para cuádriceps y glúteos" },
+      { name: "Prensa de Piernas", category: "Piernas", description: "Prensa 45 grados para desarrollo de piernas" },
+      { name: "Curl Femoral", category: "Piernas", description: "Ejercicio de aislamiento para femorales" },
+      { name: "Extensión de Cuádriceps", category: "Piernas", description: "Ejercicio de aislamiento para cuádriceps" },
+      { name: "Peso Muerto", category: "Espalda", description: "Ejercicio compuesto para espalda baja y piernas" },
+      { name: "Dominadas", category: "Espalda", description: "Ejercicio con peso corporal para dorsal" },
+      { name: "Remo con Barra", category: "Espalda", description: "Remo horizontal para desarrollo de espalda" },
+      { name: "Jalones al Pecho", category: "Espalda", description: "Jalones en polea alta para dorsal" },
+      { name: "Press Militar", category: "Hombros", description: "Press vertical con barra para deltoides" },
+      { name: "Elevaciones Laterales", category: "Hombros", description: "Aislamiento para deltoides lateral" },
+      { name: "Elevaciones Frontales", category: "Hombros", description: "Aislamiento para deltoides frontal" },
+      { name: "Curl con Barra", category: "Brazos", description: "Curl de bíceps con barra" },
+      { name: "Curl con Mancuernas", category: "Brazos", description: "Curl alterno de bíceps" },
+      { name: "Press Francés", category: "Brazos", description: "Ejercicio de tríceps con barra" },
+      { name: "Fondos en Paralelas", category: "Brazos", description: "Ejercicio compuesto para tríceps y pecho" },
+      { name: "Abdominales en Máquina", category: "Core", description: "Crunch en máquina para abdominales" },
+      { name: "Plancha", category: "Core", description: "Ejercicio isométrico para core completo" }
+    ];
+
+    try {
+      let imported = 0;
+      for (const machine of defaultMachines) {
+        await addDoc(collection(db, 'machines'), {
+          ...machine,
+          photoUrl: '',
+          isGlobal: true,
+          createdAt: new Date()
+        });
+        imported++;
+      }
+      
+      setMessage({ type: 'success', text: `✅ ${imported} máquinas importadas correctamente` });
+      await loadData();
+    } catch (error) {
+      console.error('Error importing machines:', error);
+      setMessage({ type: 'error', text: 'Error al importar máquinas' });
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const handleMachineSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!machineForm.name.trim()) {
@@ -276,6 +332,7 @@ const AdminPanel: React.FC = () => {
       const machineData = {
         isGlobal: true,
         name: machineForm.name.trim(),
+        category: machineForm.category.trim(),
         description: machineForm.description.trim(),
         photoUrl: photoUrl,
         updatedAt: new Date()
@@ -307,6 +364,7 @@ const AdminPanel: React.FC = () => {
     setMachineForm({ 
       id: '',
       name: '', 
+      category: '',
       description: '', 
       photoFile: null, 
       photoPreview: '',
@@ -321,6 +379,7 @@ const AdminPanel: React.FC = () => {
     setMachineForm({
       id: machine.id,
       name: machine.name,
+      category: machine.category || '',
       description: machine.description || '',
       photoFile: null,
       photoPreview: machine.photoUrl || '',
@@ -426,16 +485,59 @@ const AdminPanel: React.FC = () => {
       )}
 
       <div className="admin-content">
-        {/* Sección de Máquinas Globales */}
-        <div className="global-machines-section">
-          <div className="section-header">
-            <h3>🏋️ Máquinas del Gimnasio ({machines.length})</h3>
-            <button 
-              onClick={() => setShowMachineForm(!showMachineForm)}
-              className="toggle-machine-form-btn"
-            >
-              {showMachineForm ? '✖ Cancelar' : '➕ Nueva Máquina'}
-            </button>
+        {/* Botones principales de gestión */}
+        <div className="main-actions" style={{ marginBottom: '30px', display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => setShowMachinesSection(!showMachinesSection)}
+            className="main-action-btn"
+            style={{
+              background: showMachinesSection ? '#667eea' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              border: 'none',
+              color: 'white',
+              padding: '15px 30px',
+              borderRadius: '12px',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              fontSize: '16px',
+              boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
+              transition: 'all 0.3s ease'
+            }}
+          >
+            {showMachinesSection ? '✖ Cerrar Gestión de Máquinas' : '🏋️ Gestión de Máquinas'}
+          </button>
+        </div>
+
+        {/* Sección de Máquinas Globales (mostrar solo si showMachinesSection es true) */}
+        {showMachinesSection && (
+          <div className="global-machines-section" style={{ marginBottom: '40px' }}>
+            <div className="section-header">
+              <h3>🏋️ Máquinas del Gimnasio ({machines.length})</h3>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              {machines.length === 0 && (
+                <button 
+                  onClick={importDefaultMachines}
+                  disabled={importing}
+                  className="import-machines-btn"
+                  style={{ 
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    border: 'none',
+                    color: 'white',
+                    padding: '10px 20px',
+                    borderRadius: '8px',
+                    cursor: importing ? 'not-allowed' : 'pointer',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  {importing ? '⏳ Importando...' : '📥 Importar 20 Máquinas'}
+                </button>
+              )}
+              <button 
+                onClick={() => setShowMachineForm(!showMachineForm)}
+                className="toggle-machine-form-btn"
+              >
+                {showMachineForm ? '✖ Cancelar' : '➕ Nueva Máquina'}
+              </button>
+            </div>
           </div>
 
           {showMachineForm && (
@@ -448,6 +550,16 @@ const AdminPanel: React.FC = () => {
                   onChange={(e) => setMachineForm({ ...machineForm, name: e.target.value })}
                   placeholder="Ej: Press de banca"
                   required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Categoría</label>
+                <input
+                  type="text"
+                  value={machineForm.category}
+                  onChange={(e) => setMachineForm({ ...machineForm, category: e.target.value })}
+                  placeholder="Ej: Pecho, Piernas, Espalda..."
                 />
               </div>
 
@@ -484,8 +596,38 @@ const AdminPanel: React.FC = () => {
             </form>
           )}
 
+          {machines.length > 0 && (
+            <div className="category-filter" style={{ marginBottom: '20px' }}>
+              <label htmlFor="admin-category-filter" style={{ marginRight: '10px', color: '#e0e0e0' }}>
+                🏷️ Filtrar por categoría:
+              </label>
+              <select
+                id="admin-category-filter"
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid #444',
+                  background: '#2a2a2a',
+                  color: '#e0e0e0',
+                  fontSize: '14px',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="Todas">📋 Todas ({machines.length})</option>
+                {Array.from(new Set(machines.map(m => m.category).filter(Boolean))).sort().map(cat => {
+                  const count = machines.filter(m => m.category === cat).length;
+                  return <option key={cat} value={cat}>🏷️ {cat} ({count})</option>;
+                })}
+              </select>
+            </div>
+          )}
+
           <div className="machines-list">
-            {machines.map((machine) => (
+            {machines
+              .filter(machine => categoryFilter === 'Todas' || machine.category === categoryFilter)
+              .map((machine) => (
               <div key={machine.id} className="machine-card">
                 <div className="machine-info">
                   {machine.photoUrl && (
@@ -493,6 +635,9 @@ const AdminPanel: React.FC = () => {
                   )}
                   <div className="machine-details">
                     <span className="machine-name">{machine.name}</span>
+                    {machine.category && (
+                      <span className="machine-category">🏷️ {machine.category}</span>
+                    )}
                     {machine.description && (
                       <span className="machine-description">{machine.description}</span>
                     )}
@@ -521,10 +666,9 @@ const AdminPanel: React.FC = () => {
               </div>
             ))}
           </div>
-        </div>
 
-        {/* Modal de confirmación para eliminar */}
-        {machineToDelete && (
+          {/* Modal de confirmación para eliminar */}
+          {machineToDelete && (
           <div className="modal-overlay">
             <div className="modal-content delete-modal">
               <h3>⚠️ Confirmar Eliminación</h3>
@@ -567,6 +711,8 @@ const AdminPanel: React.FC = () => {
               </div>
             </div>
           </div>
+          )}
+        </div>
         )}
 
         <div className="divider"></div>
@@ -592,27 +738,60 @@ const AdminPanel: React.FC = () => {
             <div className="exercises-builder-section">
               <h3>Tabla de {selectedUser?.firstName} {selectedUser?.lastName}</h3>
 
-              <div className="current-exercises">
+              <div className="current-exercises-table">
                 {exercises.length === 0 ? (
                   <p className="no-exercises">No hay ejercicios asignados. Agrega ejercicios abajo.</p>
                 ) : (
-                  exercises.map((exercise, index) => (
-                    <div key={index} className="exercise-item">
-                      <div className="exercise-info">
-                        {exercise.machinePhotoUrl && (
-                          <img src={exercise.machinePhotoUrl} alt={exercise.machineName} className="exercise-thumb" />
-                        )}
-                        <div>
-                          <strong>{exercise.machineName}</strong>
-                          <p>{exercise.series} series × {exercise.reps} reps</p>
-                          {exercise.notes && <p className="exercise-note">"{exercise.notes}"</p>}
-                        </div>
-                      </div>
-                      <button onClick={() => removeExercise(index)} className="remove-exercise-btn">
-                        ❌
-                      </button>
-                    </div>
-                  ))
+                  <table className="exercises-table">
+                    <thead>
+                      <tr>
+                        <th>Máquina</th>
+                        <th style={{ textAlign: 'center' }}>Series</th>
+                        <th style={{ textAlign: 'center' }}>Repeticiones</th>
+                        <th style={{ textAlign: 'center' }}>Peso</th>
+                        <th style={{ width: '50px' }}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {exercises.map((exercise, index) => (
+                        <tr key={index}>
+                          <td>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              {exercise.machinePhotoUrl && (
+                                <img 
+                                  src={exercise.machinePhotoUrl} 
+                                  alt={exercise.machineName} 
+                                  style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px' }}
+                                />
+                              )}
+                              <div>
+                                <strong>{exercise.machineName}</strong>
+                                {exercise.notes && <div style={{ fontSize: '12px', color: '#999' }}>"{exercise.notes}"</div>}
+                              </div>
+                            </div>
+                          </td>
+                          <td style={{ textAlign: 'center' }}>{exercise.series}</td>
+                          <td style={{ textAlign: 'center' }}>{exercise.reps}</td>
+                          <td style={{ textAlign: 'center', color: '#888' }}>-</td>
+                          <td style={{ textAlign: 'center' }}>
+                            <button 
+                              onClick={() => removeExercise(index)} 
+                              className="remove-exercise-btn"
+                              style={{
+                                background: 'transparent',
+                                border: 'none',
+                                cursor: 'pointer',
+                                fontSize: '18px',
+                                padding: '5px'
+                              }}
+                            >
+                              ❌
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 )}
               </div>
 

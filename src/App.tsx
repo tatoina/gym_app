@@ -6,7 +6,8 @@ import WorkoutLogger from './components/WorkoutLogger';
 import History from './components/History';
 import AssignedTable from './components/AssignedTable';
 import AdminPanel from './components/AdminPanel';
-import SocialFeed from './components/SocialFeed';
+// FUNCIONALIDAD SOCIAL DESACTIVADA TEMPORALMENTE - FUTURO
+// import SocialFeed from './components/SocialFeed';
 import './App.css';
 
 type View = 'workout' | 'history' | 'assigned' | 'social' | 'admin';
@@ -90,12 +91,15 @@ function App() {
               >
                 📋 Mi Tabla
               </button>
+              {/* FUNCIONALIDAD SOCIAL DESACTIVADA TEMPORALMENTE - FUTURO */}
+              {/*
               <button
                 className={`nav-btn ${currentView === 'social' ? 'active' : ''}`}
                 onClick={() => setCurrentView('social')}
               >
                 🌟 MAX SOCIAL
               </button>
+              */}
             </div>
           )}
           <div className="user-info">
@@ -118,7 +122,8 @@ function App() {
               <History onBack={() => setCurrentView('workout')} />
             )}
             {currentView === 'assigned' && <AssignedTable />}
-            {currentView === 'social' && <SocialFeed />}
+            {/* FUNCIONALIDAD SOCIAL DESACTIVADA TEMPORALMENTE - FUTURO */}
+            {/* {currentView === 'social' && <SocialFeed />} */}
           </>
         )}
       </main>

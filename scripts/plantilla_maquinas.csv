@@ -1,6 +1,6 @@
-Número,Nombre,Descripción,URL Foto
-1,Press de Banca,Ejercicio para pecho con barra,https://ejemplo.com/foto1.jpg
-2,Sentadilla,Ejercicio de piernas con barra,https://ejemplo.com/foto2.jpg
-3,Peso Muerto,Ejercicio de espalda y piernas,https://ejemplo.com/foto3.jpg
-4,Press Militar,Ejercicio de hombros con barra,https://ejemplo.com/foto4.jpg
-5,Remo con Barra,Ejercicio de espalda,https://ejemplo.com/foto5.jpg
+Número,Nombre,Categoría,Descripción,URL Foto
+1,Press de Banca,Pecho,Ejercicio para pecho con barra,https://ejemplo.com/foto1.jpg
+2,Sentadilla,Piernas,Ejercicio de piernas con barra,https://ejemplo.com/foto2.jpg
+3,Peso Muerto,Espalda,Ejercicio de espalda y piernas,https://ejemplo.com/foto3.jpg
+4,Press Militar,Hombros,Ejercicio de hombros con barra,https://ejemplo.com/foto4.jpg
+5,Remo con Barra,Espalda,Ejercicio de espalda,https://ejemplo.com/foto5.jpg

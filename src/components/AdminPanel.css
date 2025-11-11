@@ -80,6 +80,53 @@
   margin-bottom: 25px;
 }
 
+.current-exercises-table {
+  margin-bottom: 25px;
+  overflow-x: auto;
+}
+
+.exercises-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.exercises-table thead {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.exercises-table th {
+  padding: 15px;
+  text-align: left;
+  color: #e0e0e0;
+  font-weight: 600;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.exercises-table td {
+  padding: 15px;
+  color: #b0b0b0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 14px;
+}
+
+.exercises-table tbody tr {
+  transition: background 0.2s ease;
+}
+
+.exercises-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.exercises-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
 .no-exercises {
   text-align: center;
   padding: 40px 20px;
@@ -525,6 +572,14 @@
   font-size: 14px;
   font-weight: 600;
   margin-bottom: 4px;
+}
+
+.machine-category {
+  display: block;
+  color: #4CAF50;
+  font-size: 11px;
+  margin-bottom: 4px;
+  font-weight: 500;
 }
 
 .machine-description {

@@ -17,6 +17,7 @@ interface Exercise {
 interface Machine {
   id: string;
   name: string;
+  category?: string;
   description?: string;
   photoUrl?: string;
   userId?: string; // Si está vacío o es null, es máquina global (del admin)
@@ -55,6 +56,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
   const [machines, setMachines] = useState<Machine[]>([]);
   const [loadingMachines, setLoadingMachines] = useState(true);
   const [machineModalOpen, setMachineModalOpen] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState<string>('Todas');
   const [machineFormLoading, setMachineFormLoading] = useState(false);
   const [machineFormError, setMachineFormError] = useState('');
   const [machineForm, setMachineForm] = useState({
@@ -397,13 +399,10 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
       // Actualizar contador de ejercicios de hoy
       setTodayExercisesCount(prev => prev + 1);
 
-      // Si está activado compartir, publicar en MAX SOCIAL
-      if (sharePublicly) {
-        // Esperar un momento para asegurar que Firestore terminó de escribir
-        setTimeout(async () => {
-          await publishToSocial();
-        }, 500);
-      }
+      // FUNCIONALIDAD SOCIAL DESACTIVADA TEMPORALMENTE - FUTURO
+      // if (sharePublicly) {
+      //   await publishToSocial(exerciseToAdd);
+      // }
 
       setExerciseError('');
       setNewExercise(createEmptyExercise());
@@ -414,40 +413,15 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
     }
   };
 
-  const publishToSocial = async () => {
-    if (!auth.currentUser || !sharePublicly) return;
+  /* FUNCIONALIDAD SOCIAL DESACTIVADA TEMPORALMENTE - FUTURO
+  const publishToSocial = async (exercise: Exercise) => {
+    if (!auth.currentUser) return;
 
-    console.log('🚀 publishToSocial llamado');
+    console.log('🚀 publishToSocial llamado con ejercicio:', exercise);
     console.log('📝 Comentario actual:', postComment);
     console.log('📸 Foto actual:', postPhoto ? postPhoto.name : 'Sin foto');
 
     try {
-      // Obtener todos los ejercicios de hoy
-      const workoutsRef = collection(db, 'workouts');
-      const q = query(
-        workoutsRef,
-        where('userId', '==', auth.currentUser.uid),
-        where('date', '==', currentWorkout.date)
-      );
-      const snapshot = await getDocs(q);
-
-      console.log('📊 Ejercicios encontrados:', snapshot.size);
-
-      if (snapshot.empty) {
-        console.log('⚠️ No hay ejercicios guardados aún para esta fecha');
-        return;
-      }
-
-      const workoutsData = snapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          machineName: data.machineName || data.name,
-          sets: data.sets,
-          reps: data.reps,
-          weight: data.weight
-        };
-      });
-
       // Subir foto si existe
       let photoUrl = '';
       if (postPhoto) {
@@ -456,59 +430,41 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
         photoUrl = await getDownloadURL(photoRef);
       }
 
-      // Buscar si ya existe un post para este usuario y fecha
-      const postsRef = collection(db, 'posts');
-      const existingPostQuery = query(
-        postsRef,
-        where('userId', '==', auth.currentUser.uid),
-        where('date', '==', currentWorkout.date)
-      );
-      const existingPosts = await getDocs(existingPostQuery);
+      // Crear un nuevo post para este ejercicio específico
+      const postData = {
+        userId: auth.currentUser.uid,
+        userName: auth.currentUser.displayName || 'Usuario',
+        userEmail: auth.currentUser.email || '',
+        exercise: {
+          machineName: exercise.machineName,
+          name: exercise.name,
+          sets: exercise.sets,
+          reps: exercise.reps,
+          weight: exercise.weight,
+          machinePhotoUrl: exercise.machinePhotoUrl
+        },
+        date: currentWorkout.date,
+        timestamp: serverTimestamp(),
+        likes: [],
+        ...(postComment.trim() && { comment: postComment.trim() }),
+        ...(photoUrl && { photoUrl: photoUrl })
+      };
 
-      if (existingPosts.empty) {
-        // Crear nuevo post
-        const postData = {
-          userId: auth.currentUser.uid,
-          userName: auth.currentUser.displayName || 'Usuario',
-          userEmail: auth.currentUser.email || '',
-          workouts: workoutsData,
-          date: currentWorkout.date,
-          timestamp: serverTimestamp(),
-          likes: [],
-          ...(postComment.trim() && { comment: postComment.trim() }),
-          ...(photoUrl && { photoUrl: photoUrl })
-        };
-        console.log('✅ Creando nuevo post:', postData);
-        await addDoc(collection(db, 'posts'), postData);
-      } else {
-        // Actualizar post existente
-        const postDocRef = doc(db, 'posts', existingPosts.docs[0].id);
-        const existingData = existingPosts.docs[0].data();
-        
-        const updateData: any = {
-          workouts: workoutsData,
-          timestamp: serverTimestamp()
-        };
-
-        // Solo actualizar comentario si hay uno nuevo
-        if (postComment.trim()) {
-          updateData.comment = postComment.trim();
-        }
-
-        // Solo actualizar foto si hay una nueva
-        if (photoUrl) {
-          updateData.photoUrl = photoUrl;
-        }
-
-        console.log('🔄 Actualizando post existente:', updateData);
-        await updateDoc(postDocRef, updateData);
-      }
+      console.log('✅ Creando post para ejercicio:', postData);
+      await addDoc(collection(db, 'posts'), postData);
 
       console.log('✅ Post publicado correctamente');
+      
+      // Limpiar los campos de comentario y foto después de publicar
+      setPostComment('');
+      setPostPhoto(null);
+      setPostPhotoPreview('');
+      
     } catch (error) {
       console.error('❌ Error publishing to social:', error);
     }
   };
+  */
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -563,6 +519,8 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
             />
           </div>
 
+          {/* FUNCIONALIDAD SOCIAL DESACTIVADA TEMPORALMENTE - FUTURO */}
+          {/*
           <div className="form-group share-toggle">
             <label className="checkbox-label">
               <input
@@ -593,6 +551,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
                 <input
                   type="file"
                   accept="image/*"
+                  capture="environment"
                   onChange={handlePhotoChange}
                 />
                 {postPhotoPreview && (
@@ -613,6 +572,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
               </div>
             </div>
           )}
+          */}
 
           <div className="exercises-section">
             <h4>Ejercicios</h4>
@@ -704,6 +664,21 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
                 {machines.length > 0 ? (
                   <>
                     <div className="form-group">
+                      <label htmlFor="category-filter">Filtrar por Categoría</label>
+                      <select
+                        id="category-filter"
+                        value={categoryFilter}
+                        onChange={(e) => setCategoryFilter(e.target.value)}
+                        style={{ marginBottom: '15px' }}
+                      >
+                        <option value="Todas">📋 Todas las categorías</option>
+                        {Array.from(new Set(machines.map(m => m.category).filter(Boolean))).sort().map(cat => (
+                          <option key={cat} value={cat}>🏷️ {cat}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="form-group">
                       <label htmlFor="machine-select">Máquina</label>
                       <select
                         id="machine-select"
@@ -711,11 +686,14 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
                         onChange={(e) => handleSelectMachine(e.target.value)}
                       >
                         <option value="">Selecciona una máquina</option>
-                        {machines.map((machine) => (
-                          <option key={machine.id} value={machine.id}>
-                            {machine.isGlobal ? '🏋️ ' : '👤 '}{machine.name}
-                          </option>
-                        ))}
+                        {machines
+                          .filter(machine => categoryFilter === 'Todas' || machine.category === categoryFilter)
+                          .map((machine) => (
+                            <option key={machine.id} value={machine.id}>
+                              {machine.isGlobal ? '🏋️ ' : '👤 '}{machine.name}
+                              {machine.category ? ` (${machine.category})` : ''}
+                            </option>
+                          ))}
                       </select>
                     </div>
 

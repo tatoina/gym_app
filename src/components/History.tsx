@@ -20,6 +20,7 @@ interface WorkoutRecord {
 interface Machine {
   id: string;
   name: string;
+  category?: string;
 }
 
 interface HistoryProps {

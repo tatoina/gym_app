@@ -8,17 +8,25 @@ interface Post {
   userId: string;
   userName: string;
   userEmail: string;
-  workouts: {
+  exercise?: {
+    machineName: string;
+    name: string;
+    sets: number;
+    reps: number;
+    weight: number;
+    machinePhotoUrl?: string;
+  };
+  workouts?: {  // Mantener compatibilidad con posts antiguos
     machineName: string;
     sets: number;
     reps: number;
     weight: number;
   }[];
   timestamp: Date;
-  likes: string[]; // Array de userIds que dieron like
-  date: string; // Fecha del entrenamiento
-  comment?: string; // Comentario opcional
-  photoUrl?: string; // URL de la foto opcional
+  likes: string[];
+  date: string;
+  comment?: string;
+  photoUrl?: string;
 }
 
 const SocialFeed: React.FC = () => {
@@ -44,7 +52,8 @@ const SocialFeed: React.FC = () => {
           userId: data.userId,
           userName: data.userName,
           userEmail: data.userEmail,
-          workouts: data.workouts,
+          exercise: data.exercise, // Nuevo formato
+          workouts: data.workouts, // Formato antiguo (compatibilidad)
           timestamp: data.timestamp?.toDate() || new Date(),
           likes: data.likes || [],
           date: data.date,
@@ -127,6 +136,7 @@ const SocialFeed: React.FC = () => {
   };
 
   const getTotalWeight = (workouts: Post['workouts']) => {
+    if (!workouts) return 0;
     return workouts.reduce((sum, w) => sum + (w.weight * w.sets * w.reps), 0);
   };
 
@@ -160,7 +170,9 @@ const SocialFeed: React.FC = () => {
         <div className="posts-container">
           {posts.map(post => {
             const hasLiked = post.likes.includes(currentUserId);
-            const maxWeight = Math.max(...post.workouts.map(w => w.weight));
+            
+            // Soportar ambos formatos: ejercicio individual (nuevo) y array de workouts (antiguo)
+            const isNewFormat = post.exercise !== undefined;
             
             return (
               <div key={post.id} className="post-card">
@@ -185,34 +197,54 @@ const SocialFeed: React.FC = () => {
 
                 <div className="post-content">
                   <div className="post-date">
-                    📅 Entrenamiento del {post.date}
+                    📅 {post.date}
                   </div>
                   
-                  <div className="workout-summary">
-                    <div className="summary-stat">
-                      <span className="stat-label">Ejercicios</span>
-                      <span className="stat-value">{post.workouts.length}</span>
-                    </div>
-                    <div className="summary-stat">
-                      <span className="stat-label">Peso Máx</span>
-                      <span className="stat-value">{maxWeight} kg</span>
-                    </div>
-                    <div className="summary-stat">
-                      <span className="stat-label">Peso Total</span>
-                      <span className="stat-value">{getTotalWeight(post.workouts).toFixed(0)} kg</span>
-                    </div>
-                  </div>
-
-                  <div className="workouts-list">
-                    {post.workouts.map((workout, idx) => (
-                      <div key={idx} className="workout-item">
-                        <span className="workout-machine">{workout.machineName}</span>
-                        <span className="workout-details">
-                          {workout.sets}x{workout.reps} × {workout.weight}kg
-                        </span>
+                  {isNewFormat && post.exercise ? (
+                    // Formato nuevo: ejercicio individual
+                    <div className="exercise-post">
+                      <h3 className="exercise-title">
+                        💪 {post.exercise.machineName}
+                      </h3>
+                      {post.exercise.name && post.exercise.name !== post.exercise.machineName && (
+                        <p className="exercise-name">{post.exercise.name}</p>
+                      )}
+                      <div className="exercise-stats">
+                        <span className="stat-badge">{post.exercise.sets} series</span>
+                        <span className="stat-badge">{post.exercise.reps} reps</span>
+                        <span className="stat-badge">{post.exercise.weight} kg</span>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ) : post.workouts ? (
+                    // Formato antiguo: array de workouts (compatibilidad)
+                    <>
+                      <div className="workout-summary">
+                        <div className="summary-stat">
+                          <span className="stat-label">Ejercicios</span>
+                          <span className="stat-value">{post.workouts.length}</span>
+                        </div>
+                        <div className="summary-stat">
+                          <span className="stat-label">Peso Máx</span>
+                          <span className="stat-value">{Math.max(...post.workouts.map(w => w.weight))} kg</span>
+                        </div>
+                        <div className="summary-stat">
+                          <span className="stat-label">Peso Total</span>
+                          <span className="stat-value">{getTotalWeight(post.workouts).toFixed(0)} kg</span>
+                        </div>
+                      </div>
+
+                      <div className="workouts-list">
+                        {post.workouts.map((workout, idx) => (
+                          <div key={idx} className="workout-item">
+                            <span className="workout-machine">{workout.machineName}</span>
+                            <span className="workout-details">
+                              {workout.sets}x{workout.reps} × {workout.weight}kg
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  ) : null}
 
                   {post.comment && (
                     <div className="post-comment">

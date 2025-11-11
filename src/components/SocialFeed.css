@@ -198,6 +198,45 @@
   font-family: 'Courier New', monospace;
 }
 
+/* Estilos para ejercicio individual (nuevo formato) */
+.exercise-post {
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.15) 0%, rgba(76, 175, 80, 0.05) 100%);
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  margin-bottom: 15px;
+}
+
+.exercise-title {
+  color: #4CAF50;
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0 0 10px 0;
+}
+
+.exercise-name {
+  color: #b0b0b0;
+  font-size: 14px;
+  margin: 0 0 15px 0;
+  font-style: italic;
+}
+
+.exercise-stats {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.stat-badge {
+  background: rgba(76, 175, 80, 0.2);
+  color: #4CAF50;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  border: 1px solid rgba(76, 175, 80, 0.4);
+}
+
 .post-comment {
   margin-top: 20px;
   padding: 15px;

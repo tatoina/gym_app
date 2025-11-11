@@ -28,12 +28,13 @@ function parseCSV(content) {
   const machines = [];
   for (let i = 1; i < lines.length; i++) {
     const values = lines[i].split(',').map(v => v.trim());
-    if (values.length === headers.length && values[0]) {
+    if (values.length >= 4 && values[0]) {
       machines.push({
         number: values[0],
         name: values[1],
-        description: values[2] || '',
-        photoUrl: values[3] || ''
+        category: values[2] || '',
+        description: values[3] || '',
+        photoUrl: values[4] || ''
       });
     }
   }
@@ -73,6 +74,7 @@ async function importMachines() {
     console.log('═══════════════════════════════════════');
     machines.forEach((machine, idx) => {
       console.log(`${idx + 1}. [${machine.number}] ${machine.name}`);
+      if (machine.category) console.log(`   🏷️  Categoría: ${machine.category}`);
       if (machine.description) console.log(`   📝 ${machine.description}`);
       if (machine.photoUrl) console.log(`   🖼️  ${machine.photoUrl}`);
     });
@@ -92,6 +94,7 @@ async function importMachines() {
       try {
         await addDoc(machinesRef, {
           name: machine.name,
+          category: machine.category,
           description: machine.description,
           photoUrl: machine.photoUrl,
           isGlobal: true,  // Máquina global del gimnasio
