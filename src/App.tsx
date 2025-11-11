@@ -19,6 +19,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [currentView, setCurrentView] = useState<View>('workout');
   const [isAdmin, setIsAdmin] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -43,6 +44,12 @@ function App() {
     }
   };
 
+  const getUserInitials = () => {
+    if (!user?.email) return 'U';
+    const email = user.email;
+    return email.substring(0, 2).toUpperCase();
+  };
+
   if (loading) {
     return (
       <div className="App">
@@ -65,14 +72,6 @@ function App() {
       </div>
     );
   }
-
-  const getUserInitials = () => {
-    if (!user?.email) return 'U';
-    const email = user.email;
-    return email.substring(0, 2).toUpperCase();
-  };
-
-  const [showUserMenu, setShowUserMenu] = useState(false);
 
   return (
     <div className="App">
