@@ -242,7 +242,22 @@ const AssignedTable: React.FC = () => {
                   <tr key={index}>
                     <td>
                       <div style={{ textAlign: 'left' }}>
-                        <strong>{exercise.machineName}</strong>
+                        {exercise.machinePhotoUrl ? (
+                          <strong 
+                            onClick={() => setSelectedImage({ url: exercise.machinePhotoUrl!, name: exercise.machineName })}
+                            style={{ 
+                              cursor: 'pointer', 
+                              color: '#667eea',
+                              textDecoration: 'underline',
+                              textDecorationStyle: 'dotted'
+                            }}
+                            title="Clic para ver foto de la máquina"
+                          >
+                            {exercise.machineName}
+                          </strong>
+                        ) : (
+                          <strong>{exercise.machineName}</strong>
+                        )}
                         {exercise.notes && (
                           <div style={{ fontSize: '12px', color: '#999', marginTop: '4px' }}>
                             💡 {exercise.notes}
