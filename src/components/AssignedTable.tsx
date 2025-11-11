@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc, serverTimestamp, addDoc } from 'firebase/firestore';
 import { auth, db } from '../services/firebase';
 import TablesHistory from './TablesHistory';
 import './AssignedTable.css';
@@ -10,6 +10,7 @@ interface AssignedExercise {
   machinePhotoUrl?: string;
   series: number;
   reps: number;
+  weight?: number;
   notes?: string;
 }
 
@@ -29,6 +30,10 @@ const AssignedTable: React.FC = () => {
   const [assignedTables, setAssignedTables] = useState<AssignedTableData[]>([]);
   const [loading, setLoading] = useState(true);
   const [showHistory, setShowHistory] = useState(false);
+  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [requestComment, setRequestComment] = useState('');
+  const [sendingRequest, setSendingRequest] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<{url: string, name: string} | null>(null);
 
   useEffect(() => {
     loadAssignedTable();
@@ -79,6 +84,49 @@ const AssignedTable: React.FC = () => {
     }
   };
 
+  const sendChangeRequest = async () => {
+    if (!auth.currentUser || !requestComment.trim()) {
+      alert('Por favor escribe un comentario');
+      return;
+    }
+
+    try {
+      setSendingRequest(true);
+      
+      // Obtener datos del usuario actual
+      const userDoc = await getDocs(query(
+        collection(db, 'users'),
+        where('uid', '==', auth.currentUser.uid)
+      ));
+
+      let userName = 'Usuario';
+      if (!userDoc.empty) {
+        const userData = userDoc.docs[0].data();
+        userName = `${userData.firstName} ${userData.lastName}`;
+      }
+
+      // Crear notificación para Max
+      await addDoc(collection(db, 'notifications'), {
+        type: 'TABLE_CHANGE_REQUEST',
+        userId: auth.currentUser.uid,
+        userName: userName,
+        userEmail: auth.currentUser.email,
+        comment: requestComment.trim(),
+        createdAt: serverTimestamp(),
+        read: false
+      });
+
+      alert('✅ Solicitud enviada correctamente. Max verá tu mensaje.');
+      setShowRequestModal(false);
+      setRequestComment('');
+    } catch (error) {
+      console.error('Error sending request:', error);
+      alert('❌ Error al enviar la solicitud');
+    } finally {
+      setSendingRequest(false);
+    }
+  };
+
   if (showHistory) {
     return <TablesHistory onBack={() => setShowHistory(false)} />;
   }
@@ -110,12 +158,30 @@ const AssignedTable: React.FC = () => {
           <h1>📋 Mis Tablas de Ejercicios</h1>
           <p className="tables-count">{assignedTables.length} tabla{assignedTables.length > 1 ? 's' : ''} activa{assignedTables.length > 1 ? 's' : ''}</p>
         </div>
-        <button 
-          className="history-button"
-          onClick={() => setShowHistory(true)}
-        >
-          📚 Ver Historial
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button 
+            className="request-change-button"
+            onClick={() => setShowRequestModal(true)}
+            style={{
+              background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+              border: 'none',
+              color: 'white',
+              padding: '10px 20px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              fontSize: '14px'
+            }}
+          >
+            💬 Solicitar Cambio
+          </button>
+          <button 
+            className="history-button"
+            onClick={() => setShowHistory(true)}
+          >
+            📚 Ver Historial
+          </button>
+        </div>
       </header>
 
       {assignedTables.map((table) => (
@@ -160,38 +226,52 @@ const AssignedTable: React.FC = () => {
             </div>
           </div>
 
-          <div className="exercises-list">
-            {table.exercises.map((exercise: AssignedExercise, index: number) => (
-              <div key={index} className="assigned-exercise-card">
-                <div className="exercise-header">
-                  {exercise.machinePhotoUrl && (
-                    <img
-                      src={exercise.machinePhotoUrl}
-                      alt={exercise.machineName}
-                      className="exercise-photo"
-                    />
-                  )}
-                  <div className="exercise-title">
-                    <h3>{exercise.machineName}</h3>
-                    <div className="exercise-metrics">
-                      <span className="metric-badge">
-                        {exercise.series} series
-                      </span>
-                      <span className="metric-badge">
-                        {exercise.reps} repeticiones
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {exercise.notes && (
-                  <div className="exercise-notes">
-                    <strong>💡 Notas del coach:</strong>
-                    <p>{exercise.notes}</p>
-                  </div>
-                )}
-              </div>
-            ))}
+          <div className="exercises-table-container">
+            <table className="exercises-table">
+              <thead>
+                <tr>
+                  <th>Máquina</th>
+                  <th>Series</th>
+                  <th>Repeticiones</th>
+                  <th>Peso</th>
+                  <th>Foto</th>
+                </tr>
+              </thead>
+              <tbody>
+                {table.exercises.map((exercise: AssignedExercise, index: number) => (
+                  <tr key={index}>
+                    <td>
+                      <div style={{ textAlign: 'left' }}>
+                        <strong>{exercise.machineName}</strong>
+                        {exercise.notes && (
+                          <div style={{ fontSize: '12px', color: '#999', marginTop: '4px' }}>
+                            💡 {exercise.notes}
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td style={{ textAlign: 'center' }}>{exercise.series}</td>
+                    <td style={{ textAlign: 'center' }}>{exercise.reps}</td>
+                    <td style={{ textAlign: 'center', color: exercise.weight ? '#fff' : '#888' }}>
+                      {exercise.weight ? `${exercise.weight} kg` : '-'}
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      {exercise.machinePhotoUrl ? (
+                        <button
+                          onClick={() => setSelectedImage({ url: exercise.machinePhotoUrl!, name: exercise.machineName })}
+                          className="view-photo-btn"
+                          title="Ver foto de la máquina"
+                        >
+                          🔍
+                        </button>
+                      ) : (
+                        <span style={{ color: '#666' }}>-</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       ))}
@@ -199,6 +279,104 @@ const AssignedTable: React.FC = () => {
       <div className="table-footer">
         <p>💡 <strong>Consejo:</strong> Sigue estas tablas durante tus entrenamientos y registra tu progreso en "Entrenar".</p>
       </div>
+
+      {/* Modal para solicitar cambio de tabla */}
+      {showRequestModal && (
+        <div className="modal-overlay" onClick={() => setShowRequestModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3>💬 Solicitar Cambio de Tabla</h3>
+            <p style={{ color: '#b0b0b0', marginBottom: '20px' }}>
+              Envía un mensaje a Max explicando qué cambios necesitas en tu tabla de ejercicios.
+            </p>
+            
+            <textarea
+              value={requestComment}
+              onChange={(e) => setRequestComment(e.target.value)}
+              placeholder="Ejemplo: Me gustaría cambiar el press de banca por press inclinado porque tengo molestias en el hombro..."
+              rows={6}
+              style={{
+                width: '100%',
+                padding: '12px',
+                borderRadius: '8px',
+                border: '1px solid #444',
+                background: '#2a2a2a',
+                color: '#e0e0e0',
+                fontSize: '14px',
+                resize: 'vertical',
+                fontFamily: 'inherit'
+              }}
+            />
+
+            <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+              <button
+                onClick={sendChangeRequest}
+                disabled={sendingRequest || !requestComment.trim()}
+                style={{
+                  flex: 1,
+                  background: sendingRequest || !requestComment.trim() 
+                    ? '#555' 
+                    : 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                  border: 'none',
+                  color: 'white',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  cursor: sendingRequest || !requestComment.trim() ? 'not-allowed' : 'pointer',
+                  fontWeight: 'bold'
+                }}
+              >
+                {sendingRequest ? '⏳ Enviando...' : '📤 Enviar Solicitud'}
+              </button>
+              <button
+                onClick={() => setShowRequestModal(false)}
+                style={{
+                  padding: '12px 20px',
+                  background: 'transparent',
+                  border: '1px solid #444',
+                  color: '#e0e0e0',
+                  borderRadius: '8px',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para ver foto maximizada */}
+      {selectedImage && (
+        <div className="modal-overlay" onClick={() => setSelectedImage(null)}>
+          <div className="modal-content image-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>{selectedImage.name}</h3>
+            <img 
+              src={selectedImage.url} 
+              alt={selectedImage.name}
+              style={{
+                maxWidth: '100%',
+                maxHeight: '70vh',
+                objectFit: 'contain',
+                borderRadius: '8px'
+              }}
+            />
+            <button
+              onClick={() => setSelectedImage(null)}
+              style={{
+                marginTop: '20px',
+                padding: '12px 24px',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                border: 'none',
+                color: 'white',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: 'bold'
+              }}
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

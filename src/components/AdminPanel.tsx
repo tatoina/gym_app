@@ -26,6 +26,7 @@ interface AssignedExercise {
   machinePhotoUrl?: string;
   series: number;
   reps: number;
+  weight?: number;
   notes: string;
 }
 
@@ -41,6 +42,17 @@ interface AssignedTableData {
   completedAt?: any;
 }
 
+interface Notification {
+  id: string;
+  type: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  comment: string;
+  createdAt: any;
+  read: boolean;
+}
+
 const AdminPanel: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [machines, setMachines] = useState<Machine[]>([]);
@@ -48,6 +60,7 @@ const AdminPanel: React.FC = () => {
   const [exercises, setExercises] = useState<AssignedExercise[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Formulario para nuevo ejercicio
@@ -57,6 +70,7 @@ const AdminPanel: React.FC = () => {
     machinePhotoUrl: '',
     series: 3,
     reps: 10,
+    weight: 0,
     notes: ''
   });
 
@@ -77,6 +91,7 @@ const AdminPanel: React.FC = () => {
   const [importing, setImporting] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<string>('Todas');
   const [showMachinesSection, setShowMachinesSection] = useState(false);
+  const [currentTableDate, setCurrentTableDate] = useState<Date | null>(null);
 
   useEffect(() => {
     loadData();
@@ -87,6 +102,7 @@ const AdminPanel: React.FC = () => {
       loadUserTable(selectedUserId);
     } else {
       setExercises([]);
+      setCurrentTableDate(null);
     }
   }, [selectedUserId]);
 
@@ -113,6 +129,18 @@ const AdminPanel: React.FC = () => {
         ...doc.data()
       } as Machine));
       setMachines(machinesData);
+
+      // Cargar notificaciones no leídas
+      const notificationsQuery = query(
+        collection(db, 'notifications'),
+        where('read', '==', false)
+      );
+      const notificationsSnapshot = await getDocs(notificationsQuery);
+      const notificationsData: Notification[] = notificationsSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data()
+      } as Notification));
+      setNotifications(notificationsData);
     } catch (error) {
       console.error('Error loading data:', error);
       setMessage({ type: 'error', text: 'Error al cargar datos' });
@@ -125,15 +153,26 @@ const AdminPanel: React.FC = () => {
     try {
       const q = query(
         collection(db, 'assignedTables'),
-        where('userId', '==', userId)
+        where('userId', '==', userId),
+        where('status', '==', 'ACTIVA')
       );
       const snapshot = await getDocs(q);
       
       if (!snapshot.empty) {
         const data = snapshot.docs[0].data() as AssignedTableData;
         setExercises(data.exercises || []);
+        
+        // Guardar fecha de modificación
+        if (data.updatedAt) {
+          const date = data.updatedAt.toDate ? data.updatedAt.toDate() : new Date(data.updatedAt);
+          setCurrentTableDate(date);
+        } else if (data.createdAt) {
+          const date = data.createdAt.toDate ? data.createdAt.toDate() : new Date(data.createdAt);
+          setCurrentTableDate(date);
+        }
       } else {
         setExercises([]);
+        setCurrentTableDate(null);
       }
     } catch (error) {
       console.error('Error loading user table:', error);
@@ -162,6 +201,7 @@ const AdminPanel: React.FC = () => {
       machinePhotoUrl: '',
       series: 3,
       reps: 10,
+      weight: 0,
       notes: ''
     });
     setMessage(null);
@@ -484,6 +524,83 @@ const AdminPanel: React.FC = () => {
         </div>
       )}
 
+      {/* Notificaciones de solicitudes de cambio */}
+      {notifications.length > 0 && (
+        <div className="notifications-section" style={{ 
+          background: 'rgba(245, 87, 108, 0.1)', 
+          border: '1px solid rgba(245, 87, 108, 0.3)',
+          borderRadius: '12px',
+          padding: '20px',
+          marginBottom: '30px'
+        }}>
+          <h3 style={{ margin: '0 0 15px 0', color: '#f5576c' }}>
+            🔔 Solicitudes de Cambio ({notifications.length})
+          </h3>
+          {notifications.map((notif) => (
+            <div key={notif.id} style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              padding: '15px',
+              borderRadius: '8px',
+              marginBottom: '10px',
+              border: '1px solid rgba(255, 255, 255, 0.1)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+                <div>
+                  <strong style={{ color: '#e0e0e0' }}>{notif.userName}</strong>
+                  <span style={{ color: '#999', fontSize: '14px', marginLeft: '10px' }}>
+                    {notif.userEmail}
+                  </span>
+                </div>
+                <span style={{ color: '#999', fontSize: '12px' }}>
+                  {notif.createdAt?.toDate ? notif.createdAt.toDate().toLocaleString('es-ES') : 'Ahora'}
+                </span>
+              </div>
+              <p style={{ color: '#b0b0b0', margin: '10px 0', lineHeight: '1.5' }}>
+                💬 {notif.comment}
+              </p>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  onClick={() => {
+                    setSelectedUserId(notif.userId);
+                    updateDoc(doc(db, 'notifications', notif.id), { read: true });
+                    setNotifications(notifications.filter(n => n.id !== notif.id));
+                  }}
+                  style={{
+                    padding: '8px 16px',
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    border: 'none',
+                    color: 'white',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  👤 Ver Usuario
+                </button>
+                <button
+                  onClick={async () => {
+                    await updateDoc(doc(db, 'notifications', notif.id), { read: true });
+                    setNotifications(notifications.filter(n => n.id !== notif.id));
+                  }}
+                  style={{
+                    padding: '8px 16px',
+                    background: 'transparent',
+                    border: '1px solid #444',
+                    color: '#e0e0e0',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '13px'
+                  }}
+                >
+                  ✓ Marcar como leída
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="admin-content">
         {/* Botones principales de gestión */}
         <div className="main-actions" style={{ marginBottom: '30px', display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
@@ -736,7 +853,27 @@ const AdminPanel: React.FC = () => {
         {selectedUserId && (
           <>
             <div className="exercises-builder-section">
-              <h3>Tabla de {selectedUser?.firstName} {selectedUser?.lastName}</h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                <h3>Tabla de {selectedUser?.firstName} {selectedUser?.lastName}</h3>
+                {currentTableDate && (
+                  <div style={{ 
+                    color: '#b0b0b0', 
+                    fontSize: '14px',
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    padding: '8px 15px',
+                    borderRadius: '6px',
+                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                  }}>
+                    📅 Última modificación: {currentTableDate.toLocaleDateString('es-ES', { 
+                      day: '2-digit', 
+                      month: '2-digit', 
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </div>
+                )}
+              </div>
 
               <div className="current-exercises-table">
                 {exercises.length === 0 ? (
@@ -772,7 +909,9 @@ const AdminPanel: React.FC = () => {
                           </td>
                           <td style={{ textAlign: 'center' }}>{exercise.series}</td>
                           <td style={{ textAlign: 'center' }}>{exercise.reps}</td>
-                          <td style={{ textAlign: 'center', color: '#888' }}>-</td>
+                          <td style={{ textAlign: 'center', color: exercise.weight ? '#fff' : '#888' }}>
+                            {exercise.weight ? `${exercise.weight} kg` : '-'}
+                          </td>
                           <td style={{ textAlign: 'center' }}>
                             <button 
                               onClick={() => removeExercise(index)} 
@@ -831,6 +970,17 @@ const AdminPanel: React.FC = () => {
                       min="1"
                       value={newExercise.reps}
                       onChange={(e) => setNewExercise({ ...newExercise, reps: parseInt(e.target.value) || 1 })}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Peso (kg)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.5"
+                      value={newExercise.weight || 0}
+                      onChange={(e) => setNewExercise({ ...newExercise, weight: parseFloat(e.target.value) || 0 })}
                     />
                   </div>
                 </div>

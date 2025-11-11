@@ -496,3 +496,141 @@
     font-size: 0.95rem;
   }
 }
+
+/* Modal styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal-content {
+  background: #1a1a1a;
+  border-radius: 12px;
+  padding: 30px;
+  max-width: 600px;
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.modal-content h3 {
+  margin: 0 0 10px 0;
+  color: #e0e0e0;
+  font-size: 22px;
+}
+
+/* Tabla de ejercicios estilo profesional */
+.exercises-table-container {
+  padding: 20px;
+  overflow-x: auto;
+}
+
+.exercises-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.exercises-table thead {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.exercises-table th {
+  padding: 12px;
+  text-align: center;
+  color: #fff;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.exercises-table th:first-child {
+  text-align: left;
+  padding-left: 20px;
+}
+
+.exercises-table tbody tr {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: background 0.2s;
+}
+
+.exercises-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.exercises-table td {
+  padding: 16px 12px;
+  color: #e0e0e0;
+  font-size: 14px;
+}
+
+.exercises-table td:first-child {
+  padding-left: 20px;
+}
+
+.view-photo-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.view-photo-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.view-photo-btn:active {
+  transform: translateY(0);
+}
+
+/* Modal de imagen */
+.image-modal {
+  max-width: 90vw;
+  max-height: 90vh;
+  text-align: center;
+}
+
+.image-modal h3 {
+  color: #FFD700;
+  margin-bottom: 20px;
+}
+
+/* Responsive para tabla */
+@media (max-width: 768px) {
+  .exercises-table {
+    font-size: 12px;
+  }
+  
+  .exercises-table th,
+  .exercises-table td {
+    padding: 10px 8px;
+  }
+  
+  .exercises-table th:first-child,
+  .exercises-table td:first-child {
+    padding-left: 12px;
+  }
+  
+  .view-photo-btn {
+    padding: 6px 12px;
+    font-size: 14px;
+  }
+}

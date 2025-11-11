@@ -58,5 +58,14 @@ service cloud.firestore {
       // Solo el propietario puede actualizar o eliminar su post
       allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
+    
+    // Colección de notificaciones
+    match /notifications/{notificationId} {
+      // Los usuarios pueden crear sus propias notificaciones
+      allow create: if isAuthenticated();
+      
+      // Solo Max puede leer y actualizar notificaciones
+      allow read, update, delete: if isAdmin();
+    }
   }
 }
