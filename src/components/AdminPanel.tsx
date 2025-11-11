@@ -1047,11 +1047,13 @@ const AdminPanel: React.FC = () => {
                     onChange={(e) => setNewExercise({ ...newExercise, machineId: e.target.value })}
                   >
                     <option value="">-- Selecciona una máquina --</option>
-                    {machines.map((machine) => (
-                      <option key={machine.id} value={machine.id}>
-                        {machine.name}
-                      </option>
-                    ))}
+                    {machines
+                      .sort((a, b) => (a.number || 999) - (b.number || 999))
+                      .map((machine) => (
+                        <option key={machine.id} value={machine.id}>
+                          {machine.number ? `#${machine.number} - ` : ''}{machine.name}
+                        </option>
+                      ))}
                   </select>
                 </div>
 
