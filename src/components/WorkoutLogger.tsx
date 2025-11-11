@@ -599,7 +599,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
 
             {showMachinesManager && machines.length > 0 && (
               <div className="machines-list">
-                <h5>Tus Máquinas</h5>
+                <h5>Máquinas Disponibles</h5>
                 {machines.map((machine) => (
                   <div key={machine.id} className="machine-item">
                     {machine.photoUrl && (
@@ -607,26 +607,30 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
                     )}
                     <div className="machine-item-info">
                       <strong>{machine.name}</strong>
+                      {machine.category && <span className="machine-category-badge">🏷️ {machine.category}</span>}
                       {machine.description && <p>{machine.description}</p>}
+                      {machine.isGlobal && <span className="global-badge">🌐 Global</span>}
                     </div>
-                    <div className="machine-item-actions">
-                      <button
-                        type="button"
-                        className="edit-machine-btn"
-                        onClick={() => openMachineModalForEdit(machine)}
-                        aria-label="Editar máquina"
-                      >
-                        ✏️
-                      </button>
-                      <button
-                        type="button"
-                        className="delete-machine-btn"
-                        onClick={() => handleDeleteMachine(machine.id, machine.name)}
-                        aria-label="Eliminar máquina"
-                      >
-                        🗑️
-                      </button>
-                    </div>
+                    {!machine.isGlobal && (
+                      <div className="machine-item-actions">
+                        <button
+                          type="button"
+                          className="edit-machine-btn"
+                          onClick={() => openMachineModalForEdit(machine)}
+                          aria-label="Editar máquina"
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          type="button"
+                          className="delete-machine-btn"
+                          onClick={() => handleDeleteMachine(machine.id, machine.name)}
+                          aria-label="Eliminar máquina"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
