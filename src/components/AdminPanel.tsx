@@ -247,6 +247,13 @@ const AdminPanel: React.FC = () => {
       const selectedUser = users.find(u => u.id === selectedUserId);
       const currentUserData = users.find(u => u.id === auth.currentUser?.uid);
 
+      console.log('💾 Guardando tabla para usuario:', {
+        userId: selectedUserId,
+        userName: `${selectedUser?.firstName} ${selectedUser?.lastName}`,
+        email: selectedUser?.email,
+        ejercicios: exercises.length
+      });
+
       const tableData: AssignedTableData = {
         userId: selectedUserId,
         exercises: exercises,

@@ -41,22 +41,34 @@ const AssignedTable: React.FC = () => {
   }, []);
 
   const loadAssignedTable = async () => {
-    if (!auth.currentUser) return;
+    if (!auth.currentUser) {
+      console.log('❌ No hay usuario autenticado');
+      return;
+    }
 
     try {
       setLoading(true);
+      console.log('🔍 Buscando tablas para usuario:', auth.currentUser.uid);
+      console.log('📧 Email del usuario:', auth.currentUser.email);
       
       // Cargar todas las tablas (activas y completadas) para numerarlas correctamente
       const allTablesQuery = query(
         collection(db, 'assignedTables'),
-        where('userId', '==', auth.currentUser.uid),
-        orderBy('createdAt', 'asc')
+        where('userId', '==', auth.currentUser.uid)
       );
       const allSnapshot = await getDocs(allTablesQuery);
+      console.log('📊 Total de tablas encontradas (todas):', allSnapshot.docs.length);
+      
+      // Ordenar por fecha de creación manualmente y crear mapa de números
+      const sortedDocs = allSnapshot.docs.sort((a, b) => {
+        const aTime = a.data().createdAt?.seconds || 0;
+        const bTime = b.data().createdAt?.seconds || 0;
+        return aTime - bTime;
+      });
       
       // Crear mapa de ID a número de tabla
       const tableNumbers: { [key: string]: number } = {};
-      allSnapshot.docs.forEach((doc, index) => {
+      sortedDocs.forEach((doc, index) => {
         tableNumbers[doc.id] = index + 1;
       });
       
@@ -68,9 +80,17 @@ const AssignedTable: React.FC = () => {
       );
       
       const activeSnapshot = await getDocs(activeQuery);
+      console.log('✅ Tablas activas encontradas:', activeSnapshot.docs.length);
       
       const tables: AssignedTableData[] = [];
       activeSnapshot.forEach((doc) => {
+        const tableData = doc.data();
+        console.log('📋 Tabla encontrada:', {
+          id: doc.id,
+          userId: tableData.userId,
+          ejercicios: tableData.exercises?.length || 0,
+          status: tableData.status
+        });
         tables.push({
           id: doc.id,
           tableNumber: tableNumbers[doc.id],
@@ -79,8 +99,9 @@ const AssignedTable: React.FC = () => {
       });
       
       setAssignedTables(tables);
+      console.log('💾 Tablas cargadas en estado:', tables.length);
     } catch (error) {
-      console.error('Error loading assigned table:', error);
+      console.error('❌ Error loading assigned table:', error);
     } finally {
       setLoading(false);
     }
