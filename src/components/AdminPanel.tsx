@@ -93,6 +93,7 @@ const AdminPanel: React.FC = () => {
   const [showMachinesSection, setShowMachinesSection] = useState(false);
   const [currentTableDate, setCurrentTableDate] = useState<Date | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [activeTab, setActiveTab] = useState<'tablas' | 'maquinas'>('tablas');
 
   useEffect(() => {
     loadData();
@@ -514,8 +515,12 @@ const AdminPanel: React.FC = () => {
 
   return (
     <div className="admin-panel-container">
-      {/* Header de Admin con Avatar */}
+      {/* Header de Admin con información completa */}
       <div className="admin-header">
+        <div className="admin-title-section">
+          <h1>Panel de Administración</h1>
+          <p>Bienvenido, Max - Gestiona usuarios, máquinas y tablas de entrenamiento</p>
+        </div>
         <div className="admin-user-info">
           <div className="admin-avatar" onClick={() => setShowUserMenu(!showUserMenu)}>
             M
@@ -523,11 +528,27 @@ const AdminPanel: React.FC = () => {
           {showUserMenu && (
             <div className="user-menu">
               <button onClick={() => auth.signOut()}>
-                Cerrar Sesión
+                🚪 Cerrar Sesión
               </button>
             </div>
           )}
         </div>
+      </div>
+
+      {/* Navegación de secciones */}
+      <div className="admin-navigation">
+        <button 
+          className={`nav-tab ${activeTab === 'tablas' ? 'active' : ''}`}
+          onClick={() => setActiveTab('tablas')}
+        >
+          📋 Gestión de Tablas
+        </button>
+        <button 
+          className={`nav-tab ${activeTab === 'maquinas' ? 'active' : ''}`}
+          onClick={() => setActiveTab('maquinas')}
+        >
+          🏋️ Gestión de Máquinas
+        </button>
       </div>
 
       {message && (
@@ -614,30 +635,33 @@ const AdminPanel: React.FC = () => {
       )}
 
       <div className="admin-content">
-        {/* Botones principales de gestión */}
-        <div className="main-actions" style={{ marginBottom: '30px', display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
-          <button
-            onClick={() => setShowMachinesSection(!showMachinesSection)}
-            className="main-action-btn"
-            style={{
-              background: showMachinesSection ? '#667eea' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              border: 'none',
-              color: 'white',
-              padding: '15px 30px',
-              borderRadius: '12px',
-              cursor: 'pointer',
-              fontWeight: 'bold',
-              fontSize: '16px',
-              boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
-              transition: 'all 0.3s ease'
-            }}
-          >
-            {showMachinesSection ? '✖ Cerrar Gestión de Máquinas' : '🏋️ Gestión de Máquinas'}
-          </button>
-        </div>
+        {/* SECCIÓN DE GESTIÓN DE MÁQUINAS - Solo visible cuando activeTab === 'maquinas' */}
+        {activeTab === 'maquinas' && (
+          <>
+            {/* Botones principales de gestión */}
+            <div className="main-actions" style={{ marginBottom: '30px', display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+              <button
+                onClick={() => setShowMachinesSection(!showMachinesSection)}
+                className="main-action-btn"
+                style={{
+                  background: showMachinesSection ? '#667eea' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  border: 'none',
+                  color: 'white',
+                  padding: '15px 30px',
+                  borderRadius: '12px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  fontSize: '16px',
+                  boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                {showMachinesSection ? '✖ Cerrar Gestión de Máquinas' : '🏋️ Gestión de Máquinas'}
+              </button>
+            </div>
 
-        {/* Sección de Máquinas Globales (mostrar solo si showMachinesSection es true) */}
-        {showMachinesSection && (
+            {/* Sección de Máquinas Globales (mostrar solo si showMachinesSection es true) */}
+            {showMachinesSection && (
           <div className="global-machines-section" style={{ marginBottom: '40px' }}>
             <div className="section-header">
               <h3>🏋️ Máquinas del Gimnasio ({machines.length})</h3>
@@ -842,13 +866,16 @@ const AdminPanel: React.FC = () => {
           </div>
           )}
         </div>
+            )}
+          </>
         )}
 
-        <div className="divider"></div>
-
-        {/* Sección de asignación de tablas */}
-        <div className="main-actions" style={{ marginBottom: '20px' }}>
-          <div
+        {/* SECCIÓN DE GESTIÓN DE TABLAS - Solo visible cuando activeTab === 'tablas' */}
+        {activeTab === 'tablas' && (
+          <>
+            {/* Sección de asignación de tablas */}
+            <div className="main-actions" style={{ marginBottom: '20px' }}>
+              <div
             className="section-title-banner"
             style={{
               background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
@@ -1036,6 +1063,8 @@ const AdminPanel: React.FC = () => {
                 {saving ? '⏳ Guardando...' : '💾 Guardar Tabla'}
               </button>
             </div>
+          </>
+        )}
           </>
         )}
       </div>
