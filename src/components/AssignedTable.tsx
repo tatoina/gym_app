@@ -178,18 +178,6 @@ const AssignedTable: React.FC = () => {
     );
   }
 
-  if (!assignedTables || assignedTables.length === 0) {
-    return (
-      <div className="assigned-table-container">
-        <div className="empty-state">
-          <h2>📋 Tablas de Ejercicios</h2>
-          <p>Aún no tienes ninguna tabla asignada por tu coach.</p>
-          <p>Cuando tu coach te asigne ejercicios, aparecerán aquí.</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="assigned-table-container">
       <header className="assigned-table-header">
@@ -197,13 +185,15 @@ const AssignedTable: React.FC = () => {
           <h1>📋 MIS TABLAS</h1>
         </div>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <button 
-            className="icon-button"
-            onClick={() => setShowRequestModal(true)}
-            title="Solicitar cambio de tabla"
-          >
-            💬
-          </button>
+          {assignedTables && assignedTables.length > 0 && (
+            <button 
+              className="icon-button"
+              onClick={() => setShowRequestModal(true)}
+              title="Solicitar cambio de tabla"
+            >
+              💬
+            </button>
+          )}
           <button 
             className="icon-button"
             onClick={() => setShowHistory(true)}
@@ -213,6 +203,17 @@ const AssignedTable: React.FC = () => {
           </button>
         </div>
       </header>
+
+      {(!assignedTables || assignedTables.length === 0) ? (
+        <div className="empty-state">
+          <h2>📋 Sin Tabla Activa</h2>
+          <p>Aún no tienes ninguna tabla asignada por tu coach.</p>
+          <p>Cuando tu coach te asigne ejercicios, aparecerán aquí.</p>
+          <p style={{ marginTop: '20px', color: '#b0b0b0' }}>
+            💡 Puedes revisar tus tablas anteriores en el historial 📚
+          </p>
+        </div>
+      ) : null}
 
       {assignedTables.map((table) => (
         <div key={table.id} className="table-card">
