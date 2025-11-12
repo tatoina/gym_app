@@ -4,18 +4,31 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.75);
+  background: rgba(0, 0, 0, 0.6);
   z-index: 9998;
   animation: fadeIn 0.3s ease-in;
 }
 
 .tour-spotlight {
   position: absolute;
-  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.75);
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
   border-radius: 8px;
+  border: 3px solid #667eea;
   z-index: 9999;
   pointer-events: none;
   transition: all 0.3s ease;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    border-color: #667eea;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6), 0 0 20px rgba(102, 126, 234, 0.5);
+  }
+  50% {
+    border-color: #764ba2;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6), 0 0 30px rgba(118, 75, 162, 0.7);
+  }
 }
 
 .tour-tooltip {

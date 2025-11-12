@@ -324,7 +324,7 @@ function App() {
       )}
 
       {/* Tour de la aplicación */}
-      {!isAdmin && <AppTour run={runTour} onFinish={handleTourFinish} />}
+      {!isAdmin && <AppTour run={runTour} onFinish={handleTourFinish} onChangeView={setCurrentView} />}
     </div>
   );
 }

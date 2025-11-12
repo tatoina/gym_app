@@ -6,14 +6,16 @@ interface Step {
   description: string;
   target?: string;
   placement?: 'center' | 'top' | 'bottom' | 'left' | 'right';
+  view?: 'workout' | 'history' | 'assigned';
 }
 
 interface AppTourProps {
   run: boolean;
   onFinish: () => void;
+  onChangeView?: (view: 'workout' | 'history' | 'assigned') => void;
 }
 
-const AppTour: React.FC<AppTourProps> = ({ run, onFinish }) => {
+const AppTour: React.FC<AppTourProps> = ({ run, onFinish, onChangeView }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [position, setPosition] = useState({ top: 0, left: 0 });
 
@@ -21,79 +23,117 @@ const AppTour: React.FC<AppTourProps> = ({ run, onFinish }) => {
     {
       title: '🎉 ¡Bienvenido a MAXGYM!',
       description: 'Te voy a mostrar cómo usar la aplicación para registrar tus entrenamientos y seguir las tablas de ejercicios que Max te asigne.',
-      placement: 'center'
+      placement: 'center',
+      view: 'workout'
     },
     {
       title: '🏋️ Entrenar',
       description: 'Aquí registras tus entrenamientos diarios. Selecciona la máquina, añade series, repeticiones y peso. ¡Así de fácil!',
       target: '[data-tour="nav-entrenar"]',
-      placement: 'bottom'
+      placement: 'bottom',
+      view: 'workout'
+    },
+    {
+      title: '🏗️ Tus Máquinas',
+      description: 'Puedes usar las máquinas globales de Max o crear tus propias máquinas personalizadas. ¡Tienes total libertad para personalizar tu entrenamiento!',
+      placement: 'center',
+      view: 'workout'
     },
     {
       title: '📊 Historial',
       description: 'Revisa todos tus entrenamientos pasados, ve tu progreso en gráficas y analiza tu evolución semana a semana.',
       target: '[data-tour="nav-historial"]',
-      placement: 'bottom'
+      placement: 'bottom',
+      view: 'workout'
     },
     {
       title: '📋 Mis Tablas',
       description: 'Aquí verás las tablas de ejercicios que Max te asigna. Son tu guía para entrenar correctamente cada día.',
       target: '[data-tour="nav-tablas"]',
-      placement: 'bottom'
+      placement: 'bottom',
+      view: 'workout'
+    },
+    {
+      title: '💬 Solicitar Cambios',
+      description: '¿Necesitas modificar tu tabla? Usa este botón para enviarle un mensaje a Max explicando qué cambios necesitas. Le llegará un email automáticamente.',
+      target: '[data-tour="request-change"]',
+      placement: 'bottom',
+      view: 'assigned'
+    },
+    {
+      title: '📚 Historial de Tablas',
+      description: 'Puedes consultar todas las tablas anteriores que has completado. Perfecto para ver tu progresión y los ejercicios que hacías antes.',
+      target: '[data-tour="history-button"]',
+      placement: 'bottom',
+      view: 'assigned'
     },
     {
       title: '☀️ Tema Claro/Oscuro',
       description: 'Cambia entre tema oscuro y claro según tu preferencia. Tu elección se guardará automáticamente.',
       target: '[data-tour="theme-toggle"]',
-      placement: 'bottom'
+      placement: 'bottom',
+      view: 'workout'
     },
     {
       title: '👤 Tu Perfil',
       description: 'Aquí puedes subir tu foto de perfil, volver a ver este tour o cerrar sesión cuando termines.',
       target: '[data-tour="user-avatar"]',
-      placement: 'left'
+      placement: 'left',
+      view: 'workout'
     },
     {
       title: '✅ ¡Todo Listo!',
       description: 'Ya conoces todas las funcionalidades de MAXGYM. Puedes volver a ver este tour desde tu avatar → "Ver Tutorial"',
-      placement: 'center'
+      placement: 'center',
+      view: 'workout'
     }
   ];
 
   useEffect(() => {
-    if (run && steps[currentStep].target) {
-      const element = document.querySelector(steps[currentStep].target!);
-      if (element) {
-        const rect = element.getBoundingClientRect();
-        const placement = steps[currentStep].placement || 'bottom';
-        
-        let top = 0;
-        let left = 0;
-        
-        switch (placement) {
-          case 'bottom':
-            top = rect.bottom + window.scrollY + 20;
-            left = rect.left + window.scrollX + (rect.width / 2);
-            break;
-          case 'top':
-            top = rect.top + window.scrollY - 20;
-            left = rect.left + window.scrollX + (rect.width / 2);
-            break;
-          case 'left':
-            top = rect.top + window.scrollY + (rect.height / 2);
-            left = rect.left + window.scrollX - 20;
-            break;
-          case 'right':
-            top = rect.top + window.scrollY + (rect.height / 2);
-            left = rect.right + window.scrollX + 20;
-            break;
-        }
-        
-        setPosition({ top, left });
-        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (run) {
+      // Cambiar vista si es necesario
+      const step = steps[currentStep];
+      if (step.view && onChangeView) {
+        onChangeView(step.view);
       }
+
+      // Esperar a que se renderice la vista
+      setTimeout(() => {
+        if (step.target) {
+          const element = document.querySelector(step.target);
+          if (element) {
+            const rect = element.getBoundingClientRect();
+            const placement = step.placement || 'bottom';
+            
+            let top = 0;
+            let left = 0;
+            
+            switch (placement) {
+              case 'bottom':
+                top = rect.bottom + window.scrollY + 20;
+                left = rect.left + window.scrollX + (rect.width / 2);
+                break;
+              case 'top':
+                top = rect.top + window.scrollY - 20;
+                left = rect.left + window.scrollX + (rect.width / 2);
+                break;
+              case 'left':
+                top = rect.top + window.scrollY + (rect.height / 2);
+                left = rect.left + window.scrollX - 20;
+                break;
+              case 'right':
+                top = rect.top + window.scrollY + (rect.height / 2);
+                left = rect.right + window.scrollX + 20;
+                break;
+            }
+            
+            setPosition({ top, left });
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }
+      }, 300);
     }
-  }, [currentStep, run, steps]);
+  }, [currentStep, run, steps, onChangeView]);
 
   if (!run) return null;
 
