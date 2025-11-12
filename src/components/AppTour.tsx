@@ -18,6 +18,7 @@ interface AppTourProps {
 const AppTour: React.FC<AppTourProps> = ({ run, onFinish, onChangeView }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [position, setPosition] = useState({ top: 0, left: 0 });
+  const [actualPlacement, setActualPlacement] = useState<'center' | 'top' | 'bottom' | 'left' | 'right'>('bottom');
 
   const steps: Step[] = [
     {
@@ -103,24 +104,28 @@ const AppTour: React.FC<AppTourProps> = ({ run, onFinish, onChangeView }) => {
           const element = document.querySelector(step.target);
           if (element) {
             const rect = element.getBoundingClientRect();
-            const placement = step.placement || 'bottom';
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+            const tooltipWidth = windowWidth < 768 ? windowWidth - 40 : 400; // Responsive
+            const tooltipHeight = 200; // Altura aproximada del tooltip
             
+            let placement = step.placement || 'bottom';
             let top = 0;
             let left = 0;
             
+            // Calcular posición inicial según placement
             switch (placement) {
               case 'bottom':
                 top = rect.bottom + window.scrollY + 20;
                 left = rect.left + window.scrollX + (rect.width / 2);
                 break;
               case 'top':
-                top = rect.top + window.scrollY - 20;
+                top = rect.top + window.scrollY - tooltipHeight - 20;
                 left = rect.left + window.scrollX + (rect.width / 2);
                 break;
               case 'left':
                 top = rect.top + window.scrollY + (rect.height / 2);
-                // Para elementos en la derecha, ajustar para que no se salga
-                left = Math.min(rect.left + window.scrollX - 20, window.innerWidth - 420);
+                left = rect.left + window.scrollX - tooltipWidth - 20;
                 break;
               case 'right':
                 top = rect.top + window.scrollY + (rect.height / 2);
@@ -128,7 +133,28 @@ const AppTour: React.FC<AppTourProps> = ({ run, onFinish, onChangeView }) => {
                 break;
             }
             
+            // Ajustar horizontalmente si se sale de la pantalla
+            if (left - (tooltipWidth / 2) < 20) {
+              left = 20 + (tooltipWidth / 2);
+            } else if (left + (tooltipWidth / 2) > windowWidth - 20) {
+              left = windowWidth - 20 - (tooltipWidth / 2);
+            }
+            
+            // Ajustar verticalmente si se sale de la pantalla
+            if (top < window.scrollY + 20) {
+              // Si se sale por arriba, poner debajo del elemento
+              top = rect.bottom + window.scrollY + 20;
+              placement = 'bottom';
+            } else if (top + tooltipHeight > window.scrollY + windowHeight - 20) {
+              // Si se sale por abajo, poner arriba del elemento
+              top = rect.top + window.scrollY - tooltipHeight - 20;
+              placement = 'top';
+            }
+            
             setPosition({ top, left });
+            if (placement !== 'center') {
+              setActualPlacement(placement);
+            }
             element.scrollIntoView({ behavior: 'smooth', block: 'center' });
           }
         }
@@ -174,7 +200,7 @@ const AppTour: React.FC<AppTourProps> = ({ run, onFinish, onChangeView }) => {
         />
       )}
       <div 
-        className={`tour-tooltip ${isCenter ? 'tour-tooltip-center' : ''} ${step.placement ? `tour-tooltip-${step.placement}` : ''}`}
+        className={`tour-tooltip ${isCenter ? 'tour-tooltip-center' : ''} ${!isCenter ? `tour-tooltip-${actualPlacement}` : ''}`}
         style={isCenter ? {} : { top: `${position.top}px`, left: `${position.left}px` }}
       >
         <div className="tour-content">

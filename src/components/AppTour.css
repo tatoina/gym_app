@@ -48,6 +48,10 @@
   transform: translateX(-100%) translateY(-50%);
 }
 
+.tour-tooltip-right {
+  transform: translateY(-50%);
+}
+
 /* Flecha arriba (tooltip debajo del elemento) */
 .tour-tooltip-bottom::before {
   content: '';
@@ -219,8 +223,24 @@
 /* Responsive */
 @media (max-width: 768px) {
   .tour-tooltip {
-    max-width: 90%;
+    max-width: calc(100vw - 40px);
+    width: calc(100vw - 40px);
     padding: 20px;
+    left: 20px !important;
+    right: 20px;
+    transform: none !important;
+  }
+  
+  .tour-tooltip-center {
+    max-width: calc(100vw - 40px);
+    width: calc(100vw - 40px);
+  }
+  
+  /* En móvil, centrar flechas horizontalmente */
+  .tour-tooltip-bottom::before,
+  .tour-tooltip-top::before {
+    left: 50%;
+    transform: translateX(-50%);
   }
   
   .tour-content h3 {
@@ -229,5 +249,14 @@
   
   .tour-content p {
     font-size: 14px;
+  }
+  
+  .tour-actions {
+    flex-wrap: wrap;
+  }
+  
+  .tour-btn {
+    padding: 8px 16px;
+    font-size: 13px;
   }
 }
