@@ -4,9 +4,9 @@
 
 /* WorkoutLogger */
 .light-theme .workout-logger .current-workout {
-  background: linear-gradient(145deg, #ffffff 0%, #f7fafc 100%);
+  background: #ffffff;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-  border: 1px solid #cbd5e0;
+  border: 1px solid #e2e8f0;
 }
 
 .light-theme .workout-logger h2,
@@ -101,11 +101,11 @@
 
 .light-theme .workout-logger .machine-item {
   border-bottom: 2px solid #e2e8f0;
-  background: #f7fafc;
+  background: #ffffff;
 }
 
 .light-theme .workout-logger .machine-item:hover {
-  background: #edf2f7;
+  background: #ffffff;
 }
 
 .light-theme .workout-logger .machine-item strong {
@@ -144,7 +144,7 @@
 }
 
 .light-theme .assigned-table-header {
-  background: linear-gradient(135deg, #ffffff 0%, #f7fafc 100%);
+  background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
   border-bottom: 3px solid #cbd5e0;
 }
@@ -162,13 +162,13 @@
 }
 
 .light-theme .icon-button:hover {
-  background: #f7fafc;
+  background: #ffffff;
   border-color: #a0aec0;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .light-theme .table-card {
-  background: linear-gradient(145deg, #ffffff 0%, #f7fafc 100%);
+  background: linear-gradient(145deg, #ffffff 0%, #ffffff 100%);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
   border: 2px solid #cbd5e0;
 }
@@ -201,7 +201,7 @@
 }
 
 .light-theme .exercises-table tbody tr:hover {
-  background: #edf2f7;
+  background: #ffffff;
 }
 
 .light-theme .view-photo-btn {
@@ -224,7 +224,7 @@
 }
 
 .light-theme .modal-content textarea {
-  background: #f7fafc;
+  background: #ffffff;
   border: 1px solid #cbd5e0;
   color: #2d3748;
 }
@@ -268,7 +268,7 @@
 }
 
 .light-theme .history-header {
-  background: linear-gradient(135deg, #ffffff 0%, #f7fafc 100%);
+  background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
   border-bottom: 3px solid #cbd5e0;
 }
@@ -286,12 +286,12 @@
 }
 
 .light-theme .back-button:hover {
-  background: #f7fafc;
+  background: #ffffff;
   border-color: #a0aec0;
 }
 
 .light-theme .workout-card {
-  background: linear-gradient(145deg, #ffffff 0%, #f7fafc 100%);
+  background: linear-gradient(145deg, #ffffff 0%, #ffffff 100%);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
   border: 2px solid #cbd5e0;
 }
@@ -306,7 +306,7 @@
 }
 
 .light-theme .workout-exercise-item {
-  background: #f7fafc;
+  background: #ffffff;
   border: 2px solid #e2e8f0;
 }
 
@@ -351,12 +351,12 @@
 }
 
 .light-theme .group-header {
-  background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+  background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%);
   border-bottom: 2px solid #cbd5e0;
 }
 
 .light-theme .group-header.clickable:hover {
-  background: linear-gradient(135deg, #edf2f7 0%, #e2e8f0 100%);
+  background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%);
 }
 
 .light-theme .group-title {
@@ -383,7 +383,7 @@
 }
 
 .light-theme .expand-button:hover {
-  background: #f7fafc;
+  background: #ffffff;
   border-color: #a0aec0;
 }
 
@@ -462,7 +462,7 @@
 }
 
 .light-theme .machine-max-card {
-  background: linear-gradient(145deg, #ffffff 0%, #f7fafc 100%);
+  background: linear-gradient(145deg, #ffffff 0%, #ffffff 100%);
   border: 2px solid #cbd5e0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
@@ -495,7 +495,7 @@
 }
 
 .light-theme .single-machine-chart {
-  background: #f7fafc;
+  background: #ffffff;
   border: 2px solid #e2e8f0;
 }
 
@@ -532,7 +532,7 @@
 }
 
 .light-theme .exercises-table tbody tr:hover {
-  background: #f7fafc;
+  background: #ffffff;
 }
 
 .light-theme .view-photo-btn,

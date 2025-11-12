@@ -308,17 +308,17 @@ main > * {
 
 /* TEMA CLARO */
 .App.light-theme {
-  background: linear-gradient(180deg, #f5f7fa 0%, #e8eef5 100%);
+  background: linear-gradient(180deg, #ffffff 0%, #ffffff 100%);
   color: #2d3748;
 }
 
 .App.light-theme .loading {
-  background: #f5f7fa;
+  background: #ffffff;
   color: #2d3748;
 }
 
 .App.light-theme .welcome-header {
-  background: linear-gradient(135deg, #ffffff 0%, #f7fafc 100%);
+  background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%);
   color: #1a202c;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
@@ -370,7 +370,7 @@ main > * {
 }
 
 .App.light-theme main {
-  background: #e8eef5;
+  background: #ffffff;
 }
 
 .App.light-theme .theme-toggle-button {
