@@ -152,15 +152,24 @@ const TablesHistory: React.FC<TablesHistoryProps> = ({ onBack }) => {
                 </p>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span className="status-badge status-completed">✅ Anterior</span>
                 <button 
                   className="expand-button"
                   onClick={(e) => {
                     e.stopPropagation();
                     setExpandedTableId(isExpanded ? null : table.id);
                   }}
+                  style={{
+                    padding: '8px 16px',
+                    background: isExpanded ? 'rgba(102, 126, 234, 0.2)' : 'rgba(255, 255, 255, 0.1)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    color: 'white',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: 'bold'
+                  }}
                 >
-                  {isExpanded ? '▲' : '▼'}
+                  {isExpanded ? '▲ Ocultar' : '▼ Ver Ejercicios'}
                 </button>
               </div>
             </div>
