@@ -119,7 +119,8 @@ const AppTour: React.FC<AppTourProps> = ({ run, onFinish, onChangeView }) => {
                 break;
               case 'left':
                 top = rect.top + window.scrollY + (rect.height / 2);
-                left = rect.left + window.scrollX - 20;
+                // Para elementos en la derecha, ajustar para que no se salga
+                left = Math.min(rect.left + window.scrollX - 20, window.innerWidth - 420);
                 break;
               case 'right':
                 top = rect.top + window.scrollY + (rect.height / 2);

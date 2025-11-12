@@ -43,6 +43,11 @@
   animation: slideUp 0.3s ease-out;
 }
 
+/* Tooltip a la izquierda del elemento (no centrar) */
+.tour-tooltip-left {
+  transform: translateX(-100%) translateY(-50%);
+}
+
 /* Flecha arriba (tooltip debajo del elemento) */
 .tour-tooltip-bottom::before {
   content: '';
