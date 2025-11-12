@@ -96,6 +96,12 @@ const AdminPanel: React.FC = () => {
   const [currentTableDate, setCurrentTableDate] = useState<Date | null>(null);
   const [activeTab, setActiveTab] = useState<'maquinas' | 'tablas' | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showEmailConfigModal, setShowEmailConfigModal] = useState(false);
+  const [emailConfig, setEmailConfig] = useState({
+    email: '',
+    password: ''
+  });
+  const [updatingEmailConfig, setUpdatingEmailConfig] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -563,6 +569,39 @@ const AdminPanel: React.FC = () => {
     }
   };
 
+  const handleUpdateEmailConfig = async () => {
+    if (!emailConfig.email || !emailConfig.password) {
+      alert('⚠️ Debes completar ambos campos');
+      return;
+    }
+
+    if (!emailConfig.email.includes('@')) {
+      alert('⚠️ Email inválido');
+      return;
+    }
+
+    setUpdatingEmailConfig(true);
+    
+    try {
+      // Guardar las credenciales en Firestore para que el admin las pueda recuperar
+      await setDoc(doc(db, 'config', 'email'), {
+        email: emailConfig.email,
+        updatedAt: serverTimestamp(),
+        updatedBy: auth.currentUser?.email
+      });
+
+      alert('✅ Configuración guardada correctamente.\n\n⚠️ IMPORTANTE: Debes ejecutar estos comandos en la terminal:\n\n1. firebase functions:secrets:set GMAIL_EMAIL\n   (Introduce: ' + emailConfig.email + ')\n\n2. firebase functions:secrets:set GMAIL_PASSWORD\n   (Introduce: ' + emailConfig.password + ')\n\n3. firebase deploy --only functions');
+      
+      setShowEmailConfigModal(false);
+      setEmailConfig({ email: '', password: '' });
+    } catch (error) {
+      console.error('Error updating email config:', error);
+      alert('❌ Error al guardar la configuración');
+    } finally {
+      setUpdatingEmailConfig(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="admin-panel-container">
@@ -587,6 +626,9 @@ const AdminPanel: React.FC = () => {
           </div>
           {showUserMenu && (
             <div className="user-menu">
+              <button onClick={() => { setShowEmailConfigModal(true); setShowUserMenu(false); }}>
+                📧 Configurar Email
+              </button>
               <button onClick={() => auth.signOut()}>
                 🚪 Cerrar Sesión
               </button>
@@ -1128,6 +1170,65 @@ const AdminPanel: React.FC = () => {
         </>
         )}
       </div>
+
+      {/* Modal de configuración de email */}
+      {showEmailConfigModal && (
+        <div className="modal-overlay" onClick={() => setShowEmailConfigModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3>📧 Configurar Credenciales de Email</h3>
+            <p style={{ color: '#999', fontSize: '14px', marginBottom: '20px' }}>
+              Configura las credenciales para el envío de notificaciones por email.
+            </p>
+
+            <div className="form-group">
+              <label>Email de Gmail</label>
+              <input
+                type="email"
+                placeholder="ejemplo@gmail.com"
+                value={emailConfig.email}
+                onChange={(e) => setEmailConfig({ ...emailConfig, email: e.target.value })}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Contraseña de Aplicación de Gmail</label>
+              <input
+                type="password"
+                placeholder="Contraseña de 16 caracteres"
+                value={emailConfig.password}
+                onChange={(e) => setEmailConfig({ ...emailConfig, password: e.target.value })}
+              />
+              <small style={{ color: '#999', display: 'block', marginTop: '8px' }}>
+                ⚠️ Usa una contraseña de aplicación de Gmail, no tu contraseña normal.<br/>
+                Cómo obtenerla: <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer" style={{ color: '#667eea' }}>Google App Passwords</a>
+              </small>
+            </div>
+
+            <div className="modal-actions">
+              <button 
+                onClick={handleUpdateEmailConfig} 
+                className="primary-button"
+                disabled={updatingEmailConfig}
+              >
+                {updatingEmailConfig ? '⏳ Guardando...' : '💾 Guardar Configuración'}
+              </button>
+              <button 
+                onClick={() => setShowEmailConfigModal(false)} 
+                className="secondary-button"
+                disabled={updatingEmailConfig}
+              >
+                Cancelar
+              </button>
+            </div>
+
+            <div style={{ marginTop: '20px', padding: '15px', background: 'rgba(255, 193, 7, 0.1)', borderRadius: '8px', border: '1px solid rgba(255, 193, 7, 0.3)' }}>
+              <p style={{ margin: 0, fontSize: '13px', color: '#ffc107' }}>
+                ⚠️ <strong>IMPORTANTE:</strong> Después de guardar, deberás ejecutar comandos en la terminal para actualizar los secrets de Firebase. Se te mostrarán las instrucciones.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

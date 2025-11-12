@@ -5,15 +5,10 @@
 }
 
 .admin-header {
+  margin-bottom: 30px;
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 25px;
-  padding: 20px;
-  background: linear-gradient(145deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
-  border: 1px solid rgba(102, 126, 234, 0.2);
-  border-radius: 12px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  align-items: flex-start;
 }
 
 .admin-title-section h1 {
@@ -85,6 +80,11 @@
   font-weight: bold;
   width: 100%;
   transition: all 0.3s ease;
+  margin-bottom: 8px;
+}
+
+.user-menu button:last-child {
+  margin-bottom: 0;
 }
 
 .user-menu button:hover {

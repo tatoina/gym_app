@@ -2,17 +2,20 @@ const {onDocumentCreated} = require("firebase-functions/v2/firestore");
 const {initializeApp} = require("firebase-admin/app");
 const logger = require("firebase-functions/logger");
 const nodemailer = require("nodemailer");
-const {defineString} = require("firebase-functions/params");
+const {defineSecret} = require("firebase-functions/params");
 
-// Definir parámetros de configuración
-const gmailEmail = defineString("GMAIL_EMAIL");
-const gmailPassword = defineString("GMAIL_PASSWORD");
+// Definir secrets de configuración
+const gmailEmail = defineSecret("GMAIL_EMAIL");
+const gmailPassword = defineSecret("GMAIL_PASSWORD");
 
 initializeApp();
 
 // Cloud Function que envía email cuando se crea una nueva notificación
 exports.sendNotificationToAdmin = onDocumentCreated(
-    "notifications/{notificationId}",
+    {
+      document: "notifications/{notificationId}",
+      secrets: [gmailEmail, gmailPassword],
+    },
     async (event) => {
       const notification = event.data.data();
 
