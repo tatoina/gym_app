@@ -8,6 +8,7 @@ import WorkoutLogger from './components/WorkoutLogger';
 import History from './components/History';
 import AssignedTable from './components/AssignedTable';
 import AdminPanel from './components/AdminPanel';
+import AppTour from './components/AppTour';
 // PUSH NOTIFICATIONS DESACTIVADAS - No funcionan en Safari iOS
 // import { requestNotificationPermission, setupMessageListener } from './services/notifications';
 // FUNCIONALIDAD SOCIAL DESACTIVADA TEMPORALMENTE - FUTURO
@@ -29,6 +30,7 @@ function App() {
   const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [runTour, setRunTour] = useState(false);
 
   // Cargar preferencia de tema desde localStorage
   useEffect(() => {
@@ -37,6 +39,19 @@ function App() {
       setLightTheme(true);
     }
   }, []);
+
+  // Verificar si es la primera vez del usuario y mostrar tour
+  useEffect(() => {
+    if (user && !isAdmin) {
+      const hasSeenTour = localStorage.getItem(`tour_seen_${user.uid}`);
+      if (!hasSeenTour) {
+        // Esperar un poco para que los elementos se rendericen
+        setTimeout(() => {
+          setRunTour(true);
+        }, 1000);
+      }
+    }
+  }, [user, isAdmin]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -157,6 +172,21 @@ function App() {
     }
   };
 
+  const handleTourFinish = () => {
+    if (user) {
+      localStorage.setItem(`tour_seen_${user.uid}`, 'true');
+    }
+    setRunTour(false);
+  };
+
+  const handleStartTour = () => {
+    setShowUserMenu(false);
+    setCurrentView('workout'); // Ir a la vista principal para el tour
+    setTimeout(() => {
+      setRunTour(true);
+    }, 500);
+  };
+
   if (loading) {
     return (
       <div className="App">
@@ -184,7 +214,7 @@ function App() {
     <div className={`App ${lightTheme ? 'light-theme' : ''}`}>
       {!isAdmin && (
         <>
-          <div className="user-avatar-button" onClick={() => setShowUserMenu(!showUserMenu)}>
+          <div className="user-avatar-button" data-tour="user-avatar" onClick={() => setShowUserMenu(!showUserMenu)}>
             {profilePhotoUrl ? (
               <img src={profilePhotoUrl} alt="Avatar" className="avatar-image" />
             ) : (
@@ -192,7 +222,7 @@ function App() {
             )}
           </div>
 
-          <div className="theme-toggle-button" onClick={toggleTheme} title={lightTheme ? 'Cambiar a tema oscuro' : 'Cambiar a tema claro'}>
+          <div className="theme-toggle-button" data-tour="theme-toggle" onClick={toggleTheme} title={lightTheme ? 'Cambiar a tema oscuro' : 'Cambiar a tema claro'}>
             {lightTheme ? '🌙' : '☀️'}
           </div>
           
@@ -201,6 +231,9 @@ function App() {
               <div className="user-menu-email">{user.email}</div>
               <button onClick={() => { setShowPhotoModal(true); setShowUserMenu(false); }} className="user-menu-option">
                 📷 Cambiar Foto
+              </button>
+              <button onClick={handleStartTour} className="user-menu-option">
+                🎓 Ver Tutorial
               </button>
               <button onClick={handleLogout} className="user-menu-logout">
                 🚪 Cerrar Sesión
@@ -212,18 +245,21 @@ function App() {
             <button
               className={`main-nav-btn ${currentView === 'workout' ? 'active' : ''}`}
               onClick={() => setCurrentView('workout')}
+              data-tour="nav-entrenar"
             >
-              � Entrenar
+              🏋 Entrenar
             </button>
             <button
               className={`main-nav-btn ${currentView === 'history' ? 'active' : ''}`}
               onClick={() => setCurrentView('history')}
+              data-tour="nav-historial"
             >
-              � Historial
+              📊 Historial
             </button>
             <button
               className={`main-nav-btn ${currentView === 'assigned' ? 'active' : ''}`}
               onClick={() => setCurrentView('assigned')}
+              data-tour="nav-tablas"
             >
               📋 Mis Tablas
             </button>
@@ -286,6 +322,9 @@ function App() {
           </div>
         </div>
       )}
+
+      {/* Tour de la aplicación */}
+      {!isAdmin && <AppTour run={runTour} onFinish={handleTourFinish} />}
     </div>
   );
 }

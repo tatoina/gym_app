@@ -190,6 +190,7 @@ const AssignedTable: React.FC = () => {
               className="icon-button"
               onClick={() => setShowRequestModal(true)}
               title="Solicitar cambio de tabla"
+              data-tour="request-change"
             >
               💬
             </button>
@@ -198,6 +199,7 @@ const AssignedTable: React.FC = () => {
             className="icon-button"
             onClick={() => setShowHistory(true)}
             title="Ver historial de tablas"
+            data-tour="history-button"
           >
             📚
           </button>

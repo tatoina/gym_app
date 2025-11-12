@@ -1,0 +1,151 @@
+.tour-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  z-index: 9998;
+  animation: fadeIn 0.3s ease-in;
+}
+
+.tour-spotlight {
+  position: absolute;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.75);
+  border-radius: 8px;
+  z-index: 9999;
+  pointer-events: none;
+  transition: all 0.3s ease;
+}
+
+.tour-tooltip {
+  position: absolute;
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  z-index: 10000;
+  max-width: 400px;
+  transform: translateX(-50%);
+  animation: slideUp 0.3s ease-out;
+}
+
+.tour-tooltip-center {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) !important;
+  animation: scaleIn 0.3s ease-out;
+}
+
+.tour-content h3 {
+  margin: 0 0 12px 0;
+  color: #667eea;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.tour-content p {
+  margin: 0 0 16px 0;
+  color: #333;
+  line-height: 1.6;
+  font-size: 15px;
+}
+
+.tour-progress {
+  font-size: 13px;
+  color: #999;
+  margin-bottom: 16px;
+  font-weight: 500;
+}
+
+.tour-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.tour-btn {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.tour-btn-skip {
+  background: transparent;
+  color: #999;
+}
+
+.tour-btn-skip:hover {
+  color: #666;
+}
+
+.tour-btn-back {
+  background: #e0e0e0;
+  color: #333;
+}
+
+.tour-btn-back:hover {
+  background: #d0d0d0;
+}
+
+.tour-btn-next {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.tour-btn-next:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .tour-tooltip {
+    max-width: 90%;
+    padding: 20px;
+  }
+  
+  .tour-content h3 {
+    font-size: 18px;
+  }
+  
+  .tour-content p {
+    font-size: 14px;
+  }
+}
