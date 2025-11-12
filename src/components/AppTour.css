@@ -43,85 +43,12 @@
   animation: slideUp 0.3s ease-out;
 }
 
-/* Tooltip a la izquierda del elemento (no centrar) */
-.tour-tooltip-left {
-  transform: translateX(-100%) translateY(-50%);
-}
-
-.tour-tooltip-right {
-  transform: translateY(-50%);
-}
-
-/* Flecha arriba (tooltip debajo del elemento) */
-.tour-tooltip-bottom::before {
-  content: '';
-  position: absolute;
-  top: -20px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  border-left: 20px solid transparent;
-  border-right: 20px solid transparent;
-  border-bottom: 20px solid white;
-  filter: drop-shadow(0 -3px 3px rgba(0, 0, 0, 0.1));
-}
-
-/* Flecha abajo (tooltip arriba del elemento) */
-.tour-tooltip-top::before {
-  content: '';
-  position: absolute;
-  bottom: -20px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  border-left: 20px solid transparent;
-  border-right: 20px solid transparent;
-  border-top: 20px solid white;
-  filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.1));
-}
-
-/* Flecha derecha (tooltip a la izquierda del elemento) */
-.tour-tooltip-left::before {
-  content: '';
-  position: absolute;
-  right: -20px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 0;
-  height: 0;
-  border-top: 20px solid transparent;
-  border-bottom: 20px solid transparent;
-  border-left: 20px solid white;
-  filter: drop-shadow(3px 0 3px rgba(0, 0, 0, 0.1));
-}
-
-/* Flecha izquierda (tooltip a la derecha del elemento) */
-.tour-tooltip-right::before {
-  content: '';
-  position: absolute;
-  left: -20px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 0;
-  height: 0;
-  border-top: 20px solid transparent;
-  border-bottom: 20px solid transparent;
-  border-right: 20px solid white;
-  filter: drop-shadow(-3px 0 3px rgba(0, 0, 0, 0.1));
-}
-
 .tour-tooltip-center {
   position: fixed;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%) !important;
   animation: scaleIn 0.3s ease-out;
-}
-
-.tour-tooltip-center::before {
-  display: none;
 }
 
 .tour-content h3 {

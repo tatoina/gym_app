@@ -28,63 +28,57 @@ const AppTour: React.FC<AppTourProps> = ({ run, onFinish, onChangeView }) => {
       view: 'workout'
     },
     {
-      title: '🏋️ Entrenar',
-      description: 'Aquí registras tus entrenamientos diarios. Selecciona la máquina, añade series, repeticiones y peso. ¡Así de fácil!',
+      title: '🏋️ Botón Entrenar',
+      description: 'Este es el botón principal. Aquí registras tus entrenamientos diarios: selecciona la máquina, añade series, repeticiones y peso.',
       target: '[data-tour="nav-entrenar"]',
-      placement: 'bottom',
-      view: 'workout'
-    },
-    {
-      title: '🏗️ Tus Máquinas',
-      description: 'Puedes usar las máquinas globales de Max o crear tus propias máquinas personalizadas. ¡Tienes total libertad para personalizar tu entrenamiento!',
       placement: 'center',
       view: 'workout'
     },
     {
-      title: '📊 Historial',
-      description: 'Revisa todos tus entrenamientos pasados, ve tu progreso en gráficas y analiza tu evolución semana a semana.',
+      title: '📊 Botón Historial',
+      description: 'Con este botón accedes a tu historial completo de entrenamientos. Verás gráficas de progreso y evolución semana a semana.',
       target: '[data-tour="nav-historial"]',
-      placement: 'bottom',
+      placement: 'center',
       view: 'workout'
     },
     {
-      title: '📋 Mis Tablas',
-      description: 'Aquí verás las tablas de ejercicios que Max te asigna. Son tu guía para entrenar correctamente cada día.',
+      title: '📋 Botón Mis Tablas',
+      description: 'Aquí encuentras las tablas de ejercicios que Max te asigna. Son tu guía de entrenamiento personalizada.',
       target: '[data-tour="nav-tablas"]',
-      placement: 'bottom',
+      placement: 'center',
       view: 'workout'
     },
     {
-      title: '💬 Solicitar Cambios',
-      description: '¿Necesitas modificar tu tabla? Usa este botón para enviarle un mensaje a Max explicando qué cambios necesitas. Le llegará un email automáticamente.',
+      title: '💬 Botón Solicitar Cambios',
+      description: '¿Necesitas modificar tu tabla? Este botón te permite enviar un mensaje directo a Max. Le llegará un email automáticamente con tu solicitud.',
       target: '[data-tour="request-change"]',
-      placement: 'bottom',
+      placement: 'center',
       view: 'assigned'
     },
     {
-      title: '📚 Historial de Tablas',
-      description: 'Puedes consultar todas las tablas anteriores que has completado. Perfecto para ver tu progresión y los ejercicios que hacías antes.',
+      title: '📚 Botón Historial de Tablas',
+      description: 'Aquí consultas todas las tablas anteriores que has completado. Perfecto para revisar tu progresión.',
       target: '[data-tour="history-button"]',
-      placement: 'bottom',
+      placement: 'center',
       view: 'assigned'
     },
     {
-      title: '☀️ Tema Claro/Oscuro',
-      description: 'Cambia entre tema oscuro y claro según tu preferencia. Tu elección se guardará automáticamente.',
+      title: '☀️ Botón Tema',
+      description: 'Este botón cambia entre tema oscuro y claro según tu preferencia. Tu elección se guarda automáticamente.',
       target: '[data-tour="theme-toggle"]',
-      placement: 'bottom',
+      placement: 'center',
       view: 'workout'
     },
     {
-      title: '👤 Tu Perfil',
-      description: 'Aquí puedes subir tu foto de perfil, volver a ver este tour o cerrar sesión cuando termines.',
+      title: '👤 Tu Avatar',
+      description: 'Desde aquí puedes subir tu foto de perfil, volver a ver este tutorial o cerrar sesión.',
       target: '[data-tour="user-avatar"]',
-      placement: 'left',
+      placement: 'center',
       view: 'workout'
     },
     {
       title: '✅ ¡Todo Listo!',
-      description: 'Ya conoces todas las funcionalidades de MAXGYM. Puedes volver a ver este tour desde tu avatar → "Ver Tutorial"',
+      description: 'Ya conoces todas las funcionalidades de MAXGYM. Puedes volver a ver este tour desde tu avatar → "Ver Tutorial". ¡A entrenar! 💪',
       placement: 'center',
       view: 'workout'
     }
@@ -200,8 +194,8 @@ const AppTour: React.FC<AppTourProps> = ({ run, onFinish, onChangeView }) => {
         />
       )}
       <div 
-        className={`tour-tooltip ${isCenter ? 'tour-tooltip-center' : ''} ${!isCenter ? `tour-tooltip-${actualPlacement}` : ''}`}
-        style={isCenter ? {} : { top: `${position.top}px`, left: `${position.left}px` }}
+        className="tour-tooltip tour-tooltip-center"
+        style={{}}
       >
         <div className="tour-content">
           <h3>{step.title}</h3>
