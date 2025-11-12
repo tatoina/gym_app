@@ -31,7 +31,7 @@ exports.sendNotificationToAdmin = onDocumentCreated(
         // Configurar el email
         const mailOptions = {
           from: `"MAXGYM Notificaciones" <${gmailEmail.value()}>`,
-          to: "max@max.es",
+          to: "inaviciba@gmail.com",
           subject: "📬 Nueva solicitud de cambio en MAXGYM",
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
