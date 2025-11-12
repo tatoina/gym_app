@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
 import { auth, db, storage } from './services/firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import Auth from './components/Auth';
 import WorkoutLogger from './components/WorkoutLogger';
@@ -40,17 +40,65 @@ function App() {
     }
   }, []);
 
-  // Verificar si es la primera vez del usuario y mostrar tour
+  // Verificar si es la primera vez del usuario y mostrar tour + asignar tabla de ejemplo
   useEffect(() => {
-    if (user && !isAdmin) {
-      const hasSeenTour = localStorage.getItem(`tour_seen_${user.uid}`);
-      if (!hasSeenTour) {
-        // Esperar un poco para que los elementos se rendericen
-        setTimeout(() => {
-          setRunTour(true);
-        }, 1000);
+    const setupNewUser = async () => {
+      if (user && !isAdmin) {
+        const hasSeenTour = localStorage.getItem(`tour_seen_${user.uid}`);
+        
+        // Verificar si ya tiene tabla asignada
+        const tablesQuery = query(
+          collection(db, 'assignedTables'),
+          where('userId', '==', user.uid)
+        );
+        const tablesSnapshot = await getDocs(tablesQuery);
+        
+        // Si no tiene tablas, asignarle una de ejemplo
+        if (tablesSnapshot.empty) {
+          try {
+            // Obtener máquinas disponibles
+            const machinesSnapshot = await getDocs(collection(db, 'machines'));
+            
+            if (!machinesSnapshot.empty) {
+              // Tomar las primeras 5 máquinas como ejemplo
+              const exampleExercises = machinesSnapshot.docs.slice(0, 5).map(doc => ({
+                machineId: doc.id,
+                machineName: doc.data().name,
+                machinePhotoUrl: doc.data().photoUrl || undefined,
+                series: 3,
+                reps: 12,
+                weight: 10,
+                notes: 'Tabla de ejemplo - Puedes solicitar cambios a Max'
+              }));
+
+              // Crear tabla de ejemplo
+              await addDoc(collection(db, 'assignedTables'), {
+                userId: user.uid,
+                exercises: exampleExercises,
+                assignedBy: 'system',
+                assignedByName: 'MAXGYM',
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
+                status: 'ACTIVA'
+              });
+
+              console.log('✅ Tabla de ejemplo asignada');
+            }
+          } catch (error) {
+            console.error('Error creating example table:', error);
+          }
+        }
+        
+        // Mostrar tour si es primera vez
+        if (!hasSeenTour) {
+          setTimeout(() => {
+            setRunTour(true);
+          }, 1500);
+        }
       }
-    }
+    };
+
+    setupNewUser();
   }, [user, isAdmin]);
 
   useEffect(() => {
