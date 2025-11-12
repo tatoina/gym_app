@@ -1046,7 +1046,7 @@ const AdminPanel: React.FC = () => {
               <option value="">-- Selecciona un usuario --</option>
               {users.map((user) => (
                 <option key={user.id} value={user.id}>
-                  {user.firstName} {user.lastName} ({user.email})
+                  {user.firstName} {user.lastName}
                 </option>
               ))}
             </select>
