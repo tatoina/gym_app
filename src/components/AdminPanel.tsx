@@ -201,6 +201,49 @@ const AdminPanel: React.FC = () => {
     }
   };
 
+  const completeUserTable = async () => {
+    if (!selectedUserId) return;
+
+    if (!window.confirm('¿Marcar la tabla actual como completada? El usuario la verá en su historial.')) {
+      return;
+    }
+
+    try {
+      setSaving(true);
+      setMessage(null);
+
+      // Buscar tabla activa del usuario
+      const q = query(
+        collection(db, 'assignedTables'),
+        where('userId', '==', selectedUserId),
+        where('status', '==', 'ACTIVA')
+      );
+      const snapshot = await getDocs(q);
+
+      if (snapshot.empty) {
+        setMessage({ type: 'error', text: 'No hay tabla activa para este usuario' });
+        return;
+      }
+
+      // Marcar como completada
+      const tableDoc = snapshot.docs[0];
+      await updateDoc(doc(db, 'assignedTables', tableDoc.id), {
+        status: 'COMPLETADA',
+        completedAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+
+      setMessage({ type: 'success', text: 'Tabla marcada como completada' });
+      setExercises([]);
+      setCurrentTableDate(null);
+    } catch (error) {
+      console.error('Error completing table:', error);
+      setMessage({ type: 'error', text: 'Error al completar la tabla' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const addExercise = () => {
     if (!newExercise.machineId) {
       setMessage({ type: 'error', text: 'Selecciona una máquina' });
@@ -1014,24 +1057,45 @@ const AdminPanel: React.FC = () => {
             <div className="exercises-builder-section">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                 <h3>Tabla de {selectedUser?.firstName} {selectedUser?.lastName}</h3>
-                {currentTableDate && (
-                  <div style={{ 
-                    color: '#b0b0b0', 
-                    fontSize: '14px',
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    padding: '8px 15px',
-                    borderRadius: '6px',
-                    border: '1px solid rgba(255, 255, 255, 0.1)'
-                  }}>
-                    📅 Última modificación: {currentTableDate.toLocaleDateString('es-ES', { 
-                      day: '2-digit', 
-                      month: '2-digit', 
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </div>
-                )}
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                  {currentTableDate && (
+                    <div style={{ 
+                      color: '#b0b0b0', 
+                      fontSize: '14px',
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      padding: '8px 15px',
+                      borderRadius: '6px',
+                      border: '1px solid rgba(255, 255, 255, 0.1)'
+                    }}>
+                      📅 Última modificación: {currentTableDate.toLocaleDateString('es-ES', { 
+                        day: '2-digit', 
+                        month: '2-digit', 
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </div>
+                  )}
+                  {exercises.length > 0 && (
+                    <button
+                      onClick={completeUserTable}
+                      disabled={saving}
+                      style={{
+                        padding: '8px 16px',
+                        background: 'linear-gradient(135deg, #48bb78 0%, #38a169 100%)',
+                        border: 'none',
+                        color: 'white',
+                        borderRadius: '6px',
+                        cursor: saving ? 'not-allowed' : 'pointer',
+                        fontSize: '14px',
+                        fontWeight: 'bold',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      ✓ Marcar Completada
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="current-exercises-table">
