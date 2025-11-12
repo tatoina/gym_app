@@ -504,10 +504,10 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
 
   return (
     <div className="workout-logger">
-      <h2 style={{ marginBottom: '20px', fontSize: '20px' }}>💪 Entrenar</h2>
+      <h2 style={{ marginBottom: '20px', fontSize: '20px' }}>💪 Entrenamintos, registro e histórico</h2>
       
       <div className="current-workout">
-        <h3>Entrenamiento Actual</h3>
+        <h3>Registrar entrenamiento</h3>
         
         <div className="workout-form">
           <div className="form-group">
