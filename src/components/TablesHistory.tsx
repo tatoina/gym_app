@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '../services/firebase';
 import './TablesHistory.css';
 
@@ -46,8 +46,7 @@ const TablesHistory: React.FC<TablesHistoryProps> = ({ onBack }) => {
       const q = query(
         collection(db, 'assignedTables'),
         where('userId', '==', auth.currentUser.uid),
-        where('status', '==', 'COMPLETADA'),
-        orderBy('updatedAt', 'desc')
+        where('status', '==', 'COMPLETADA')
       );
       
       const snapshot = await getDocs(q);
@@ -58,6 +57,13 @@ const TablesHistory: React.FC<TablesHistoryProps> = ({ onBack }) => {
           id: doc.id,
           ...(doc.data() as Omit<CompletedTable, 'id'>)
         });
+      });
+      
+      // Ordenar manualmente por fecha de actualización (más reciente primero)
+      tables.sort((a, b) => {
+        const aTime = a.updatedAt?.seconds || a.createdAt?.seconds || 0;
+        const bTime = b.updatedAt?.seconds || b.createdAt?.seconds || 0;
+        return bTime - aTime;
       });
       
       setCompletedTables(tables);
