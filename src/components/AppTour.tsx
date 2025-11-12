@@ -173,7 +173,7 @@ const AppTour: React.FC<AppTourProps> = ({ run, onFinish, onChangeView }) => {
         />
       )}
       <div 
-        className={`tour-tooltip ${isCenter ? 'tour-tooltip-center' : ''}`}
+        className={`tour-tooltip ${isCenter ? 'tour-tooltip-center' : ''} ${step.placement ? `tour-tooltip-${step.placement}` : ''}`}
         style={isCenter ? {} : { top: `${position.top}px`, left: `${position.left}px` }}
       >
         <div className="tour-content">
