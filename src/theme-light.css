@@ -1,40 +1,41 @@
 /* ========================================
-   TEMA CLARO - Componentes de Usuario
+   TEMA CLARO - Profesional y Limpio
+   Todo blanco con bordes sutiles
    ======================================== */
 
 /* WorkoutLogger */
 .light-theme .workout-logger .current-workout {
   background: #ffffff;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e5e7eb;
 }
 
 .light-theme .workout-logger h2,
 .light-theme .workout-logger h3,
 .light-theme .workout-logger h4,
 .light-theme .workout-logger h5 {
-  color: #1a202c !important;
-  font-weight: 700;
+  color: #111827 !important;
+  font-weight: 600;
 }
 
 .light-theme .workout-logger p,
 .light-theme .workout-logger span,
 .light-theme .workout-logger div {
-  color: #2d3748;
+  color: #374151;
 }
 
 .light-theme .workout-logger .form-group label {
-  color: #1a202c;
-  font-weight: 600;
+  color: #111827;
+  font-weight: 500;
 }
 
 .light-theme .workout-logger input,
 .light-theme .workout-logger textarea,
 .light-theme .workout-logger select {
   background: #ffffff;
-  border: 2px solid #cbd5e0;
-  color: #1a202c;
-  font-weight: 500;
+  border: 1px solid #d1d5db;
+  color: #111827;
+  font-weight: 400;
 }
 
 .light-theme .workout-logger input:focus,
@@ -42,522 +43,559 @@
 .light-theme .workout-logger select:focus {
   border-color: #667eea;
   background: #ffffff;
+  outline: none;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 .light-theme .workout-logger .primary-button {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: #ffffff;
-  font-weight: 600;
+  font-weight: 500;
+  border: none;
 }
 
 .light-theme .workout-logger .secondary-button {
-  background: #e2e8f0;
-  color: #1a202c;
-  border: 2px solid #a0aec0;
-  font-weight: 600;
+  background: #ffffff;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  font-weight: 500;
 }
 
 .light-theme .workout-logger .secondary-button:hover {
-  background: #cbd5e0;
-  border-color: #718096;
+  background: #f9fafb;
+  border-color: #9ca3af;
 }
 
 .light-theme .workout-logger .exercise-card {
   background: #ffffff;
-  border: 2px solid #e2e8f0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
 .light-theme .workout-logger .exercise-card strong {
-  color: #1a202c;
-  font-weight: 700;
+  color: #111827;
+  font-weight: 600;
 }
 
 .light-theme .workout-logger .exercise-card span,
 .light-theme .workout-logger .exercise-card p {
-  color: #2d3748;
-  font-weight: 500;
+  color: #374151;
+  font-weight: 400;
 }
 
 .light-theme .workout-logger .machine-modal-overlay {
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.4);
 }
 
 .light-theme .workout-logger .machine-modal {
   background: #ffffff;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
-  border: 1px solid #e2e8f0;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  border: 1px solid #e5e7eb;
 }
 
 .light-theme .workout-logger .machine-modal h3 {
-  color: #2d3748;
-  border-bottom: 2px solid #e2e8f0;
+  color: #111827;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .light-theme .workout-logger .machine-list {
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid #e5e7eb;
 }
 
 .light-theme .workout-logger .machine-item {
-  border-bottom: 2px solid #e2e8f0;
+  border-bottom: 1px solid #f3f4f6;
   background: #ffffff;
 }
 
 .light-theme .workout-logger .machine-item:hover {
-  background: #ffffff;
+  background: #f9fafb;
 }
 
 .light-theme .workout-logger .machine-item strong {
-  color: #1a202c;
-  font-weight: 700;
-}
-
-.light-theme .workout-logger .machine-item .machine-category {
-  color: #5a67d8;
+  color: #111827;
   font-weight: 600;
 }
 
-.light-theme .workout-logger .machine-item .machine-description {
-  color: #2d3748;
+.light-theme .workout-logger .machine-item .machine-category {
+  color: #667eea;
   font-weight: 500;
+}
+
+.light-theme .workout-logger .machine-item .machine-description {
+  color: #6b7280;
+  font-weight: 400;
 }
 
 /* AssignedTable */
 .light-theme .assigned-table-container {
   background: transparent;
-  color: #1a202c;
+  color: #111827;
 }
 
 .light-theme .assigned-table-container h1,
 .light-theme .assigned-table-container h2,
 .light-theme .assigned-table-container h3,
 .light-theme .assigned-table-container h4 {
-  color: #1a202c !important;
-  font-weight: 700;
+  color: #111827 !important;
+  font-weight: 600;
 }
 
 .light-theme .assigned-table-container p,
 .light-theme .assigned-table-container span {
-  color: #2d3748;
-  font-weight: 500;
+  color: #374151;
+  font-weight: 400;
 }
 
 .light-theme .assigned-table-header {
-  background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-  border-bottom: 3px solid #cbd5e0;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .light-theme .assigned-table-header h1 {
-  color: #1a202c;
-  font-weight: 700;
+  color: #111827;
+  font-weight: 600;
 }
 
 .light-theme .icon-button {
   background: #ffffff;
-  color: #1a202c;
-  border: 2px solid #cbd5e0;
-  font-weight: 600;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  font-weight: 500;
 }
 
 .light-theme .icon-button:hover {
-  background: #ffffff;
-  border-color: #a0aec0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background: #f9fafb;
+  border-color: #9ca3af;
 }
 
 .light-theme .table-card {
-  background: linear-gradient(145deg, #ffffff 0%, #ffffff 100%);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-  border: 2px solid #cbd5e0;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e5e7eb;
 }
 
 .light-theme .table-header h2 {
-  color: #1a202c;
-  font-weight: 700;
+  color: #111827;
+  font-weight: 600;
 }
 
 .light-theme .assigned-by,
 .light-theme .assigned-date {
-  color: #2d3748;
-  font-weight: 600;
+  color: #6b7280;
+  font-weight: 400;
 }
 
 .light-theme .exercises-table thead {
-  background: #e2e8f0;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .light-theme .exercises-table th {
-  color: #1a202c;
-  font-weight: 700;
-  border-bottom: 3px solid #a0aec0;
+  color: #111827;
+  font-weight: 600;
+  border-bottom: none;
 }
 
 .light-theme .exercises-table td {
-  color: #1a202c;
-  font-weight: 500;
-  border-bottom: 2px solid #e2e8f0;
+  color: #374151;
+  font-weight: 400;
+  border-bottom: 1px solid #f3f4f6;
 }
 
 .light-theme .exercises-table tbody tr:hover {
-  background: #ffffff;
-}
-
-.light-theme .view-photo-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: #ffffff;
-}
-
-.light-theme .modal-overlay {
-  background: rgba(0, 0, 0, 0.6);
-}
-
-.light-theme .modal-content {
-  background: #ffffff;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
-  border: 1px solid #e2e8f0;
-}
-
-.light-theme .modal-content h3 {
-  color: #2d3748;
-}
-
-.light-theme .modal-content textarea {
-  background: #ffffff;
-  border: 1px solid #cbd5e0;
-  color: #2d3748;
-}
-
-.light-theme .modal-content textarea:focus {
-  border-color: #667eea;
-  background: #ffffff;
-}
-
-.light-theme .empty-state {
-  background: #ffffff;
-  border: 2px dashed #cbd5e0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-}
-
-.light-theme .empty-state h2 {
-  color: #2d3748;
-}
-
-.light-theme .empty-state p {
-  color: #4a5568;
+  background: #f9fafb;
 }
 
 /* History */
 .light-theme .history-container {
-  color: #1a202c;
+  background: transparent;
 }
 
 .light-theme .history-container h1,
 .light-theme .history-container h2,
-.light-theme .history-container h3,
-.light-theme .history-container h4 {
-  color: #1a202c !important;
-  font-weight: 700;
-}
-
-.light-theme .history-container p,
-.light-theme .history-container span {
-  color: #2d3748;
-  font-weight: 500;
+.light-theme .history-container h3 {
+  color: #111827 !important;
+  font-weight: 600;
 }
 
 .light-theme .history-header {
-  background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-  border-bottom: 3px solid #cbd5e0;
-}
-
-.light-theme .history-header h1 {
-  color: #1a202c;
-  font-weight: 700;
+  background: transparent;
 }
 
 .light-theme .back-button {
   background: #ffffff;
-  color: #1a202c;
-  border: 2px solid #cbd5e0;
-  font-weight: 600;
+  color: #374151;
+  border: 1px solid #d1d5db;
 }
 
 .light-theme .back-button:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.light-theme .filters-section {
   background: #ffffff;
-  border-color: #a0aec0;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
-.light-theme .workout-card {
-  background: linear-gradient(145deg, #ffffff 0%, #ffffff 100%);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-  border: 2px solid #cbd5e0;
-}
-
-.light-theme .workout-date {
-  color: #5a67d8;
-  font-weight: 700;
-}
-
-.light-theme .workout-exercises {
-  border-top: 2px solid #cbd5e0;
-}
-
-.light-theme .workout-exercise-item {
-  background: #ffffff;
-  border: 2px solid #e2e8f0;
-}
-
-.light-theme .workout-exercise-item strong {
-  color: #1a202c;
-  font-weight: 700;
-}
-
-.light-theme .workout-exercise-item span,
-.light-theme .workout-exercise-item p {
-  color: #2d3748;
-  font-weight: 500;
-}
-
-.light-theme .workout-notes {
-  background: rgba(102, 126, 234, 0.15);
-  border-left: 4px solid #5a67d8;
-  color: #1a202c;
-  font-weight: 500;
-}
-
-.light-theme .delete-workout-btn {
-  background: rgba(244, 67, 54, 0.15);
-  color: #c53030;
-  border: 2px solid rgba(244, 67, 54, 0.4);
+.light-theme .filters-section h3 {
+  color: #111827;
   font-weight: 600;
 }
 
-.light-theme .delete-workout-btn:hover {
-  background: rgba(244, 67, 54, 0.25);
+.light-theme .filters-section label {
+  color: #374151;
+  font-weight: 500;
 }
 
-/* History - Listado agrupado de entrenamientos */
-.light-theme .grouped-workouts {
-  color: #1a202c;
+.light-theme .filters-section input,
+.light-theme .filters-section select {
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  color: #111827;
+}
+
+.light-theme .filters-section input:focus,
+.light-theme .filters-section select:focus {
+  border-color: #667eea;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.light-theme .stats-grid {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.light-theme .stat-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+}
+
+.light-theme .stat-card h4 {
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.light-theme .stat-card .stat-value {
+  color: #111827;
+  font-weight: 700;
 }
 
 .light-theme .workout-group {
   background: #ffffff;
-  border: 2px solid #cbd5e0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
 .light-theme .group-header {
-  background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%);
-  border-bottom: 2px solid #cbd5e0;
-}
-
-.light-theme .group-header.clickable:hover {
-  background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%);
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .light-theme .group-title {
-  color: #1a202c;
-  font-weight: 700;
-}
-
-.light-theme .group-header-right {
-  color: #1a202c;
+  color: #111827;
+  font-weight: 600;
 }
 
 .light-theme .exercises-count-badge {
-  background: rgba(102, 126, 234, 0.15);
-  color: #5a67d8;
-  border: 2px solid rgba(102, 126, 234, 0.3);
-  font-weight: 700;
+  background: #ffffff;
+  color: #667eea;
+  border: 1px solid #667eea;
+  font-weight: 500;
 }
 
 .light-theme .expand-button {
   background: #ffffff;
-  color: #1a202c;
-  border: 2px solid #cbd5e0;
-  font-weight: 700;
+  color: #374151;
+  border: 1px solid #d1d5db;
 }
 
 .light-theme .expand-button:hover {
-  background: #ffffff;
-  border-color: #a0aec0;
+  background: #f9fafb;
 }
 
 .light-theme .exercises-detail {
   background: #ffffff;
-  border-top: 2px solid #cbd5e0;
+  border-top: 1px solid #e5e7eb;
 }
 
-.light-theme .exercises-table-container {
+.light-theme .chart-section {
   background: #ffffff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
-/* TablesHistory */
-.light-theme .tables-history-container {
-  color: #2d3748;
-}
-
-.light-theme .tables-history-container .table-card {
-  opacity: 0.7;
-}
-
-.light-theme .tables-history-container .table-card:hover {
-  opacity: 1;
-}
-
-.light-theme .completed-badge {
-  background: rgba(76, 175, 80, 0.2);
-  color: #4caf50;
-  border: 1px solid rgba(76, 175, 80, 0.3);
-}
-
-/* History - Filtros y secciones adicionales */
-.light-theme .filters-section {
-  background: #ffffff;
-  border: 2px solid #cbd5e0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-.light-theme .filters-grid {
-  color: #1a202c;
-}
-
-.light-theme .filter-group label {
-  color: #1a202c;
+.light-theme .chart-section h3 {
+  color: #111827;
   font-weight: 600;
-}
-
-.light-theme .filter-group select,
-.light-theme .filter-group input {
-  background: #ffffff;
-  border: 2px solid #cbd5e0;
-  color: #1a202c;
-  font-weight: 500;
-}
-
-.light-theme .filter-group select:focus,
-.light-theme .filter-group input:focus {
-  border-color: #667eea;
-  background: #ffffff;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-.light-theme .max-weights-by-machine {
-  background: #ffffff;
-  border: 2px solid #cbd5e0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-.light-theme .max-weights-by-machine h3 {
-  color: #1a202c;
-  font-weight: 700;
-}
-
-.light-theme .machine-max-grid {
-  color: #1a202c;
-}
-
-.light-theme .machine-max-card {
-  background: linear-gradient(145deg, #ffffff 0%, #ffffff 100%);
-  border: 2px solid #cbd5e0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-.light-theme .machine-max-card:hover {
-  border-color: #5a67d8;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.light-theme .machine-name {
-  color: #1a202c;
-  font-weight: 700;
-}
-
-.light-theme .machine-weight {
-  color: #5a67d8;
-  font-weight: 700;
-  font-size: 1.1em;
-}
-
-.light-theme .evolution-charts-section {
-  background: #ffffff;
-  border: 2px solid #cbd5e0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-.light-theme .evolution-charts-section h3 {
-  color: #1a202c;
-  font-weight: 700;
-}
-
-.light-theme .single-machine-chart {
-  background: #ffffff;
-  border: 2px solid #e2e8f0;
-}
-
-.light-theme .single-machine-chart h4 {
-  color: #1a202c;
-  font-weight: 700;
-  border-bottom: 3px solid #cbd5e0;
 }
 
 .light-theme .chart-legend {
-  background: #ffffff;
-  border-top: 2px solid #cbd5e0;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
 }
 
 .light-theme .legend-item {
-  color: #1a202c;
+  color: #374151;
+  font-weight: 400;
+}
+
+.light-theme .machine-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.light-theme .machine-card:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.light-theme .machine-card h4 {
+  color: #111827;
   font-weight: 600;
 }
 
-.light-theme .legend-color {
-  border: 2px solid #cbd5e0;
+.light-theme .machine-card p {
+  color: #6b7280;
+  font-weight: 400;
 }
 
-/* History - Columnas de tabla y otros elementos */
-.light-theme .col-machine,
-.light-theme .col-compact,
-.light-theme .col-photo {
-  color: #1a202c;
+/* Botones de acción en historial */
+.light-theme .btn-edit,
+.light-theme .btn-delete,
+.light-theme .btn-save,
+.light-theme .btn-cancel {
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+}
+
+.light-theme .btn-edit:hover {
+  background: rgba(102, 126, 234, 0.1);
+  border-color: #667eea;
+}
+
+.light-theme .btn-delete:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: #ef4444;
+}
+
+.light-theme .btn-save {
+  background: #ffffff;
+  border: 1px solid #10b981;
+  color: #10b981;
+}
+
+.light-theme .btn-save:hover {
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.light-theme .btn-cancel {
+  background: #ffffff;
+  border: 1px solid #ef4444;
+  color: #ef4444;
+}
+
+.light-theme .btn-cancel:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.light-theme .edit-input {
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  color: #111827;
+}
+
+.light-theme .edit-input:focus {
+  border-color: #667eea;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* TablesHistory */
+.light-theme .tables-history-modal {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.light-theme .tables-history-content {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.light-theme .tables-history-header {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.light-theme .tables-history-header h2 {
+  color: #111827;
+  font-weight: 600;
+}
+
+.light-theme .close-history-btn {
+  background: #ffffff;
+  color: #6b7280;
+  border: 1px solid #d1d5db;
+}
+
+.light-theme .close-history-btn:hover {
+  background: #f9fafb;
+}
+
+.light-theme .history-table-item {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+}
+
+.light-theme .history-table-item:hover {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.light-theme .history-table-header h3 {
+  color: #111827;
+  font-weight: 600;
+}
+
+.light-theme .toggle-exercises-btn {
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  color: #374151;
   font-weight: 500;
 }
 
-.light-theme .exercises-table tbody tr {
-  background: #ffffff;
+.light-theme .toggle-exercises-btn:hover {
+  background: #f9fafb;
 }
 
-.light-theme .exercises-table tbody tr:hover {
-  background: #ffffff;
+.light-theme .history-exercises-list {
+  background: #f9fafb;
+  border-top: 1px solid #e5e7eb;
 }
 
-.light-theme .view-photo-btn,
-.light-theme .photo-placeholder {
-  color: #1a202c;
+.light-theme .no-history-message {
+  color: #6b7280;
+}
+
+/* Modal genérico */
+.light-theme .modal-overlay {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.light-theme .modal-content {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.light-theme .modal-header {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.light-theme .modal-header h2,
+.light-theme .modal-header h3 {
+  color: #111827;
   font-weight: 600;
 }
 
-.light-theme .photo-placeholder {
-  background: #e2e8f0;
-  color: #718096;
-}
-
-/* Ajustes adicionales para mejor contraste */
-.light-theme .filters-section h3 {
-  color: #1a202c;
-  font-weight: 700;
-  border-bottom: 3px solid #cbd5e0;
-}
-
-.light-theme button {
-  font-weight: 600;
-}
-
-.light-theme select option {
+.light-theme .modal-close {
   background: #ffffff;
-  color: #1a202c;
+  color: #6b7280;
+  border: 1px solid #d1d5db;
+}
+
+.light-theme .modal-close:hover {
+  background: #f9fafb;
+}
+
+/* Tooltips y ayudas */
+.light-theme .tooltip {
+  background: #1f2937;
+  color: #ffffff;
+  border: none;
+}
+
+.light-theme .help-text {
+  color: #6b7280;
+  font-weight: 400;
+}
+
+/* Estados de carga */
+.light-theme .loading-spinner {
+  border-color: #e5e7eb;
+  border-top-color: #667eea;
+}
+
+.light-theme .skeleton {
+  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+}
+
+/* Mensajes y alertas */
+.light-theme .message-success {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #6ee7b7;
+}
+
+.light-theme .message-error {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+}
+
+.light-theme .message-info {
+  background: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #93c5fd;
+}
+
+.light-theme .message-warning {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
+/* Badges y etiquetas */
+.light-theme .badge {
+  background: #ffffff;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  font-weight: 500;
+}
+
+.light-theme .badge-primary {
+  background: #ede9fe;
+  color: #5b21b6;
+  border: 1px solid #c4b5fd;
+}
+
+.light-theme .badge-success {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #6ee7b7;
+}
+
+.light-theme .badge-danger {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+}
+
+/* Dividers */
+.light-theme .divider {
+  border-color: #e5e7eb;
+}
+
+/* Empty states */
+.light-theme .empty-state {
+  color: #6b7280;
+  background: #f9fafb;
+  border: 1px dashed #d1d5db;
+}
+
+.light-theme .empty-state h3 {
+  color: #374151;
+  font-weight: 600;
 }

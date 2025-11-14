@@ -1,0 +1,563 @@
+/* ========================================
+   TEMA CLARO - Componentes de Usuario
+   ======================================== */
+
+/* WorkoutLogger */
+.light-theme .workout-logger .current-workout {
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  border: 1px solid #e2e8f0;
+}
+
+.light-theme .workout-logger h2,
+.light-theme .workout-logger h3,
+.light-theme .workout-logger h4,
+.light-theme .workout-logger h5 {
+  color: #1a202c !important;
+  font-weight: 700;
+}
+
+.light-theme .workout-logger p,
+.light-theme .workout-logger span,
+.light-theme .workout-logger div {
+  color: #2d3748;
+}
+
+.light-theme .workout-logger .form-group label {
+  color: #1a202c;
+  font-weight: 600;
+}
+
+.light-theme .workout-logger input,
+.light-theme .workout-logger textarea,
+.light-theme .workout-logger select {
+  background: #ffffff;
+  border: 2px solid #cbd5e0;
+  color: #1a202c;
+  font-weight: 500;
+}
+
+.light-theme .workout-logger input:focus,
+.light-theme .workout-logger textarea:focus,
+.light-theme .workout-logger select:focus {
+  border-color: #667eea;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.light-theme .workout-logger .primary-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.light-theme .workout-logger .secondary-button {
+  background: #e2e8f0;
+  color: #1a202c;
+  border: 2px solid #a0aec0;
+  font-weight: 600;
+}
+
+.light-theme .workout-logger .secondary-button:hover {
+  background: #cbd5e0;
+  border-color: #718096;
+}
+
+.light-theme .workout-logger .exercise-card {
+  background: #ffffff;
+  border: 2px solid #e2e8f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.light-theme .workout-logger .exercise-card strong {
+  color: #1a202c;
+  font-weight: 700;
+}
+
+.light-theme .workout-logger .exercise-card span,
+.light-theme .workout-logger .exercise-card p {
+  color: #2d3748;
+  font-weight: 500;
+}
+
+.light-theme .workout-logger .machine-modal-overlay {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.light-theme .workout-logger .machine-modal {
+  background: #ffffff;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  border: 1px solid #e2e8f0;
+}
+
+.light-theme .workout-logger .machine-modal h3 {
+  color: #2d3748;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.light-theme .workout-logger .machine-list {
+  border-top: 1px solid #e2e8f0;
+}
+
+.light-theme .workout-logger .machine-item {
+  border-bottom: 2px solid #e2e8f0;
+  background: #ffffff;
+}
+
+.light-theme .workout-logger .machine-item:hover {
+  background: #ffffff;
+}
+
+.light-theme .workout-logger .machine-item strong {
+  color: #1a202c;
+  font-weight: 700;
+}
+
+.light-theme .workout-logger .machine-item .machine-category {
+  color: #5a67d8;
+  font-weight: 600;
+}
+
+.light-theme .workout-logger .machine-item .machine-description {
+  color: #2d3748;
+  font-weight: 500;
+}
+
+/* AssignedTable */
+.light-theme .assigned-table-container {
+  background: transparent;
+  color: #1a202c;
+}
+
+.light-theme .assigned-table-container h1,
+.light-theme .assigned-table-container h2,
+.light-theme .assigned-table-container h3,
+.light-theme .assigned-table-container h4 {
+  color: #1a202c !important;
+  font-weight: 700;
+}
+
+.light-theme .assigned-table-container p,
+.light-theme .assigned-table-container span {
+  color: #2d3748;
+  font-weight: 500;
+}
+
+.light-theme .assigned-table-header {
+  background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  border-bottom: 3px solid #cbd5e0;
+}
+
+.light-theme .assigned-table-header h1 {
+  color: #1a202c;
+  font-weight: 700;
+}
+
+.light-theme .icon-button {
+  background: #ffffff;
+  color: #1a202c;
+  border: 2px solid #cbd5e0;
+  font-weight: 600;
+}
+
+.light-theme .icon-button:hover {
+  background: #ffffff;
+  border-color: #a0aec0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.light-theme .table-card {
+  background: linear-gradient(145deg, #ffffff 0%, #ffffff 100%);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  border: 2px solid #cbd5e0;
+}
+
+.light-theme .table-header h2 {
+  color: #1a202c;
+  font-weight: 700;
+}
+
+.light-theme .assigned-by,
+.light-theme .assigned-date {
+  color: #2d3748;
+  font-weight: 600;
+}
+
+.light-theme .exercises-table thead {
+  background: #e2e8f0;
+}
+
+.light-theme .exercises-table th {
+  color: #1a202c;
+  font-weight: 700;
+  border-bottom: 3px solid #a0aec0;
+}
+
+.light-theme .exercises-table td {
+  color: #1a202c;
+  font-weight: 500;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.light-theme .exercises-table tbody tr:hover {
+  background: #ffffff;
+}
+
+.light-theme .view-photo-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #ffffff;
+}
+
+.light-theme .modal-overlay {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.light-theme .modal-content {
+  background: #ffffff;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  border: 1px solid #e2e8f0;
+}
+
+.light-theme .modal-content h3 {
+  color: #2d3748;
+}
+
+.light-theme .modal-content textarea {
+  background: #ffffff;
+  border: 1px solid #cbd5e0;
+  color: #2d3748;
+}
+
+.light-theme .modal-content textarea:focus {
+  border-color: #667eea;
+  background: #ffffff;
+}
+
+.light-theme .empty-state {
+  background: #ffffff;
+  border: 2px dashed #cbd5e0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.light-theme .empty-state h2 {
+  color: #2d3748;
+}
+
+.light-theme .empty-state p {
+  color: #4a5568;
+}
+
+/* History */
+.light-theme .history-container {
+  color: #1a202c;
+}
+
+.light-theme .history-container h1,
+.light-theme .history-container h2,
+.light-theme .history-container h3,
+.light-theme .history-container h4 {
+  color: #1a202c !important;
+  font-weight: 700;
+}
+
+.light-theme .history-container p,
+.light-theme .history-container span {
+  color: #2d3748;
+  font-weight: 500;
+}
+
+.light-theme .history-header {
+  background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  border-bottom: 3px solid #cbd5e0;
+}
+
+.light-theme .history-header h1 {
+  color: #1a202c;
+  font-weight: 700;
+}
+
+.light-theme .back-button {
+  background: #ffffff;
+  color: #1a202c;
+  border: 2px solid #cbd5e0;
+  font-weight: 600;
+}
+
+.light-theme .back-button:hover {
+  background: #ffffff;
+  border-color: #a0aec0;
+}
+
+.light-theme .workout-card {
+  background: linear-gradient(145deg, #ffffff 0%, #ffffff 100%);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  border: 2px solid #cbd5e0;
+}
+
+.light-theme .workout-date {
+  color: #5a67d8;
+  font-weight: 700;
+}
+
+.light-theme .workout-exercises {
+  border-top: 2px solid #cbd5e0;
+}
+
+.light-theme .workout-exercise-item {
+  background: #ffffff;
+  border: 2px solid #e2e8f0;
+}
+
+.light-theme .workout-exercise-item strong {
+  color: #1a202c;
+  font-weight: 700;
+}
+
+.light-theme .workout-exercise-item span,
+.light-theme .workout-exercise-item p {
+  color: #2d3748;
+  font-weight: 500;
+}
+
+.light-theme .workout-notes {
+  background: rgba(102, 126, 234, 0.15);
+  border-left: 4px solid #5a67d8;
+  color: #1a202c;
+  font-weight: 500;
+}
+
+.light-theme .delete-workout-btn {
+  background: rgba(244, 67, 54, 0.15);
+  color: #c53030;
+  border: 2px solid rgba(244, 67, 54, 0.4);
+  font-weight: 600;
+}
+
+.light-theme .delete-workout-btn:hover {
+  background: rgba(244, 67, 54, 0.25);
+}
+
+/* History - Listado agrupado de entrenamientos */
+.light-theme .grouped-workouts {
+  color: #1a202c;
+}
+
+.light-theme .workout-group {
+  background: #ffffff;
+  border: 2px solid #cbd5e0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.light-theme .group-header {
+  background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%);
+  border-bottom: 2px solid #cbd5e0;
+}
+
+.light-theme .group-header.clickable:hover {
+  background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%);
+}
+
+.light-theme .group-title {
+  color: #1a202c;
+  font-weight: 700;
+}
+
+.light-theme .group-header-right {
+  color: #1a202c;
+}
+
+.light-theme .exercises-count-badge {
+  background: rgba(102, 126, 234, 0.15);
+  color: #5a67d8;
+  border: 2px solid rgba(102, 126, 234, 0.3);
+  font-weight: 700;
+}
+
+.light-theme .expand-button {
+  background: #ffffff;
+  color: #1a202c;
+  border: 2px solid #cbd5e0;
+  font-weight: 700;
+}
+
+.light-theme .expand-button:hover {
+  background: #ffffff;
+  border-color: #a0aec0;
+}
+
+.light-theme .exercises-detail {
+  background: #ffffff;
+  border-top: 2px solid #cbd5e0;
+}
+
+.light-theme .exercises-table-container {
+  background: #ffffff;
+}
+
+/* TablesHistory */
+.light-theme .tables-history-container {
+  color: #2d3748;
+}
+
+.light-theme .tables-history-container .table-card {
+  opacity: 0.7;
+}
+
+.light-theme .tables-history-container .table-card:hover {
+  opacity: 1;
+}
+
+.light-theme .completed-badge {
+  background: rgba(76, 175, 80, 0.2);
+  color: #4caf50;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+/* History - Filtros y secciones adicionales */
+.light-theme .filters-section {
+  background: #ffffff;
+  border: 2px solid #cbd5e0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.light-theme .filters-grid {
+  color: #1a202c;
+}
+
+.light-theme .filter-group label {
+  color: #1a202c;
+  font-weight: 600;
+}
+
+.light-theme .filter-group select,
+.light-theme .filter-group input {
+  background: #ffffff;
+  border: 2px solid #cbd5e0;
+  color: #1a202c;
+  font-weight: 500;
+}
+
+.light-theme .filter-group select:focus,
+.light-theme .filter-group input:focus {
+  border-color: #667eea;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.light-theme .max-weights-by-machine {
+  background: #ffffff;
+  border: 2px solid #cbd5e0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.light-theme .max-weights-by-machine h3 {
+  color: #1a202c;
+  font-weight: 700;
+}
+
+.light-theme .machine-max-grid {
+  color: #1a202c;
+}
+
+.light-theme .machine-max-card {
+  background: linear-gradient(145deg, #ffffff 0%, #ffffff 100%);
+  border: 2px solid #cbd5e0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.light-theme .machine-max-card:hover {
+  border-color: #5a67d8;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.light-theme .machine-name {
+  color: #1a202c;
+  font-weight: 700;
+}
+
+.light-theme .machine-weight {
+  color: #5a67d8;
+  font-weight: 700;
+  font-size: 1.1em;
+}
+
+.light-theme .evolution-charts-section {
+  background: #ffffff;
+  border: 2px solid #cbd5e0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.light-theme .evolution-charts-section h3 {
+  color: #1a202c;
+  font-weight: 700;
+}
+
+.light-theme .single-machine-chart {
+  background: #ffffff;
+  border: 2px solid #e2e8f0;
+}
+
+.light-theme .single-machine-chart h4 {
+  color: #1a202c;
+  font-weight: 700;
+  border-bottom: 3px solid #cbd5e0;
+}
+
+.light-theme .chart-legend {
+  background: #ffffff;
+  border-top: 2px solid #cbd5e0;
+}
+
+.light-theme .legend-item {
+  color: #1a202c;
+  font-weight: 600;
+}
+
+.light-theme .legend-color {
+  border: 2px solid #cbd5e0;
+}
+
+/* History - Columnas de tabla y otros elementos */
+.light-theme .col-machine,
+.light-theme .col-compact,
+.light-theme .col-photo {
+  color: #1a202c;
+  font-weight: 500;
+}
+
+.light-theme .exercises-table tbody tr {
+  background: #ffffff;
+}
+
+.light-theme .exercises-table tbody tr:hover {
+  background: #ffffff;
+}
+
+.light-theme .view-photo-btn,
+.light-theme .photo-placeholder {
+  color: #1a202c;
+  font-weight: 600;
+}
+
+.light-theme .photo-placeholder {
+  background: #e2e8f0;
+  color: #718096;
+}
+
+/* Ajustes adicionales para mejor contraste */
+.light-theme .filters-section h3 {
+  color: #1a202c;
+  font-weight: 700;
+  border-bottom: 3px solid #cbd5e0;
+}
+
+.light-theme button {
+  font-weight: 600;
+}
+
+.light-theme select option {
+  background: #ffffff;
+  color: #1a202c;
+}
