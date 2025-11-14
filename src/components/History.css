@@ -848,3 +848,89 @@
     padding: 2px 6px;
   }
 }
+
+/* Estilos específicos para gráficos en modo claro */
+.light-theme-charts .recharts-cartesian-grid line {
+  stroke: #e5e7eb !important;
+}
+
+.light-theme-charts .recharts-text {
+  fill: #6b7280 !important;
+}
+
+.light-theme-charts .recharts-layer.recharts-cartesian-axis-tick text {
+  fill: #6b7280 !important;
+}
+
+.light-theme-charts .recharts-default-tooltip {
+  background-color: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
+  color: #111827 !important;
+}
+
+.light-theme-charts .recharts-tooltip-label {
+  color: #111827 !important;
+}
+
+.light-theme-charts .recharts-tooltip-item {
+  color: #374151 !important;
+}
+
+/* Contenedores de gráficos en modo claro */
+.light-theme-charts .evolution-charts-section {
+  background: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
+}
+
+.light-theme-charts .evolution-charts-section h3 {
+  color: #111827 !important;
+}
+
+.light-theme-charts .machine-chart-card {
+  background: #f9fafb !important;
+  border: 1px solid #e5e7eb !important;
+}
+
+.light-theme-charts .machine-chart-card h4 {
+  color: #667eea !important;
+}
+
+.light-theme-charts .single-machine-chart h4 {
+  color: #667eea !important;
+}
+
+.light-theme-charts .machine-stats {
+  color: #6b7280 !important;
+}
+
+.light-theme-charts .chart-legend .legend-item {
+  color: #374151 !important;
+}
+
+/* Resúmenes de peso máximo en modo claro */
+.light-theme-charts .max-weights-by-machine {
+  background: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
+}
+
+.light-theme-charts .max-weights-by-machine h3 {
+  color: #111827 !important;
+}
+
+.light-theme-charts .machine-max-card {
+  background: #f9fafb !important;
+  border: 1px solid #e5e7eb !important;
+}
+
+.light-theme-charts .machine-max-card:hover {
+  background: #f3f4f6 !important;
+  border-color: #d1d5db !important;
+}
+
+.light-theme-charts .machine-name {
+  color: #374151 !important;
+}
+
+.light-theme-charts .machine-weight {
+  color: #10b981 !important;
+}

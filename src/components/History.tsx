@@ -268,12 +268,14 @@ const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false }) => {
     tooltipText: lightTheme ? '#111827' : '#e0e0e0',
   };
 
+  console.log('🎨 History lightTheme:', lightTheme, 'chartColors:', chartColors);
+
   if (loading) {
     return <div className="history-container"><p>Cargando historial...</p></div>;
   }
 
   return (
-    <div className="history-container">
+    <div className={`history-container ${lightTheme ? 'light-theme-charts' : ''}`}>
       <header className="history-header">
         <h1>📊 Historial y Estadísticas</h1>
         <button onClick={() => onBack?.()} className="back-button">
@@ -340,7 +342,7 @@ const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false }) => {
               const evolutionData = getEvolutionData(filterMachine);
               const machineName = machines.find(m => m.id === filterMachine)?.name || 'Máquina';
               
-              return evolutionData.length > 1 ? (
+              return evolutionData.length > 0 ? (
                 <div className="single-machine-chart">
                   <h4>Evolución de {machineName}</h4>
                   <ResponsiveContainer width="100%" height={400}>
@@ -349,11 +351,11 @@ const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false }) => {
                       <XAxis 
                         dataKey="displayDate" 
                         stroke={chartColors.axis}
-                        tick={{ fill: chartColors.axis }}
+                        tick={{ fill: chartColors.axis, style: { fill: chartColors.axis } }}
                       />
                       <YAxis 
                         stroke={chartColors.axis}
-                        tick={{ fill: chartColors.axis }}
+                        tick={{ fill: chartColors.axis, style: { fill: chartColors.axis } }}
                         label={{ value: 'Peso (kg)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: chartColors.axis } }}
                       />
                       <Tooltip 
@@ -400,18 +402,18 @@ const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false }) => {
                     <span>Máx: {machineData.maxWeight}kg</span>
                     <span>{machineData.workoutsCount} entrenamientos</span>
                   </div>
-                  {machineData.evolution.length > 1 ? (
+                  {machineData.evolution.length > 0 ? (
                     <ResponsiveContainer width="100%" height={200}>
                       <LineChart data={machineData.evolution}>
                         <XAxis 
                           dataKey="displayDate" 
                           stroke={chartColors.axis}
-                          tick={{ fontSize: 10, fill: chartColors.axis }}
+                          tick={{ fontSize: 10, fill: chartColors.axis, style: { fill: chartColors.axis } }}
                           interval="preserveStartEnd"
                         />
                         <YAxis 
                           stroke={chartColors.axis}
-                          tick={{ fontSize: 10, fill: chartColors.axis }}
+                          tick={{ fontSize: 10, fill: chartColors.axis, style: { fill: chartColors.axis } }}
                           domain={['dataMin - 5', 'dataMax + 5']}
                         />
                         <Tooltip 
