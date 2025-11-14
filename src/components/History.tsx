@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { auth, db } from '../services/firebase';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import './History.css';
@@ -43,6 +43,8 @@ const History: React.FC<HistoryProps> = ({ onBack }) => {
   const [filterDateFrom, setFilterDateFrom] = useState<string>(defaultDateFrom);
   const [filterDateTo, setFilterDateTo] = useState<string>(defaultDateTo);
   const [expandedDate, setExpandedDate] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ sets: 0, reps: 0, weight: 0 });
 
   useEffect(() => {
     loadData();
@@ -127,6 +129,57 @@ const History: React.FC<HistoryProps> = ({ onBack }) => {
     }
   };
 
+  const handleStartEdit = (workout: WorkoutRecord) => {
+    setEditingId(workout.id);
+    setEditForm({
+      sets: workout.sets,
+      reps: workout.reps,
+      weight: workout.weight
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditForm({ sets: 0, reps: 0, weight: 0 });
+  };
+
+  const handleSaveEdit = async (workoutId: string) => {
+    try {
+      const workoutRef = doc(db, 'workouts', workoutId);
+      await updateDoc(workoutRef, {
+        sets: editForm.sets,
+        reps: editForm.reps,
+        weight: editForm.weight
+      });
+      
+      // Actualizar estado local
+      setWorkouts(workouts.map(w => 
+        w.id === workoutId 
+          ? { ...w, sets: editForm.sets, reps: editForm.reps, weight: editForm.weight }
+          : w
+      ));
+      
+      setEditingId(null);
+      alert('✅ Ejercicio actualizado');
+    } catch (error) {
+      console.error('Error updating workout:', error);
+      alert('❌ Error al actualizar el ejercicio');
+    }
+  };
+
+  const handleDelete = async (workoutId: string, machineName: string) => {
+    if (!confirm(`¿Eliminar el ejercicio de ${machineName}?`)) return;
+    
+    try {
+      await deleteDoc(doc(db, 'workouts', workoutId));
+      setWorkouts(workouts.filter(w => w.id !== workoutId));
+      alert('✅ Ejercicio eliminado');
+    } catch (error) {
+      console.error('Error deleting workout:', error);
+      alert('❌ Error al eliminar el ejercicio');
+    }
+  };
+
   const filteredWorkouts = workouts.filter((workout) => {
     if (filterMachine && workout.machineId !== filterMachine) return false;
     if (filterDateFrom && workout.date < filterDateFrom) return false;
@@ -167,29 +220,36 @@ const History: React.FC<HistoryProps> = ({ onBack }) => {
       .filter((w) => w.machineId === machineId && w.date >= filterDateFrom && w.date <= filterDateTo)
       .sort((a, b) => a.date.localeCompare(b.date));
 
-    return machineWorkouts.map((w, index) => ({
-      date: w.date,
-      displayDate: new Date(w.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }),
-      weight: Number(w.weight) || 0,
-      volume: (Number(w.sets) || 0) * (Number(w.reps) || 0) * (Number(w.weight) || 0),
-      sets: w.sets,
-      reps: w.reps,
-      ejercicio: index + 1
-    }));
+    // Agrupar por fecha y obtener peso máximo de cada día
+    const byDate = new Map<string, number>();
+    machineWorkouts.forEach((w) => {
+      const weight = Number(w.weight) || 0;
+      const currentMax = byDate.get(w.date) || 0;
+      if (weight > currentMax) {
+        byDate.set(w.date, weight);
+      }
+    });
+
+    // Convertir a array para gráfico
+    return Array.from(byDate.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([date, weight]) => ({
+        date,
+        displayDate: new Date(date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }),
+        weight
+      }));
   };
 
   const getAllMachinesEvolutionData = () => {
     const machinesData = machines.map(machine => {
       const machineEvolution = getEvolutionData(machine.id);
       const maxWeight = Math.max(...machineEvolution.map(d => d.weight), 0);
-      const totalVolume = machineEvolution.reduce((sum, d) => sum + d.volume, 0);
       const workoutsCount = machineEvolution.length;
       
       return {
         machineName: machine.name,
         machineId: machine.id,
         maxWeight,
-        totalVolume,
         workoutsCount,
         evolution: machineEvolution
       };
@@ -294,8 +354,8 @@ const History: React.FC<HistoryProps> = ({ onBack }) => {
                           color: '#e0e0e0'
                         }}
                         formatter={(value: any, name: string) => [
-                          `${value}${name === 'weight' ? ' kg' : name === 'volume' ? ' kg*rep' : ''}`,
-                          name === 'weight' ? 'Peso' : name === 'volume' ? 'Volumen' : name
+                          `${value} kg`,
+                          'Peso Máximo'
                         ]}
                         labelFormatter={(label) => `Fecha: ${label}`}
                       />
@@ -307,24 +367,12 @@ const History: React.FC<HistoryProps> = ({ onBack }) => {
                         dot={{ fill: '#FFD700', r: 6 }}
                         activeDot={{ r: 8, fill: '#FFA500' }}
                       />
-                      <Line 
-                        type="monotone" 
-                        dataKey="volume" 
-                        stroke="#00bcd4" 
-                        strokeWidth={2}
-                        dot={{ fill: '#00bcd4', r: 4 }}
-                        opacity={0.7}
-                      />
                     </LineChart>
                   </ResponsiveContainer>
                   <div className="chart-legend">
                     <span className="legend-item">
                       <span className="legend-color" style={{ backgroundColor: '#FFD700' }}></span>
-                      Peso máximo por sesión
-                    </span>
-                    <span className="legend-item">
-                      <span className="legend-color" style={{ backgroundColor: '#00bcd4' }}></span>
-                      Volumen total (sets × reps × peso)
+                      Peso máximo por fecha
                     </span>
                   </div>
                 </div>
@@ -426,30 +474,108 @@ const History: React.FC<HistoryProps> = ({ onBack }) => {
                           <th className="col-compact">R</th>
                           <th className="col-compact">P</th>
                           <th className="col-photo">Foto</th>
+                          <th className="col-actions">Acciones</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {records.map((workout) => (
-                          <tr key={workout.id}>
-                            <td className="col-machine">
-                              {workout.machineName}
-                            </td>
-                            <td className="col-compact">{workout.sets}</td>
-                            <td className="col-compact">{workout.reps}</td>
-                            <td className="col-compact">{workout.weight}</td>
-                            <td className="col-photo">
-                              {workout.machinePhotoUrl ? (
-                                <img
-                                  src={workout.machinePhotoUrl}
-                                  alt={workout.machineName}
-                                  className="machine-thumb"
-                                />
-                              ) : (
-                                <span className="no-photo">-</span>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
+                        {records.map((workout) => {
+                          const isEditing = editingId === workout.id;
+                          return (
+                            <tr key={workout.id}>
+                              <td className="col-machine">
+                                {workout.machineName}
+                              </td>
+                              <td className="col-compact">
+                                {isEditing ? (
+                                  <input
+                                    type="number"
+                                    value={editForm.sets}
+                                    onChange={(e) => setEditForm({ ...editForm, sets: Number(e.target.value) })}
+                                    className="edit-input"
+                                    min="1"
+                                  />
+                                ) : (
+                                  workout.sets
+                                )}
+                              </td>
+                              <td className="col-compact">
+                                {isEditing ? (
+                                  <input
+                                    type="number"
+                                    value={editForm.reps}
+                                    onChange={(e) => setEditForm({ ...editForm, reps: Number(e.target.value) })}
+                                    className="edit-input"
+                                    min="1"
+                                  />
+                                ) : (
+                                  workout.reps
+                                )}
+                              </td>
+                              <td className="col-compact">
+                                {isEditing ? (
+                                  <input
+                                    type="number"
+                                    value={editForm.weight}
+                                    onChange={(e) => setEditForm({ ...editForm, weight: Number(e.target.value) })}
+                                    className="edit-input"
+                                    min="0"
+                                    step="0.5"
+                                  />
+                                ) : (
+                                  workout.weight
+                                )}
+                              </td>
+                              <td className="col-photo">
+                                {workout.machinePhotoUrl ? (
+                                  <img
+                                    src={workout.machinePhotoUrl}
+                                    alt={workout.machineName}
+                                    className="machine-thumb"
+                                  />
+                                ) : (
+                                  <span className="no-photo">-</span>
+                                )}
+                              </td>
+                              <td className="col-actions">
+                                {isEditing ? (
+                                  <div className="action-buttons">
+                                    <button
+                                      onClick={() => handleSaveEdit(workout.id)}
+                                      className="btn-save"
+                                      title="Guardar"
+                                    >
+                                      ✓
+                                    </button>
+                                    <button
+                                      onClick={handleCancelEdit}
+                                      className="btn-cancel"
+                                      title="Cancelar"
+                                    >
+                                      ✗
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <div className="action-buttons">
+                                    <button
+                                      onClick={() => handleStartEdit(workout)}
+                                      className="btn-edit"
+                                      title="Editar"
+                                    >
+                                      ✏️
+                                    </button>
+                                    <button
+                                      onClick={() => handleDelete(workout.id, workout.machineName)}
+                                      className="btn-delete"
+                                      title="Eliminar"
+                                    >
+                                      🗑️
+                                    </button>
+                                  </div>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>

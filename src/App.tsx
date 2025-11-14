@@ -235,6 +235,13 @@ function App() {
     }, 500);
   };
 
+  const handleSuggestion = () => {
+    setShowUserMenu(false);
+    const subject = 'Sugerencia para MAXGYM App';
+    const body = `Hola,\n\nTengo una sugerencia para mejorar la aplicación:\n\n[Escribe aquí tu sugerencia]\n\n---\nEnviado desde MAXGYM por ${user?.email || 'Usuario'}`;
+    window.location.href = `mailto:inaviciba@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  };
+
   if (loading) {
     return (
       <div className="App">
@@ -282,6 +289,9 @@ function App() {
               </button>
               <button onClick={handleStartTour} className="user-menu-option">
                 🎓 Ver Tutorial
+              </button>
+              <button onClick={handleSuggestion} className="user-menu-option">
+                💡 Sugerencias APP
               </button>
               <button onClick={handleLogout} className="user-menu-logout">
                 🚪 Cerrar Sesión
