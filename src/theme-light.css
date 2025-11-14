@@ -599,3 +599,33 @@
   color: #374151;
   font-weight: 600;
 }
+
+/* Gráficos Recharts - Tema Claro */
+.light-theme .recharts-cartesian-grid-horizontal line,
+.light-theme .recharts-cartesian-grid-vertical line {
+  stroke: #e5e7eb !important;
+}
+
+.light-theme .recharts-text {
+  fill: #6b7280 !important;
+}
+
+.light-theme .recharts-tooltip-wrapper {
+  outline: none !important;
+}
+
+.light-theme .recharts-default-tooltip {
+  background-color: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
+}
+
+.light-theme .recharts-tooltip-label {
+  color: #111827 !important;
+  font-weight: 600 !important;
+}
+
+.light-theme .recharts-tooltip-item {
+  color: #374151 !important;
+}

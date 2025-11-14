@@ -473,6 +473,34 @@ main > * {
   background: rgba(255, 255, 255, 0.15);
 }
 
+/* Modal de sugerencias */
+.suggestion-modal {
+  max-width: 500px;
+}
+
+.suggestion-textarea {
+  width: 100%;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 15px;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 120px;
+}
+
+.suggestion-textarea:focus {
+  outline: none;
+  border-color: #667eea;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.suggestion-textarea::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
 /* Tema claro - Modal de foto */
 .light-theme .profile-photo-modal h3 {
   color: #2d3748;
@@ -499,4 +527,20 @@ main > * {
 
 .light-theme .user-menu-option:hover {
   background: rgba(102, 126, 234, 0.25);
+}
+
+.light-theme .suggestion-textarea {
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  color: #111827;
+}
+
+.light-theme .suggestion-textarea:focus {
+  border-color: #667eea;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.light-theme .suggestion-textarea::placeholder {
+  color: #9ca3af;
 }

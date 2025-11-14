@@ -67,5 +67,14 @@ service cloud.firestore {
       // Solo Max puede leer y actualizar notificaciones
       allow read, update, delete: if isAdmin();
     }
+    
+    // Colección de sugerencias
+    match /suggestions/{suggestionId} {
+      // Cualquier usuario autenticado puede crear sugerencias
+      allow create: if isAuthenticated();
+      
+      // Solo el admin puede leer y actualizar sugerencias
+      allow read, update, delete: if isAdmin();
+    }
   }
 }

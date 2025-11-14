@@ -31,6 +31,9 @@ function App() {
   const [showPhotoModal, setShowPhotoModal] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [runTour, setRunTour] = useState(false);
+  const [showSuggestionModal, setShowSuggestionModal] = useState(false);
+  const [suggestionText, setSuggestionText] = useState('');
+  const [sendingSuggestion, setSendingSuggestion] = useState(false);
 
   // Cargar preferencia de tema desde localStorage
   useEffect(() => {
@@ -235,11 +238,67 @@ function App() {
     }, 500);
   };
 
-  const handleSuggestion = () => {
+  const handleOpenSuggestion = () => {
     setShowUserMenu(false);
-    const subject = 'Sugerencia para MAXGYM App';
-    const body = `Hola,\n\nTengo una sugerencia para mejorar la aplicación:\n\n[Escribe aquí tu sugerencia]\n\n---\nEnviado desde MAXGYM por ${user?.email || 'Usuario'}`;
-    window.location.href = `mailto:inaviciba@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    setShowSuggestionModal(true);
+    setSuggestionText('');
+  };
+
+  const handleSendSuggestion = async () => {
+    if (!suggestionText.trim()) {
+      alert('Por favor escribe tu sugerencia');
+      return;
+    }
+
+    setSendingSuggestion(true);
+    
+    try {
+      console.log('📝 Enviando sugerencia...');
+      
+      // Obtener datos del usuario desde Firestore
+      let userName = user?.email || 'Usuario';
+      if (user) {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            userName = `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || user.email || 'Usuario';
+          }
+        } catch (userError) {
+          console.warn('No se pudo obtener datos del usuario, usando email:', userError);
+          userName = user.email || 'Usuario';
+        }
+      }
+
+      console.log('👤 Usuario:', userName);
+
+      // Guardar sugerencia en Firestore
+      const suggestionData = {
+        userId: user?.uid || 'anonymous',
+        userName: userName,
+        userEmail: user?.email || 'no-email',
+        suggestion: suggestionText,
+        createdAt: serverTimestamp(),
+        status: 'pending'
+      };
+
+      console.log('💾 Guardando sugerencia:', suggestionData);
+      
+      const docRef = await addDoc(collection(db, 'suggestions'), suggestionData);
+      
+      console.log('✅ Sugerencia guardada con ID:', docRef.id);
+
+      alert('✅ Sugerencia enviada correctamente. ¡Gracias por ayudarnos a mejorar!');
+      setShowSuggestionModal(false);
+      setSuggestionText('');
+    } catch (error: any) {
+      console.error('❌ Error completo al enviar sugerencia:', error);
+      console.error('Código de error:', error?.code);
+      console.error('Mensaje:', error?.message);
+      alert(`❌ Error al enviar la sugerencia: ${error?.message || 'Error desconocido'}. Verifica la consola para más detalles.`);
+    } finally {
+      setSendingSuggestion(false);
+    }
   };
 
   if (loading) {
@@ -290,7 +349,7 @@ function App() {
               <button onClick={handleStartTour} className="user-menu-option">
                 🎓 Ver Tutorial
               </button>
-              <button onClick={handleSuggestion} className="user-menu-option">
+              <button onClick={handleOpenSuggestion} className="user-menu-option">
                 💡 Sugerencias APP
               </button>
               <button onClick={handleLogout} className="user-menu-logout">
@@ -377,6 +436,46 @@ function App() {
             <button onClick={() => setShowPhotoModal(false)} className="close-modal-btn">
               Cerrar
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Sugerencias */}
+      {showSuggestionModal && (
+        <div className="modal-overlay" onClick={() => setShowSuggestionModal(false)}>
+          <div className="profile-photo-modal suggestion-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>💡 Enviar Sugerencia</h3>
+            <p style={{ color: '#b0b0b0', fontSize: '14px', marginBottom: '20px' }}>
+              Cuéntanos qué te gustaría mejorar en la aplicación
+            </p>
+            
+            <textarea
+              value={suggestionText}
+              onChange={(e) => setSuggestionText(e.target.value)}
+              placeholder="Escribe aquí tu sugerencia..."
+              className="suggestion-textarea"
+              rows={6}
+              disabled={sendingSuggestion}
+            />
+            
+            <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+              <button 
+                onClick={handleSendSuggestion} 
+                className="upload-photo-btn"
+                disabled={sendingSuggestion}
+                style={{ flex: 1 }}
+              >
+                {sendingSuggestion ? '📤 Enviando...' : '📤 Enviar'}
+              </button>
+              <button 
+                onClick={() => setShowSuggestionModal(false)} 
+                className="close-modal-btn"
+                disabled={sendingSuggestion}
+                style={{ flex: 1 }}
+              >
+                Cancelar
+              </button>
+            </div>
           </div>
         </div>
       )}

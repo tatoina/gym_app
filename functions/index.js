@@ -87,3 +87,68 @@ exports.sendNotificationToAdmin = onDocumentCreated(
       }
     },
 );
+
+// Cloud Function que envía email cuando se crea una nueva sugerencia
+exports.sendSuggestionEmail = onDocumentCreated(
+    {
+      document: "suggestions/{suggestionId}",
+      secrets: [gmailEmail, gmailPassword],
+    },
+    async (event) => {
+      const suggestion = event.data.data();
+
+      try {
+        logger.info("Nueva sugerencia detectada:", suggestion);
+
+        // Configurar transporte de email con Gmail
+        const transporter = nodemailer.createTransport({
+          service: "gmail",
+          auth: {
+            user: gmailEmail.value(),
+            pass: gmailPassword.value(),
+          },
+        });
+
+        // Configurar el email
+        const mailOptions = {
+          from: `"MAXGYM Sugerencias" <${gmailEmail.value()}>`,
+          to: "inaviciba@gmail.com",
+          subject: "💡 Nueva sugerencia para MAXGYM App",
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
+              <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+                <h1 style="color: white; margin: 0; font-size: 28px;">🏋️‍♂️ MAXGYM</h1>
+              </div>
+              
+              <div style="background: white; padding: 30px; border-radius: 0 0 10px 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                <h2 style="color: #333; margin-top: 0;">💡 Nueva Sugerencia</h2>
+                
+                <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #667eea;">
+                  <p style="margin: 5px 0; color: #555;"><strong>Usuario:</strong> ${suggestion.userName}</p>
+                  <p style="margin: 5px 0; color: #555;"><strong>Email:</strong> ${suggestion.userEmail}</p>
+                </div>
+                
+                <div style="background: #fff9e6; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffd700;">
+                  <h3 style="color: #333; margin-top: 0;">Sugerencia:</h3>
+                  <p style="color: #555; line-height: 1.6; white-space: pre-wrap;">${suggestion.suggestion}</p>
+                </div>
+
+                <p style="color: #999; font-size: 12px; text-align: center; margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px;">
+                  Este es un mensaje automático de MAXGYM. No respondas a este email.
+                </p>
+              </div>
+            </div>
+          `,
+        };
+
+        // Enviar el email
+        const info = await transporter.sendMail(mailOptions);
+        logger.info("Email de sugerencia enviado correctamente:", info.messageId);
+
+        return {success: true, messageId: info.messageId};
+      } catch (error) {
+        logger.error("Error al enviar email de sugerencia:", error);
+        return {success: false, error: error.message};
+      }
+    },
+);
