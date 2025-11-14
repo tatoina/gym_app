@@ -19,6 +19,7 @@ import './theme-light.css';
 type View = 'workout' | 'history' | 'assigned' | 'social' | 'admin';
 
 const ADMIN_EMAIL = 'max@max.es';
+const APP_VERSION = '2.0.0'; // Incrementar con cada deploy importante
 
 function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -35,12 +36,51 @@ function App() {
   const [suggestionText, setSuggestionText] = useState('');
   const [sendingSuggestion, setSendingSuggestion] = useState(false);
 
+  // Verificar versión y limpiar caché si hay actualización
+  useEffect(() => {
+    const storedVersion = localStorage.getItem('app_version');
+    if (storedVersion !== APP_VERSION) {
+      console.log(`🔄 Nueva versión detectada: ${storedVersion} → ${APP_VERSION}`);
+      // Limpiar caché
+      if ('caches' in window) {
+        caches.keys().then(cacheNames => {
+          cacheNames.forEach(cacheName => {
+            caches.delete(cacheName);
+          });
+        });
+      }
+      localStorage.setItem('app_version', APP_VERSION);
+      // Forzar recarga completa
+      window.location.reload();
+    }
+  }, []);
+
   // Cargar preferencia de tema desde localStorage
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme === 'light') {
       setLightTheme(true);
     }
+  }, []);
+
+  // Limpiar service worker caché periódicamente
+  useEffect(() => {
+    const clearOldCaches = async () => {
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        // Mantener solo los últimos 2 cachés
+        if (cacheNames.length > 2) {
+          const cachesToDelete = cacheNames.slice(0, -2);
+          await Promise.all(cachesToDelete.map(name => caches.delete(name)));
+          console.log('🧹 Cachés antiguos eliminados:', cachesToDelete);
+        }
+      }
+    };
+    
+    clearOldCaches();
+    // Limpiar cada hora
+    const interval = setInterval(clearOldCaches, 60 * 60 * 1000);
+    return () => clearInterval(interval);
   }, []);
 
   // Verificar si es la primera vez del usuario y mostrar tour + asignar tabla de ejemplo
@@ -143,7 +183,24 @@ function App() {
 
   const handleLogout = async () => {
     try {
+      // Limpiar caché del navegador
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        await Promise.all(cacheNames.map(cacheName => caches.delete(cacheName)));
+        console.log('✅ Caché limpiado');
+      }
+
+      // Limpiar localStorage
+      localStorage.clear();
+      
+      // Limpiar sessionStorage
+      sessionStorage.clear();
+
+      // Cerrar sesión
       await signOut(auth);
+
+      // Forzar recarga completa de la página para obtener nueva versión
+      window.location.href = window.location.origin;
     } catch (error) {
       console.error('Error signing out:', error);
     }
@@ -392,7 +449,7 @@ function App() {
               <WorkoutLogger onNavigateToHistory={() => setCurrentView('history')} />
             )}
             {currentView === 'history' && (
-              <History onBack={() => setCurrentView('workout')} />
+              <History onBack={() => setCurrentView('workout')} lightTheme={lightTheme} />
             )}
             {currentView === 'assigned' && <AssignedTable />}
             {/* FUNCIONALIDAD SOCIAL DESACTIVADA TEMPORALMENTE - FUTURO */}

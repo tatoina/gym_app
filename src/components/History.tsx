@@ -25,9 +25,10 @@ interface Machine {
 
 interface HistoryProps {
   onBack?: () => void;
+  lightTheme?: boolean;
 }
 
-const History: React.FC<HistoryProps> = ({ onBack }) => {
+const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false }) => {
   // Calcular fechas por defecto: última semana
   const today = new Date();
   const weekAgo = new Date();
@@ -258,6 +259,15 @@ const History: React.FC<HistoryProps> = ({ onBack }) => {
     return machinesData.sort((a, b) => b.maxWeight - a.maxWeight);
   };
 
+  // Colores dinámicos según el tema
+  const chartColors = {
+    grid: lightTheme ? '#e5e7eb' : '#333',
+    axis: lightTheme ? '#6b7280' : '#b0b0b0',
+    tooltipBg: lightTheme ? '#ffffff' : '#2d2d2d',
+    tooltipBorder: lightTheme ? '#e5e7eb' : '#FFD700',
+    tooltipText: lightTheme ? '#111827' : '#e0e0e0',
+  };
+
   if (loading) {
     return <div className="history-container"><p>Cargando historial...</p></div>;
   }
@@ -335,23 +345,23 @@ const History: React.FC<HistoryProps> = ({ onBack }) => {
                   <h4>Evolución de {machineName}</h4>
                   <ResponsiveContainer width="100%" height={400}>
                     <LineChart data={evolutionData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                      <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
                       <XAxis 
                         dataKey="displayDate" 
-                        stroke="#b0b0b0"
-                        tick={{ fill: '#b0b0b0' }}
+                        stroke={chartColors.axis}
+                        tick={{ fill: chartColors.axis }}
                       />
                       <YAxis 
-                        stroke="#b0b0b0"
-                        tick={{ fill: '#b0b0b0' }}
-                        label={{ value: 'Peso (kg)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: '#b0b0b0' } }}
+                        stroke={chartColors.axis}
+                        tick={{ fill: chartColors.axis }}
+                        label={{ value: 'Peso (kg)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: chartColors.axis } }}
                       />
                       <Tooltip 
                         contentStyle={{ 
-                          backgroundColor: '#2d2d2d', 
-                          border: '1px solid #FFD700',
+                          backgroundColor: chartColors.tooltipBg, 
+                          border: `1px solid ${chartColors.tooltipBorder}`,
                           borderRadius: '8px',
-                          color: '#e0e0e0'
+                          color: chartColors.tooltipText
                         }}
                         formatter={(value: any, name: string) => [
                           `${value} kg`,
@@ -395,21 +405,22 @@ const History: React.FC<HistoryProps> = ({ onBack }) => {
                       <LineChart data={machineData.evolution}>
                         <XAxis 
                           dataKey="displayDate" 
-                          stroke="#b0b0b0"
-                          tick={{ fontSize: 10, fill: '#b0b0b0' }}
+                          stroke={chartColors.axis}
+                          tick={{ fontSize: 10, fill: chartColors.axis }}
                           interval="preserveStartEnd"
                         />
                         <YAxis 
-                          stroke="#b0b0b0"
-                          tick={{ fontSize: 10, fill: '#b0b0b0' }}
+                          stroke={chartColors.axis}
+                          tick={{ fontSize: 10, fill: chartColors.axis }}
                           domain={['dataMin - 5', 'dataMax + 5']}
                         />
                         <Tooltip 
                           contentStyle={{ 
-                            backgroundColor: '#2d2d2d', 
-                            border: '1px solid #FFD700',
+                            backgroundColor: chartColors.tooltipBg, 
+                            border: `1px solid ${chartColors.tooltipBorder}`,
                             borderRadius: '4px',
-                            fontSize: '12px'
+                            fontSize: '12px',
+                            color: chartColors.tooltipText
                           }}
                           formatter={(value) => [`${value} kg`, 'Peso']}
                         />
