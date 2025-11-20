@@ -85,8 +85,15 @@ const AdminPanel: React.FC = () => {
     description: '',
     photoFile: null as File | null,
     photoPreview: '',
-    existingPhotoUrl: ''
+    existingPhotoUrl: '',
+    mediaType: 'image' as 'image' | 'video'
   });
+  const [mediaModal, setMediaModal] = useState<{
+    show: boolean;
+    url: string;
+    type: 'image' | 'video';
+    title: string;
+  }>({ show: false, url: '', type: 'image', title: '' });
   const [machineFormLoading, setMachineFormLoading] = useState(false);
   const [editingMachine, setEditingMachine] = useState<Machine | null>(null);
   const [machineToDelete, setMachineToDelete] = useState<Machine | null>(null);
@@ -352,12 +359,22 @@ const AdminPanel: React.FC = () => {
   const handleMachinePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      const isVideo = file.type.startsWith('video/');
       setMachineForm({
         ...machineForm,
         photoFile: file,
-        photoPreview: URL.createObjectURL(file)
+        photoPreview: URL.createObjectURL(file),
+        mediaType: isVideo ? 'video' : 'image'
       });
     }
+  };
+
+  const openMediaModal = (url: string, type: 'image' | 'video', title: string) => {
+    setMediaModal({ show: true, url, type, title });
+  };
+
+  const closeMediaModal = () => {
+    setMediaModal({ show: false, url: '', type: 'image', title: '' });
   };
 
   const importDefaultMachines = async () => {
@@ -502,7 +519,8 @@ const AdminPanel: React.FC = () => {
       description: '', 
       photoFile: null, 
       photoPreview: '',
-      existingPhotoUrl: ''
+      existingPhotoUrl: '',
+      mediaType: 'image'
     });
     setShowMachineForm(false);
     setEditingMachine(null);
@@ -518,7 +536,8 @@ const AdminPanel: React.FC = () => {
       description: '',
       photoFile: null,
       photoPreview: '',
-      existingPhotoUrl: ''
+      existingPhotoUrl: '',
+      mediaType: 'image'
     });
     setShowMachineForm(true);
     setEditingMachine(null);
@@ -534,7 +553,8 @@ const AdminPanel: React.FC = () => {
       description: machine.description || '',
       photoFile: null,
       photoPreview: machine.photoUrl || '',
-      existingPhotoUrl: machine.photoUrl || ''
+      existingPhotoUrl: machine.photoUrl || '',
+      mediaType: 'image'
     });
     setShowMachineForm(true);
   };
@@ -859,22 +879,41 @@ const AdminPanel: React.FC = () => {
               </div>
 
               <div className="form-group">
-                <label>Foto (opcional)</label>
+                <label>Foto o Video (opcional)</label>
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/*,video/*"
                   onChange={handleMachinePhotoChange}
                 />
                 {machineForm.photoPreview && (
                   <div style={{ position: 'relative', display: 'inline-block', marginTop: '10px' }}>
-                    <img src={machineForm.photoPreview} alt="Preview" className="photo-preview" />
+                    {machineForm.mediaType === 'video' ? (
+                      <video 
+                        src={machineForm.photoPreview} 
+                        className="photo-preview"
+                        controls
+                        onClick={() => openMediaModal(machineForm.photoPreview, 'video', machineForm.name || 'Vista previa')}
+                        style={{ cursor: 'pointer' }}
+                        title="Click para ampliar"
+                      />
+                    ) : (
+                      <img 
+                        src={machineForm.photoPreview} 
+                        alt="Preview" 
+                        className="photo-preview"
+                        onClick={() => openMediaModal(machineForm.photoPreview, 'image', machineForm.name || 'Vista previa')}
+                        style={{ cursor: 'pointer' }}
+                        title="Click para ampliar"
+                      />
+                    )}
                     <button
                       type="button"
                       onClick={() => setMachineForm({ 
                         ...machineForm, 
                         photoFile: null, 
                         photoPreview: '', 
-                        existingPhotoUrl: '' 
+                        existingPhotoUrl: '',
+                        mediaType: 'image'
                       })}
                       style={{
                         position: 'absolute',
@@ -893,7 +932,7 @@ const AdminPanel: React.FC = () => {
                         justifyContent: 'center',
                         fontWeight: 'bold'
                       }}
-                      title="Eliminar foto"
+                      title="Eliminar medio"
                     >
                       ✖
                     </button>
@@ -947,7 +986,14 @@ const AdminPanel: React.FC = () => {
               <div key={machine.id} className="machine-card">
                 <div className="machine-info">
                   {machine.photoUrl && (
-                    <img src={machine.photoUrl} alt={machine.name} className="machine-photo" />
+                    <img 
+                      src={machine.photoUrl} 
+                      alt={machine.name} 
+                      className="machine-photo"
+                      onClick={() => openMediaModal(machine.photoUrl || '', 'image', machine.name)}
+                      style={{ cursor: 'pointer' }}
+                      title="Click para ampliar"
+                    />
                   )}
                   <div className="machine-details">
                     <span className="machine-name">
@@ -1234,6 +1280,23 @@ const AdminPanel: React.FC = () => {
         </>
         )}
       </div>
+
+      {/* Modal de visualización de medios */}
+      {mediaModal.show && (
+        <div className="media-modal" onClick={closeMediaModal}>
+          <div className="media-viewer" onClick={(e) => e.stopPropagation()}>
+            <button className="close-modal-btn" onClick={closeMediaModal} title="Cerrar">
+              ✖
+            </button>
+            <h3 style={{ color: 'white', marginBottom: '20px', textAlign: 'center' }}>{mediaModal.title}</h3>
+            {mediaModal.type === 'video' ? (
+              <video src={mediaModal.url} controls autoPlay style={{ maxWidth: '100%', maxHeight: '80vh' }} />
+            ) : (
+              <img src={mediaModal.url} alt={mediaModal.title} style={{ maxWidth: '100%', maxHeight: '80vh', objectFit: 'contain' }} />
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Modal de configuración de email */}
       {showEmailConfigModal && (
