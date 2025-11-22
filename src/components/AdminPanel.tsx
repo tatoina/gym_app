@@ -109,6 +109,9 @@ const AdminPanel: React.FC = () => {
   const [importing, setImporting] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<string>('Todas');
   const [showMachinesSection, setShowMachinesSection] = useState(false);
+  const [showCategoryManagement, setShowCategoryManagement] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<{id: string, name: string} | null>(null);
+  const [editCategoryName, setEditCategoryName] = useState('');
   const [currentTableDate, setCurrentTableDate] = useState<Date | null>(null);
   const [activeTab, setActiveTab] = useState<'maquinas' | 'tablas' | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -168,12 +171,28 @@ const AdminPanel: React.FC = () => {
       
       setMachines(machinesData);
 
-      // Cargar categorías
+      // Cargar categorías desde Firebase
+      console.log('🔄 Cargando categorías desde Firebase...');
       const categoriesSnapshot = await getDocs(collection(db, 'categories'));
-      const categoriesData: Category[] = categoriesSnapshot.docs.map((doc) => ({
+      console.log('📦 Snapshot de categories:', categoriesSnapshot.size, 'documentos');
+      
+      let categoriesData: Category[] = categoriesSnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data()
       } as Category));
+
+      // Si no hay categorías en Firebase, usar las de las máquinas existentes
+      if (categoriesData.length === 0) {
+        console.log('⚠️ No hay categorías en Firebase, usando categorías de máquinas existentes');
+        const uniqueCategories = Array.from(new Set(machinesData.map(m => m.category).filter(Boolean)));
+        categoriesData = uniqueCategories.map((name, index) => ({
+          id: `temp-${index}`,
+          name: name as string
+        }));
+        console.log('📋 Categorías extraídas de máquinas:', categoriesData);
+      }
+      
+      console.log('✅ Total categorías:', categoriesData.length);
       setCategories(categoriesData.sort((a, b) => a.name.localeCompare(b.name)));
 
       // Cargar notificaciones no leídas
@@ -423,6 +442,180 @@ const AdminPanel: React.FC = () => {
       console.error('Error creating category:', error);
       setMessage({ type: 'error', text: 'Error al crear la categoría' });
     }
+  };
+
+  const migrateCategoriesFromMachines = async () => {
+    if (!window.confirm('¿Migrar todas las categorías de las máquinas a Firestore? Esto creará registros de categorías si no existen.')) {
+      return;
+    }
+
+    try {
+      setSaving(true);
+      
+      // Obtener categorías únicas de las máquinas
+      const uniqueCategories = Array.from(new Set(machines.map(m => m.category).filter(Boolean))) as string[];
+      
+      // Verificar cuáles ya existen en Firestore
+      const existingCategoryNames = categories.filter(c => !c.id.startsWith('temp-')).map(c => c.name);
+      const categoriesToCreate = uniqueCategories.filter(name => !existingCategoryNames.includes(name));
+      
+      if (categoriesToCreate.length === 0) {
+        setMessage({ type: 'success', text: 'Todas las categorías ya existen en Firestore' });
+        setSaving(false);
+        return;
+      }
+
+      // Crear las categorías faltantes
+      const newCategories: Category[] = [];
+      for (const categoryName of categoriesToCreate) {
+        const categoryRef = await addDoc(collection(db, 'categories'), {
+          name: categoryName,
+          createdAt: serverTimestamp()
+        });
+        newCategories.push({
+          id: categoryRef.id,
+          name: categoryName as string,
+          createdAt: serverTimestamp()
+        });
+      }
+
+      // Actualizar estado
+      const updatedCategories = [...categories.filter(c => !c.id.startsWith('temp-')), ...newCategories];
+      setCategories(updatedCategories.sort((a, b) => a.name.localeCompare(b.name)));
+      
+      setMessage({ type: 'success', text: `${categoriesToCreate.length} categoría(s) migrada(s) exitosamente` });
+    } catch (error) {
+      console.error('Error migrating categories:', error);
+      setMessage({ type: 'error', text: 'Error al migrar categorías' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const startEditCategory = (category: Category) => {
+    setEditingCategory({ id: category.id, name: category.name });
+    setEditCategoryName(category.name);
+  };
+
+  const cancelEditCategory = () => {
+    setEditingCategory(null);
+    setEditCategoryName('');
+  };
+
+  const saveEditCategory = async () => {
+    if (!editingCategory) return;
+    
+    const newName = editCategoryName.trim();
+    if (!newName) {
+      setMessage({ type: 'error', text: 'El nombre no puede estar vacío' });
+      return;
+    }
+
+    // Verificar si ya existe otra categoría con ese nombre
+    if (categories.some(cat => cat.id !== editingCategory.id && cat.name.toLowerCase() === newName.toLowerCase())) {
+      setMessage({ type: 'error', text: 'Ya existe una categoría con ese nombre' });
+      return;
+    }
+
+    try {
+      setSaving(true);
+
+      const oldName = editingCategory.name;
+      
+      // Si es una categoría temporal (no está en Firestore), crearla primero
+      let categoryId = editingCategory.id;
+      if (categoryId.startsWith('temp-')) {
+        const categoryRef = await addDoc(collection(db, 'categories'), {
+          name: newName,
+          createdAt: serverTimestamp()
+        });
+        categoryId = categoryRef.id;
+      } else {
+        // Actualizar en Firestore
+        await updateDoc(doc(db, 'categories', categoryId), {
+          name: newName
+        });
+      }
+
+      // Actualizar todas las máquinas que usan esta categoría
+      const machinesToUpdate = machines.filter(m => m.category === oldName);
+      for (const machine of machinesToUpdate) {
+        await updateDoc(doc(db, 'machines', machine.id), {
+          category: newName
+        });
+      }
+
+      // Actualizar estado local
+      const updatedCategories = categories.map(cat => 
+        cat.id === editingCategory.id ? { ...cat, id: categoryId, name: newName } : cat
+      ).sort((a, b) => a.name.localeCompare(b.name));
+      
+      setCategories(updatedCategories);
+      
+      const updatedMachines = machines.map(m => 
+        m.category === oldName ? { ...m, category: newName } : m
+      );
+      setMachines(updatedMachines);
+
+      setEditingCategory(null);
+      setEditCategoryName('');
+      
+      setMessage({ type: 'success', text: `Categoría actualizada (${machinesToUpdate.length} máquina(s) afectada(s))` });
+    } catch (error) {
+      console.error('Error updating category:', error);
+      setMessage({ type: 'error', text: 'Error al actualizar la categoría' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteCategory = async (category: Category) => {
+    const machinesWithCategory = machines.filter(m => m.category === category.name);
+    
+    if (machinesWithCategory.length > 0) {
+      if (!window.confirm(`Esta categoría está siendo usada por ${machinesWithCategory.length} máquina(s). ¿Eliminarla de todas formas? Las máquinas quedarán sin categoría.`)) {
+        return;
+      }
+    } else {
+      if (!window.confirm(`¿Eliminar la categoría "${category.name}"?`)) {
+        return;
+      }
+    }
+
+    try {
+      setSaving(true);
+
+      // Si no es temporal, eliminar de Firestore
+      if (!category.id.startsWith('temp-')) {
+        await deleteDoc(doc(db, 'categories', category.id));
+      }
+
+      // Actualizar máquinas que usan esta categoría
+      for (const machine of machinesWithCategory) {
+        await updateDoc(doc(db, 'machines', machine.id), {
+          category: ''
+        });
+      }
+
+      // Actualizar estado local
+      setCategories(categories.filter(cat => cat.id !== category.id));
+      
+      const updatedMachines = machines.map(m => 
+        m.category === category.name ? { ...m, category: '' } : m
+      );
+      setMachines(updatedMachines);
+
+      setMessage({ type: 'success', text: 'Categoría eliminada' });
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      setMessage({ type: 'error', text: 'Error al eliminar la categoría' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const getCategoryMachineCount = (categoryName: string): number => {
+    return machines.filter(m => m.category === categoryName).length;
   };
 
   const importDefaultMachines = async () => {
@@ -911,7 +1104,7 @@ const AdminPanel: React.FC = () => {
                 {!showNewCategoryInput ? (
                   <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
                     <select
-                      value={machineForm.category}
+                      value={machineForm.category || ''}
                       onChange={(e) => {
                         if (e.target.value === '__new__') {
                           setShowNewCategoryInput(true);
@@ -1064,6 +1257,238 @@ const AdminPanel: React.FC = () => {
               )}
             </form>
           )}
+
+          {/* Sección de Gestión de Categorías */}
+          <div className="category-management-section" style={{ 
+            marginBottom: '30px',
+            background: 'rgba(102, 126, 234, 0.1)',
+            border: '1px solid rgba(102, 126, 234, 0.3)',
+            borderRadius: '12px',
+            overflow: 'hidden'
+          }}>
+            <button
+              onClick={() => setShowCategoryManagement(!showCategoryManagement)}
+              style={{
+                width: '100%',
+                padding: '15px 20px',
+                background: 'transparent',
+                border: 'none',
+                color: '#667eea',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                transition: 'background 0.2s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(102, 126, 234, 0.15)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+            >
+              <span>🏷️ Gestionar Categorías ({categories.length})</span>
+              <span>{showCategoryManagement ? '▲' : '▼'}</span>
+            </button>
+
+            {showCategoryManagement && (
+              <div style={{ padding: '20px', borderTop: '1px solid rgba(102, 126, 234, 0.2)' }}>
+                
+                {/* Botón para migrar categorías */}
+                {categories.some(c => c.id.startsWith('temp-')) && (
+                  <div style={{ 
+                    marginBottom: '20px', 
+                    padding: '15px',
+                    background: 'rgba(245, 158, 11, 0.1)',
+                    border: '1px solid rgba(245, 158, 11, 0.3)',
+                    borderRadius: '8px'
+                  }}>
+                    <p style={{ margin: '0 0 10px 0', color: '#fbbf24', fontSize: '14px' }}>
+                      ⚠️ Hay categorías que solo existen en las máquinas. Se recomienda migrarlas a Firestore.
+                    </p>
+                    <button
+                      onClick={migrateCategoriesFromMachines}
+                      disabled={saving}
+                      style={{
+                        padding: '8px 16px',
+                        background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                        border: 'none',
+                        color: 'white',
+                        borderRadius: '6px',
+                        cursor: saving ? 'not-allowed' : 'pointer',
+                        fontWeight: 'bold',
+                        fontSize: '14px'
+                      }}
+                    >
+                      {saving ? '⏳ Migrando...' : '📤 Migrar Categorías a Firestore'}
+                    </button>
+                  </div>
+                )}
+
+                {/* Lista de categorías */}
+                <div className="categories-list">
+                  {categories.length === 0 ? (
+                    <p style={{ color: '#999', textAlign: 'center', padding: '20px' }}>
+                      No hay categorías. Crea una máquina con categoría para comenzar.
+                    </p>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      {categories.map((category) => {
+                        const machineCount = getCategoryMachineCount(category.name);
+                        const isEditing = editingCategory?.id === category.id;
+                        const isTemporary = category.id.startsWith('temp-');
+
+                        return (
+                          <div 
+                            key={category.id} 
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              padding: '12px 15px',
+                              background: isTemporary 
+                                ? 'rgba(245, 158, 11, 0.1)' 
+                                : 'rgba(255, 255, 255, 0.05)',
+                              border: isTemporary
+                                ? '1px solid rgba(245, 158, 11, 0.3)'
+                                : '1px solid rgba(255, 255, 255, 0.1)',
+                              borderRadius: '8px',
+                              gap: '10px',
+                              flexWrap: 'wrap'
+                            }}
+                          >
+                            {isEditing ? (
+                              <>
+                                <input
+                                  type="text"
+                                  value={editCategoryName}
+                                  onChange={(e) => setEditCategoryName(e.target.value)}
+                                  style={{
+                                    flex: 1,
+                                    minWidth: '200px',
+                                    padding: '8px',
+                                    borderRadius: '6px',
+                                    border: '1px solid #444',
+                                    background: '#2a2a2a',
+                                    color: '#e0e0e0'
+                                  }}
+                                  autoFocus
+                                />
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                  <button
+                                    onClick={saveEditCategory}
+                                    disabled={saving}
+                                    style={{
+                                      padding: '8px 16px',
+                                      background: 'linear-gradient(135deg, #48bb78 0%, #38a169 100%)',
+                                      border: 'none',
+                                      color: 'white',
+                                      borderRadius: '6px',
+                                      cursor: saving ? 'not-allowed' : 'pointer',
+                                      fontWeight: 'bold',
+                                      fontSize: '14px'
+                                    }}
+                                  >
+                                    {saving ? '⏳' : '✓ Guardar'}
+                                  </button>
+                                  <button
+                                    onClick={cancelEditCategory}
+                                    style={{
+                                      padding: '8px 16px',
+                                      background: '#444',
+                                      border: 'none',
+                                      color: 'white',
+                                      borderRadius: '6px',
+                                      cursor: 'pointer',
+                                      fontWeight: 'bold',
+                                      fontSize: '14px'
+                                    }}
+                                  >
+                                    ✖ Cancelar
+                                  </button>
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <div style={{ flex: 1, minWidth: '200px' }}>
+                                  <div style={{ 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    gap: '8px',
+                                    flexWrap: 'wrap'
+                                  }}>
+                                    <span style={{ 
+                                      color: '#e0e0e0', 
+                                      fontWeight: 'bold',
+                                      fontSize: '15px'
+                                    }}>
+                                      {category.name}
+                                    </span>
+                                    <span style={{ 
+                                      color: '#999', 
+                                      fontSize: '13px',
+                                      background: 'rgba(255, 255, 255, 0.05)',
+                                      padding: '2px 8px',
+                                      borderRadius: '10px'
+                                    }}>
+                                      {machineCount} máquina{machineCount !== 1 ? 's' : ''}
+                                    </span>
+                                    {isTemporary && (
+                                      <span style={{ 
+                                        color: '#fbbf24', 
+                                        fontSize: '12px',
+                                        background: 'rgba(245, 158, 11, 0.2)',
+                                        padding: '2px 8px',
+                                        borderRadius: '10px'
+                                      }}>
+                                        ⚠️ No migrada
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                  <button
+                                    onClick={() => startEditCategory(category)}
+                                    style={{
+                                      padding: '6px 12px',
+                                      background: 'rgba(102, 126, 234, 0.2)',
+                                      border: '1px solid rgba(102, 126, 234, 0.4)',
+                                      color: '#667eea',
+                                      borderRadius: '6px',
+                                      cursor: 'pointer',
+                                      fontSize: '14px',
+                                      fontWeight: 'bold'
+                                    }}
+                                    title="Editar categoría"
+                                  >
+                                    ✏️ Editar
+                                  </button>
+                                  <button
+                                    onClick={() => deleteCategory(category)}
+                                    style={{
+                                      padding: '6px 12px',
+                                      background: 'rgba(245, 87, 108, 0.2)',
+                                      border: '1px solid rgba(245, 87, 108, 0.4)',
+                                      color: '#f5576c',
+                                      borderRadius: '6px',
+                                      cursor: 'pointer',
+                                      fontSize: '14px',
+                                      fontWeight: 'bold'
+                                    }}
+                                    title="Eliminar categoría"
+                                  >
+                                    🗑️ Eliminar
+                                  </button>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
 
           {machines.length > 0 && (
             <div className="category-filter" style={{ marginBottom: '20px' }}>
