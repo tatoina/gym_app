@@ -1897,8 +1897,8 @@ const AdminPanel: React.FC = () => {
         <>
           {/* Divisor entre secciones */}
           <div style={{
-            height: '2px',
-            background: 'linear-gradient(90deg, transparent 0%, rgba(102, 126, 234, 0.5) 50%, transparent 100%)',
+            height: '3px',
+            background: 'linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.3) 50%, transparent 100%)',
             margin: '40px 0',
             position: 'relative'
           }}>
@@ -1909,12 +1909,12 @@ const AdminPanel: React.FC = () => {
               transform: 'translate(-50%, -50%)',
               background: '#1a1a1a',
               padding: '0 20px',
-              color: '#667eea',
-              fontSize: '12px',
+              color: 'white',
+              fontSize: '14px',
               fontWeight: 'bold',
-              letterSpacing: '2px'
+              letterSpacing: '3px'
             }}>
-              EJERCICIOS
+              • EJERCICIOS •
             </div>
           </div>
           
@@ -2262,8 +2262,8 @@ const AdminPanel: React.FC = () => {
         <>
           {/* Divisor entre secciones */}
           <div style={{
-            height: '2px',
-            background: 'linear-gradient(90deg, transparent 0%, rgba(102, 126, 234, 0.5) 50%, transparent 100%)',
+            height: '3px',
+            background: 'linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.3) 50%, transparent 100%)',
             margin: '40px 0',
             position: 'relative'
           }}>
@@ -2274,12 +2274,12 @@ const AdminPanel: React.FC = () => {
               transform: 'translate(-50%, -50%)',
               background: '#1a1a1a',
               padding: '0 20px',
-              color: '#667eea',
-              fontSize: '12px',
+              color: 'white',
+              fontSize: '14px',
               fontWeight: 'bold',
-              letterSpacing: '2px'
+              letterSpacing: '3px'
             }}>
-              TABLAS DE ENTRENAMIENTO
+              • TABLAS DE ENTRENAMIENTO •
             </div>
           </div>
 
