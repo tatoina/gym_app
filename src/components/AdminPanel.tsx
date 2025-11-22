@@ -1193,6 +1193,20 @@ const AdminPanel: React.FC = () => {
           <p>Bienvenido, Max - Gestión de máquinas y tablas de entrenamiento</p>
         </div>
         <div className="admin-user-info">
+          <div style={{ 
+            color: '#e0e0e0', 
+            fontSize: '14px', 
+            marginRight: '15px',
+            textAlign: 'right',
+            lineHeight: '1.3'
+          }}>
+            <div style={{ fontWeight: 'bold' }}>
+              {new Date().toLocaleDateString('es-ES', { weekday: 'long' }).charAt(0).toUpperCase() + new Date().toLocaleDateString('es-ES', { weekday: 'long' }).slice(1)}
+            </div>
+            <div style={{ color: '#999', fontSize: '13px' }}>
+              {new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
+            </div>
+          </div>
           <div className="admin-avatar" onClick={() => setShowUserMenu(!showUserMenu)}>
             <img src="/icons/maxgym.png" alt="MAXGYM Logo" className="admin-avatar-logo" />
           </div>
@@ -1210,19 +1224,31 @@ const AdminPanel: React.FC = () => {
       </div>
 
       {/* Navegación de secciones */}
-      <div className="admin-navigation">
+      <div className="admin-navigation" style={{ display: 'flex', gap: '0' }}>
         <button 
           className={`nav-tab ${activeTab === 'maquinas' ? 'active' : ''}`}
           onClick={() => setActiveTab(activeTab === 'maquinas' ? null : 'maquinas')}
         >
           {activeTab === 'maquinas' ? '✖ Cerrar' : '🏋️'} Gestión de Máquinas
         </button>
+        <div style={{ 
+          width: '1px', 
+          background: 'rgba(255, 255, 255, 0.2)', 
+          alignSelf: 'stretch',
+          margin: '10px 0'
+        }}></div>
         <button 
           className={`nav-tab ${activeTab === 'ejercicios' ? 'active' : ''}`}
           onClick={() => setActiveTab(activeTab === 'ejercicios' ? null : 'ejercicios')}
         >
           {activeTab === 'ejercicios' ? '✖ Cerrar' : '💪'} Gestión de Ejercicios
         </button>
+        <div style={{ 
+          width: '1px', 
+          background: 'rgba(255, 255, 255, 0.2)', 
+          alignSelf: 'stretch',
+          margin: '10px 0'
+        }}></div>
         <button 
           className={`nav-tab ${activeTab === 'tablas' ? 'active' : ''}`}
           onClick={() => setActiveTab(activeTab === 'tablas' ? null : 'tablas')}
