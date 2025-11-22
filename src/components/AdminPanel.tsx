@@ -1224,31 +1224,21 @@ const AdminPanel: React.FC = () => {
       </div>
 
       {/* Navegación de secciones */}
-      <div className="admin-navigation" style={{ display: 'flex', gap: '0' }}>
+      <div className="admin-navigation">
         <button 
           className={`nav-tab ${activeTab === 'maquinas' ? 'active' : ''}`}
           onClick={() => setActiveTab(activeTab === 'maquinas' ? null : 'maquinas')}
         >
           {activeTab === 'maquinas' ? '✖ Cerrar' : '🏋️'} Gestión de Máquinas
         </button>
-        <div style={{ 
-          width: '1px', 
-          background: 'rgba(255, 255, 255, 0.2)', 
-          alignSelf: 'stretch',
-          margin: '10px 0'
-        }}></div>
+        <div></div>
         <button 
           className={`nav-tab ${activeTab === 'ejercicios' ? 'active' : ''}`}
           onClick={() => setActiveTab(activeTab === 'ejercicios' ? null : 'ejercicios')}
         >
           {activeTab === 'ejercicios' ? '✖ Cerrar' : '💪'} Gestión de Ejercicios
         </button>
-        <div style={{ 
-          width: '1px', 
-          background: 'rgba(255, 255, 255, 0.2)', 
-          alignSelf: 'stretch',
-          margin: '10px 0'
-        }}></div>
+        <div></div>
         <button 
           className={`nav-tab ${activeTab === 'tablas' ? 'active' : ''}`}
           onClick={() => setActiveTab(activeTab === 'tablas' ? null : 'tablas')}
