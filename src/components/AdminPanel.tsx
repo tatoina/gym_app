@@ -1193,7 +1193,7 @@ const AdminPanel: React.FC = () => {
           <p>Bienvenido, Max - Gestión de máquinas y tablas de entrenamiento</p>
         </div>
         <div className="admin-user-info">
-          <div style={{ 
+          <div className="admin-date-info" style={{ 
             color: '#e0e0e0', 
             fontSize: '14px', 
             marginRight: '15px',

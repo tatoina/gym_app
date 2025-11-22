@@ -19,40 +19,45 @@
 }
 
 .admin-header {
-  margin-bottom: 20px;
+  margin-bottom: 15px;
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 @media (min-width: 768px) {
   .admin-header {
     margin-bottom: 30px;
+    align-items: flex-start;
   }
 }
 
 .admin-title-section h1 {
-  margin: 0 0 5px 0;
+  margin: 0;
   color: #e0e0e0;
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 700;
 }
 
 @media (min-width: 768px) {
   .admin-title-section h1 {
     font-size: 24px;
+    margin-bottom: 5px;
   }
 }
 
 .admin-title-section p {
   margin: 0;
   color: #b0b0b0;
-  font-size: 12px;
+  font-size: 11px;
+  display: none;
 }
 
 @media (min-width: 768px) {
   .admin-title-section p {
+    display: block;
     font-size: 14px;
   }
 }
@@ -62,9 +67,25 @@
   position: relative;
 }
 
+.admin-user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-date-info {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .admin-date-info {
+    display: block;
+  }
+}
+
 .admin-avatar {
-  width: 50px;
-  height: 50px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   background: rgba(30, 30, 30, 0.8);
   display: flex;
@@ -75,6 +96,13 @@
   transition: all 0.3s ease;
   overflow: hidden;
   border: 2px solid rgba(102, 126, 234, 0.3);
+}
+
+@media (min-width: 768px) {
+  .admin-avatar {
+    width: 50px;
+    height: 50px;
+  }
 }
 
 .admin-avatar:hover {
@@ -137,15 +165,23 @@
   background: linear-gradient(145deg, rgba(30, 30, 30, 0.8) 0%, rgba(20, 20, 20, 0.9) 100%);
   border: 2px solid rgba(255, 255, 255, 0.1);
   color: rgba(255, 255, 255, 0.7);
-  padding: 18px 25px;
+  padding: 12px 15px;
   cursor: pointer;
   font-weight: bold;
-  border-radius: 12px;
+  border-radius: 10px;
   transition: all 0.3s ease;
-  font-size: 16px;
+  font-size: 14px;
   text-align: left;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   position: relative;
+}
+
+@media (min-width: 768px) {
+  .nav-tab {
+    padding: 18px 25px;
+    font-size: 16px;
+    border-radius: 12px;
+  }
 }
 
 .nav-tab:not(:last-child)::after {
@@ -164,6 +200,12 @@
   color: rgba(255, 255, 255, 0.9);
   transform: translateX(-5px);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+@media (max-width: 767px) {
+  .nav-tab:hover {
+    transform: translateX(-2px);
+  }
 }
 
 .nav-tab.active {
@@ -600,11 +642,21 @@
   background: #51cf66;
   color: #0d0d0d;
   border: none;
-  padding: 10px 20px;
+  padding: 12px 20px;
   border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
+  font-size: 14px;
+  min-height: 44px;
+  white-space: nowrap;
+}
+
+@media (max-width: 767px) {
+  .toggle-machine-form-btn {
+    padding: 10px 16px;
+    font-size: 13px;
+  }
 }
 
 .toggle-machine-form-btn:hover {
@@ -802,12 +854,22 @@
 .edit-machine-btn,
 .delete-machine-btn {
   flex: 1;
-  padding: 6px;
+  padding: 10px 8px;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
   transition: all 0.2s ease;
+  min-height: 40px;
+  font-weight: 600;
+}
+
+@media (max-width: 767px) {
+  .edit-machine-btn,
+  .delete-machine-btn {
+    font-size: 12px;
+    padding: 8px 6px;
+  }
 }
 
 .edit-machine-btn {
@@ -834,14 +896,23 @@
 
 .cancel-edit-btn {
   margin-top: 10px;
-  padding: 8px 16px;
+  padding: 10px 20px;
   background: rgba(255, 152, 0, 0.2);
   color: #ff9800;
   border: 1px solid rgba(255, 152, 0, 0.3);
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
   transition: all 0.2s ease;
+  min-height: 44px;
+  width: 100%;
+  font-weight: 600;
+}
+
+@media (max-width: 767px) {
+  .cancel-edit-btn {
+    padding: 12px 20px;
+  }
 }
 
 .cancel-edit-btn:hover {
@@ -867,8 +938,18 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   padding: 20px;
-  max-width: 400px;
+  max-width: 500px;
   width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+@media (max-width: 767px) {
+  .modal-content {
+    padding: 15px;
+    width: 95%;
+    border-radius: 8px;
+  }
 }
 
 .delete-modal h3 {
@@ -923,26 +1004,49 @@
   display: flex;
   gap: 10px;
   margin-top: 20px;
+  flex-direction: column;
+}
+
+@media (min-width: 768px) {
+  .modal-actions {
+    flex-direction: row;
+  }
 }
 
 .cancel-btn,
-.confirm-delete-btn {
+.confirm-delete-btn,
+.primary-button,
+.secondary-button {
   flex: 1;
-  padding: 10px;
+  padding: 12px 20px;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
   font-weight: 600;
   transition: all 0.2s ease;
+  font-size: 14px;
+  min-height: 44px;
+  width: 100%;
 }
 
-.cancel-btn {
+@media (min-width: 768px) {
+  .cancel-btn,
+  .confirm-delete-btn,
+  .primary-button,
+  .secondary-button {
+    width: auto;
+  }
+}
+
+.cancel-btn,
+.secondary-button {
   background: rgba(255, 255, 255, 0.1);
   color: #e0e0e0;
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.cancel-btn:hover {
+.cancel-btn:hover,
+.secondary-button:hover {
   background: rgba(255, 255, 255, 0.15);
 }
 
@@ -954,6 +1058,21 @@
 .confirm-delete-btn:hover {
   background: linear-gradient(145deg, #d32f2f, #f44336);
   transform: translateY(-1px);
+}
+
+.primary-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.primary-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+  transform: translateY(-1px);
+}
+
+.primary-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .divider {
