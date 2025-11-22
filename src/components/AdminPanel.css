@@ -1,27 +1,60 @@
 .admin-panel-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
+  max-width: 100%;
+  margin: 0;
+  padding: 10px;
+  min-height: 100vh;
+}
+
+@media (min-width: 768px) {
+  .admin-panel-container {
+    padding: 20px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .admin-panel-container {
+    max-width: 1400px;
+    margin: 0 auto;
+  }
 }
 
 .admin-header {
-  margin-bottom: 30px;
+  margin-bottom: 20px;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  gap: 10px;
+}
+
+@media (min-width: 768px) {
+  .admin-header {
+    margin-bottom: 30px;
+  }
 }
 
 .admin-title-section h1 {
   margin: 0 0 5px 0;
   color: #e0e0e0;
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 700;
+}
+
+@media (min-width: 768px) {
+  .admin-title-section h1 {
+    font-size: 24px;
+  }
 }
 
 .admin-title-section p {
   margin: 0;
   color: #b0b0b0;
-  font-size: 14px;
+  font-size: 12px;
+}
+
+@media (min-width: 768px) {
+  .admin-title-section p {
+    font-size: 14px;
+  }
 }
 
 /* Avatar del admin */
@@ -569,10 +602,16 @@
 
 .machine-form {
   background: #1a1a1a;
-  padding: 20px;
+  padding: 15px;
   border-radius: 10px;
   margin-bottom: 20px;
   border: 1px solid #3d3d3d;
+}
+
+@media (min-width: 768px) {
+  .machine-form {
+    padding: 20px;
+  }
 }
 
 .machine-form .form-group {
@@ -588,7 +627,9 @@
 }
 
 .machine-form input[type="text"],
+.machine-form input[type="number"],
 .machine-form textarea,
+.machine-form select,
 .machine-form input[type="file"] {
   width: 100%;
   padding: 10px;
@@ -597,6 +638,16 @@
   border-radius: 6px;
   color: #e0e0e0;
   font-size: 14px;
+  box-sizing: border-box;
+}
+
+.machine-form select {
+  cursor: pointer;
+}
+
+.machine-form select option {
+  background: #2d2d2d;
+  color: #e0e0e0;
 }
 
 .machine-form textarea {
@@ -637,9 +688,30 @@
 
 .machines-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 15px;
-  margin-top: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+  margin-top: 15px;
+  padding: 0;
+}
+
+@media (min-width: 480px) {
+  .machines-list {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+  }
+}
+
+@media (min-width: 768px) {
+  .machines-list {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 15px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .machines-list {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
 }
 
 .machine-card {

@@ -21,6 +21,12 @@ interface Machine {
   isGlobal?: boolean;
 }
 
+interface Category {
+  id: string;
+  name: string;
+  createdAt?: any;
+}
+
 interface AssignedExercise {
   machineId: string;
   machineName: string;
@@ -57,12 +63,15 @@ interface Notification {
 const AdminPanel: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [machines, setMachines] = useState<Machine[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string>('');
   const [exercises, setExercises] = useState<AssignedExercise[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
 
   // Formulario para nuevo ejercicio
   const [newExercise, setNewExercise] = useState<AssignedExercise>({
@@ -158,6 +167,14 @@ const AdminPanel: React.FC = () => {
       }
       
       setMachines(machinesData);
+
+      // Cargar categorías
+      const categoriesSnapshot = await getDocs(collection(db, 'categories'));
+      const categoriesData: Category[] = categoriesSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data()
+      } as Category));
+      setCategories(categoriesData.sort((a, b) => a.name.localeCompare(b.name)));
 
       // Cargar notificaciones no leídas
       const notificationsQuery = query(
@@ -375,6 +392,37 @@ const AdminPanel: React.FC = () => {
 
   const closeMediaModal = () => {
     setMediaModal({ show: false, url: '', type: 'image', title: '' });
+  };
+
+  const handleCreateCategory = async () => {
+    if (!newCategoryName.trim()) {
+      setMessage({ type: 'error', text: 'El nombre de la categoría es obligatorio' });
+      return;
+    }
+
+    // Verificar si ya existe
+    const exists = categories.some(cat => cat.name.toLowerCase() === newCategoryName.trim().toLowerCase());
+    if (exists) {
+      setMessage({ type: 'error', text: 'Ya existe una categoría con ese nombre' });
+      return;
+    }
+
+    try {
+      const docRef = await addDoc(collection(db, 'categories'), {
+        name: newCategoryName.trim(),
+        createdAt: serverTimestamp()
+      });
+      
+      const newCategory: Category = { id: docRef.id, name: newCategoryName.trim() };
+      setCategories([...categories, newCategory].sort((a, b) => a.name.localeCompare(b.name)));
+      setMachineForm({ ...machineForm, category: newCategoryName.trim() });
+      setNewCategoryName('');
+      setShowNewCategoryInput(false);
+      setMessage({ type: 'success', text: '✅ Categoría creada correctamente' });
+    } catch (error) {
+      console.error('Error creating category:', error);
+      setMessage({ type: 'error', text: 'Error al crear la categoría' });
+    }
   };
 
   const importDefaultMachines = async () => {
@@ -860,12 +908,78 @@ const AdminPanel: React.FC = () => {
 
               <div className="form-group">
                 <label>Categoría</label>
-                <input
-                  type="text"
-                  value={machineForm.category}
-                  onChange={(e) => setMachineForm({ ...machineForm, category: e.target.value })}
-                  placeholder="Ej: Pecho, Piernas, Espalda..."
-                />
+                {!showNewCategoryInput ? (
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <select
+                      value={machineForm.category}
+                      onChange={(e) => {
+                        if (e.target.value === '__new__') {
+                          setShowNewCategoryInput(true);
+                          setMachineForm({ ...machineForm, category: '' });
+                        } else {
+                          setMachineForm({ ...machineForm, category: e.target.value });
+                        }
+                      }}
+                      style={{ flex: 1, minWidth: '200px' }}
+                    >
+                      <option value="">-- Selecciona una categoría --</option>
+                      {categories.map((cat) => (
+                        <option key={cat.id} value={cat.name}>
+                          {cat.name}
+                        </option>
+                      ))}
+                      <option value="__new__" style={{ fontWeight: 'bold', color: '#667eea' }}>
+                        ➕ Crear nueva categoría
+                      </option>
+                    </select>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <input
+                      type="text"
+                      value={newCategoryName}
+                      onChange={(e) => setNewCategoryName(e.target.value)}
+                      placeholder="Nombre de la nueva categoría..."
+                      style={{ flex: 1, minWidth: '200px' }}
+                      autoFocus
+                    />
+                    <button
+                      type="button"
+                      onClick={handleCreateCategory}
+                      style={{
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        border: 'none',
+                        color: 'white',
+                        padding: '8px 16px',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontWeight: 'bold',
+                        fontSize: '14px'
+                      }}
+                    >
+                      ✓ Crear
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowNewCategoryInput(false);
+                        setNewCategoryName('');
+                      }}
+                      style={{
+                        background: 'rgba(245, 87, 108, 0.2)',
+                        border: '1px solid rgba(245, 87, 108, 0.5)',
+                        color: '#f5576c',
+                        padding: '8px 16px',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontWeight: 'bold',
+                        fontSize: '14px'
+                      }}
+                    >
+                      ✖ Cancelar
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="form-group">
