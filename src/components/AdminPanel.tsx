@@ -151,6 +151,7 @@ const AdminPanel: React.FC = () => {
   const [exerciseToDelete, setExerciseToDelete] = useState<Exercise | null>(null);
   const [machineFilterExercises, setMachineFilterExercises] = useState<string>('Todas');
   const [categoryFilterExerciseForm, setCategoryFilterExerciseForm] = useState<string>('Todas');
+  const [categoryFilterTableAssignment, setCategoryFilterTableAssignment] = useState<string>('Todas');
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showEmailConfigModal, setShowEmailConfigModal] = useState(false);
   const [emailConfig, setEmailConfig] = useState({
@@ -2445,6 +2446,44 @@ const AdminPanel: React.FC = () => {
                 <h4>Agregar Ejercicio</h4>
                 
                 <div className="form-group">
+                  <label>🏷️ Filtrar por Categoría</label>
+                  <select
+                    value={categoryFilterTableAssignment}
+                    onChange={(e) => {
+                      setCategoryFilterTableAssignment(e.target.value);
+                      // Reset machine selection when category changes
+                      setNewExercise({ 
+                        ...newExercise, 
+                        machineId: '',
+                        machineName: '',
+                        machinePhotoUrl: '',
+                        exerciseId: '',
+                        exerciseName: '',
+                        exercisePhotoUrl: ''
+                      });
+                    }}
+                    style={{
+                      background: 'rgba(102, 126, 234, 0.1)',
+                      borderColor: 'rgba(102, 126, 234, 0.3)',
+                      color: '#667eea',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    <option value="Todas">📋 Todas las categorías</option>
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={cat.name}>
+                        {cat.name} ({machines.filter(m => m.category === cat.name).length})
+                      </option>
+                    ))}
+                  </select>
+                  {categoryFilterTableAssignment !== 'Todas' && (
+                    <small style={{ color: '#667eea', display: 'block', marginTop: '5px' }}>
+                      ✓ Mostrando solo máquinas de: <strong>{categoryFilterTableAssignment}</strong>
+                    </small>
+                  )}
+                </div>
+                
+                <div className="form-group">
                   <label>Máquina</label>
                   <select
                     value={newExercise.machineId}
@@ -2463,13 +2502,24 @@ const AdminPanel: React.FC = () => {
                   >
                     <option value="">-- Selecciona una máquina --</option>
                     {machines
+                      .filter(machine => 
+                        categoryFilterTableAssignment === 'Todas' || 
+                        machine.category === categoryFilterTableAssignment
+                      )
                       .sort((a, b) => (a.number || 999) - (b.number || 999))
                       .map((machine) => (
                         <option key={machine.id} value={machine.id}>
                           {machine.number ? `#${machine.number} - ` : ''}{machine.name}
+                          {machine.category ? ` (${machine.category})` : ''}
                         </option>
                       ))}
                   </select>
+                  {categoryFilterTableAssignment !== 'Todas' && 
+                   machines.filter(m => categoryFilterTableAssignment === 'Todas' || m.category === categoryFilterTableAssignment).length === 0 && (
+                    <small style={{ color: '#ff9800', display: 'block', marginTop: '5px' }}>
+                      ⚠️ No hay máquinas en esta categoría
+                    </small>
+                  )}
                 </div>
 
                 {newExercise.machineId && (
