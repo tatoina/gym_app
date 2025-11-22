@@ -27,10 +27,24 @@ interface Category {
   createdAt?: any;
 }
 
+interface Exercise {
+  id: string;
+  name: string;
+  machineId: string;
+  machineName: string;
+  description?: string;
+  photoUrl?: string;
+  mediaType?: 'image' | 'video';
+  createdAt?: any;
+}
+
 interface AssignedExercise {
   machineId: string;
   machineName: string;
   machinePhotoUrl?: string;
+  exerciseId?: string;
+  exerciseName?: string;
+  exercisePhotoUrl?: string;
   series: number;
   reps: number;
   weight?: number;
@@ -64,6 +78,7 @@ const AdminPanel: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [machines, setMachines] = useState<Machine[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [allExercises, setAllExercises] = useState<Exercise[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string>('');
   const [exercises, setExercises] = useState<AssignedExercise[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,6 +93,9 @@ const AdminPanel: React.FC = () => {
     machineId: '',
     machineName: '',
     machinePhotoUrl: '',
+    exerciseId: '',
+    exerciseName: '',
+    exercisePhotoUrl: '',
     series: 3,
     reps: 10,
     weight: 0,
@@ -113,7 +131,26 @@ const AdminPanel: React.FC = () => {
   const [editingCategory, setEditingCategory] = useState<{id: string, name: string} | null>(null);
   const [editCategoryName, setEditCategoryName] = useState('');
   const [currentTableDate, setCurrentTableDate] = useState<Date | null>(null);
-  const [activeTab, setActiveTab] = useState<'maquinas' | 'tablas' | null>(null);
+  const [activeTab, setActiveTab] = useState<'maquinas' | 'tablas' | 'ejercicios' | null>(null);
+  
+  // Estados para gestión de ejercicios
+  const [showExerciseForm, setShowExerciseForm] = useState(false);
+  const [exerciseForm, setExerciseForm] = useState({
+    id: '',
+    name: '',
+    machineId: '',
+    machineName: '',
+    description: '',
+    photoFile: null as File | null,
+    photoPreview: '',
+    existingPhotoUrl: '',
+    mediaType: 'image' as 'image' | 'video'
+  });
+  const [exerciseFormLoading, setExerciseFormLoading] = useState(false);
+  const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
+  const [exerciseToDelete, setExerciseToDelete] = useState<Exercise | null>(null);
+  const [machineFilterExercises, setMachineFilterExercises] = useState<string>('Todas');
+  const [categoryFilterExerciseForm, setCategoryFilterExerciseForm] = useState<string>('Todas');
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showEmailConfigModal, setShowEmailConfigModal] = useState(false);
   const [emailConfig, setEmailConfig] = useState({
@@ -194,6 +231,16 @@ const AdminPanel: React.FC = () => {
       
       console.log('✅ Total categorías:', categoriesData.length);
       setCategories(categoriesData.sort((a, b) => a.name.localeCompare(b.name)));
+
+      // Cargar ejercicios
+      console.log('🔄 Cargando ejercicios desde Firebase...');
+      const exercisesSnapshot = await getDocs(collection(db, 'exercises'));
+      const exercisesData: Exercise[] = exercisesSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data()
+      } as Exercise));
+      console.log('✅ Total ejercicios:', exercisesData.length);
+      setAllExercises(exercisesData.sort((a, b) => a.name.localeCompare(b.name)));
 
       // Cargar notificaciones no leídas
       const notificationsQuery = query(
@@ -307,6 +354,9 @@ const AdminPanel: React.FC = () => {
       machineId: '',
       machineName: '',
       machinePhotoUrl: '',
+      exerciseId: '',
+      exerciseName: '',
+      exercisePhotoUrl: '',
       series: 3,
       reps: 10,
       weight: 0,
@@ -616,6 +666,224 @@ const AdminPanel: React.FC = () => {
 
   const getCategoryMachineCount = (categoryName: string): number => {
     return machines.filter(m => m.category === categoryName).length;
+  };
+
+  // ==================== GESTIÓN DE EJERCICIOS ====================
+  
+  const openNewExerciseForm = () => {
+    setExerciseForm({
+      id: '',
+      name: '',
+      machineId: '',
+      machineName: '',
+      description: '',
+      photoFile: null,
+      photoPreview: '',
+      existingPhotoUrl: '',
+      mediaType: 'image'
+    });
+    setEditingExercise(null);
+    setCategoryFilterExerciseForm('Todas');
+    setShowExerciseForm(true);
+  };
+
+  const resetExerciseForm = () => {
+    setExerciseForm({
+      id: '',
+      name: '',
+      machineId: '',
+      machineName: '',
+      description: '',
+      photoFile: null,
+      photoPreview: '',
+      existingPhotoUrl: '',
+      mediaType: 'image'
+    });
+    setEditingExercise(null);
+    setShowExerciseForm(false);
+  };
+
+  const handleExercisePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const isVideo = file.type.startsWith('video/');
+      setExerciseForm({
+        ...exerciseForm,
+        photoFile: file,
+        photoPreview: URL.createObjectURL(file),
+        mediaType: isVideo ? 'video' : 'image'
+      });
+    }
+  };
+
+  const handleExerciseSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!exerciseForm.name.trim()) {
+      setMessage({ type: 'error', text: 'El nombre del ejercicio es obligatorio' });
+      return;
+    }
+
+    if (!exerciseForm.machineId) {
+      setMessage({ type: 'error', text: 'Debes seleccionar una máquina' });
+      return;
+    }
+
+    try {
+      setExerciseFormLoading(true);
+
+      let photoUrl = exerciseForm.existingPhotoUrl;
+
+      // Subir foto/video si hay uno nuevo
+      if (exerciseForm.photoFile) {
+        const timestamp = Date.now();
+        const fileExtension = exerciseForm.photoFile.name.split('.').pop();
+        const fileName = `exercises/${exerciseForm.machineId}_${exerciseForm.name.replace(/\s+/g, '_')}_${timestamp}.${fileExtension}`;
+        const storageRef = ref(storage, fileName);
+        
+        await uploadBytes(storageRef, exerciseForm.photoFile);
+        photoUrl = await getDownloadURL(storageRef);
+
+        // Eliminar foto anterior si existe y es diferente
+        if (exerciseForm.existingPhotoUrl && exerciseForm.existingPhotoUrl !== photoUrl) {
+          try {
+            const oldPhotoRef = ref(storage, exerciseForm.existingPhotoUrl);
+            await deleteObject(oldPhotoRef);
+          } catch (error) {
+            console.log('No se pudo eliminar la foto anterior:', error);
+          }
+        }
+      }
+
+      const exerciseData = {
+        name: exerciseForm.name.trim(),
+        machineId: exerciseForm.machineId,
+        machineName: exerciseForm.machineName,
+        description: exerciseForm.description.trim(),
+        photoUrl: photoUrl || '',
+        mediaType: exerciseForm.mediaType,
+        updatedAt: serverTimestamp()
+      };
+
+      if (editingExercise) {
+        // Actualizar ejercicio existente
+        await updateDoc(doc(db, 'exercises', editingExercise.id), exerciseData);
+        
+        setAllExercises(allExercises.map(ex => 
+          ex.id === editingExercise.id 
+            ? { ...ex, ...exerciseData, id: editingExercise.id } 
+            : ex
+        ).sort((a, b) => a.name.localeCompare(b.name)));
+        
+        setMessage({ type: 'success', text: '✅ Ejercicio actualizado correctamente' });
+      } else {
+        // Crear nuevo ejercicio
+        const docRef = await addDoc(collection(db, 'exercises'), {
+          ...exerciseData,
+          createdAt: serverTimestamp()
+        });
+        
+        const newExercise: Exercise = {
+          id: docRef.id,
+          ...exerciseData
+        };
+        
+        setAllExercises([...allExercises, newExercise].sort((a, b) => a.name.localeCompare(b.name)));
+        setMessage({ type: 'success', text: '✅ Ejercicio creado correctamente' });
+      }
+
+      resetExerciseForm();
+    } catch (error) {
+      console.error('Error saving exercise:', error);
+      setMessage({ type: 'error', text: 'Error al guardar el ejercicio' });
+    } finally {
+      setExerciseFormLoading(false);
+    }
+  };
+
+  const startEditExercise = (exercise: Exercise) => {
+    setExerciseForm({
+      id: exercise.id,
+      name: exercise.name,
+      machineId: exercise.machineId,
+      machineName: exercise.machineName,
+      description: exercise.description || '',
+      photoFile: null,
+      photoPreview: exercise.photoUrl || '',
+      existingPhotoUrl: exercise.photoUrl || '',
+      mediaType: exercise.mediaType || 'image'
+    });
+    setEditingExercise(exercise);
+    setShowExerciseForm(true);
+  };
+
+  const deleteExercise = async (exercise: Exercise, confirmed: boolean = false) => {
+    if (!confirmed) {
+      // Verificar si el ejercicio está siendo usado en tablas
+      const tablesSnapshot = await getDocs(collection(db, 'assignedTables'));
+      let affectedTables = 0;
+      
+      for (const tableDoc of tablesSnapshot.docs) {
+        const tableData = tableDoc.data() as AssignedTableData;
+        if (tableData.exercises?.some(ex => ex.exerciseId === exercise.id)) {
+          affectedTables++;
+        }
+      }
+
+      if (affectedTables > 0) {
+        setExerciseToDelete({ ...exercise, needsConfirmation: true, affectedTables } as any);
+      } else {
+        setExerciseToDelete(exercise);
+      }
+      return;
+    }
+
+    try {
+      setSaving(true);
+
+      // Eliminar foto si existe
+      if (exercise.photoUrl) {
+        try {
+          const photoRef = ref(storage, exercise.photoUrl);
+          await deleteObject(photoRef);
+        } catch (error) {
+          console.log('No se pudo eliminar la foto:', error);
+        }
+      }
+
+      // Eliminar el ejercicio de todas las tablas asignadas
+      const tablesSnapshot = await getDocs(collection(db, 'assignedTables'));
+      const batch = writeBatch(db);
+
+      for (const tableDoc of tablesSnapshot.docs) {
+        const tableData = tableDoc.data() as AssignedTableData;
+        if (tableData.exercises?.some(ex => ex.exerciseId === exercise.id)) {
+          const updatedExercises = tableData.exercises.filter(ex => ex.exerciseId !== exercise.id);
+          batch.update(tableDoc.ref, { 
+            exercises: updatedExercises,
+            updatedAt: serverTimestamp()
+          });
+        }
+      }
+
+      await batch.commit();
+
+      // Eliminar el ejercicio de Firestore
+      await deleteDoc(doc(db, 'exercises', exercise.id));
+
+      setAllExercises(allExercises.filter(ex => ex.id !== exercise.id));
+      setExerciseToDelete(null);
+      setMessage({ type: 'success', text: '✅ Ejercicio eliminado correctamente' });
+    } catch (error) {
+      console.error('Error deleting exercise:', error);
+      setMessage({ type: 'error', text: 'Error al eliminar el ejercicio' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const getExercisesByMachine = (machineId: string): Exercise[] => {
+    return allExercises.filter(ex => ex.machineId === machineId);
   };
 
   const importDefaultMachines = async () => {
@@ -948,6 +1216,12 @@ const AdminPanel: React.FC = () => {
           onClick={() => setActiveTab(activeTab === 'maquinas' ? null : 'maquinas')}
         >
           {activeTab === 'maquinas' ? '✖ Cerrar' : '🏋️'} Gestión de Máquinas
+        </button>
+        <button 
+          className={`nav-tab ${activeTab === 'ejercicios' ? 'active' : ''}`}
+          onClick={() => setActiveTab(activeTab === 'ejercicios' ? null : 'ejercicios')}
+        >
+          {activeTab === 'ejercicios' ? '✖ Cerrar' : '💪'} Gestión de Ejercicios
         </button>
         <button 
           className={`nav-tab ${activeTab === 'tablas' ? 'active' : ''}`}
@@ -1618,6 +1892,346 @@ const AdminPanel: React.FC = () => {
         </div>
         )}
 
+        {/* Sección de Gestión de Ejercicios */}
+        {activeTab === 'ejercicios' && (
+        <div className="machines-section">
+          <div className="machines-header">
+            <h2>💪 Gestión de Ejercicios</h2>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              <button 
+                onClick={() => showExerciseForm ? setShowExerciseForm(false) : openNewExerciseForm()}
+                className="toggle-machine-form-btn"
+              >
+                {showExerciseForm ? '✖ Cancelar' : '➕ Nuevo Ejercicio'}
+              </button>
+            </div>
+          </div>
+
+          {showExerciseForm && (
+            <form onSubmit={handleExerciseSubmit} className="machine-form">
+              <div className="form-group">
+                <label>Nombre del ejercicio *</label>
+                <input
+                  type="text"
+                  value={exerciseForm.name}
+                  onChange={(e) => setExerciseForm({ ...exerciseForm, name: e.target.value })}
+                  placeholder="Ej: Press de banca con barra"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Filtrar máquinas por categoría</label>
+                <select
+                  value={categoryFilterExerciseForm}
+                  onChange={(e) => {
+                    setCategoryFilterExerciseForm(e.target.value);
+                    // Limpiar la máquina seleccionada si no está en la nueva categoría
+                    if (e.target.value !== 'Todas' && exerciseForm.machineId) {
+                      const selectedMachine = machines.find(m => m.id === exerciseForm.machineId);
+                      if (selectedMachine && selectedMachine.category !== e.target.value) {
+                        setExerciseForm({ ...exerciseForm, machineId: '', machineName: '' });
+                      }
+                    }
+                  }}
+                  style={{
+                    padding: '10px',
+                    borderRadius: '8px',
+                    border: '1px solid #444',
+                    background: '#2a2a2a',
+                    color: '#e0e0e0',
+                    fontSize: '14px'
+                  }}
+                >
+                  <option value="Todas">📋 Todas las categorías</option>
+                  {Array.from(new Set(machines.map(m => m.category).filter(Boolean))).sort().map(cat => (
+                    <option key={cat} value={cat}>
+                      🏷️ {cat}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Máquina *</label>
+                <select
+                  value={exerciseForm.machineId}
+                  onChange={(e) => {
+                    const machine = machines.find(m => m.id === e.target.value);
+                    setExerciseForm({ 
+                      ...exerciseForm, 
+                      machineId: e.target.value,
+                      machineName: machine?.name || ''
+                    });
+                  }}
+                  required
+                >
+                  <option value="">-- Selecciona una máquina --</option>
+                  {machines
+                    .filter(machine => 
+                      categoryFilterExerciseForm === 'Todas' || machine.category === categoryFilterExerciseForm
+                    )
+                    .map((machine) => (
+                      <option key={machine.id} value={machine.id}>
+                        {machine.number ? `#${machine.number} - ` : ''}{machine.name}
+                        {machine.category ? ` (${machine.category})` : ''}
+                      </option>
+                    ))}
+                </select>
+                {categoryFilterExerciseForm !== 'Todas' && (
+                  <small style={{ color: '#999', display: 'block', marginTop: '5px' }}>
+                    Mostrando solo máquinas de la categoría: <strong>{categoryFilterExerciseForm}</strong>
+                  </small>
+                )}
+              </div>
+
+              <div className="form-group">
+                <label>Descripción</label>
+                <textarea
+                  value={exerciseForm.description}
+                  onChange={(e) => setExerciseForm({ ...exerciseForm, description: e.target.value })}
+                  placeholder="Descripción del ejercicio, técnica, músculos trabajados..."
+                  rows={3}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    borderRadius: '8px',
+                    border: '1px solid #444',
+                    background: '#2a2a2a',
+                    color: '#e0e0e0',
+                    fontSize: '14px',
+                    fontFamily: 'inherit',
+                    resize: 'vertical'
+                  }}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Foto o Video del ejercicio</label>
+                <input
+                  type="file"
+                  accept="image/*,video/*"
+                  onChange={handleExercisePhotoChange}
+                />
+                {exerciseForm.photoPreview && (
+                  <div style={{ position: 'relative', display: 'inline-block', marginTop: '10px' }}>
+                    {exerciseForm.mediaType === 'video' ? (
+                      <video 
+                        src={exerciseForm.photoPreview} 
+                        className="photo-preview"
+                        controls
+                        onClick={() => openMediaModal(exerciseForm.photoPreview, 'video', exerciseForm.name || 'Vista previa')}
+                        style={{ cursor: 'pointer' }}
+                        title="Click para ampliar"
+                      />
+                    ) : (
+                      <img 
+                        src={exerciseForm.photoPreview} 
+                        alt="Preview" 
+                        className="photo-preview"
+                        onClick={() => openMediaModal(exerciseForm.photoPreview, 'image', exerciseForm.name || 'Vista previa')}
+                        style={{ cursor: 'pointer' }}
+                        title="Click para ampliar"
+                      />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setExerciseForm({ 
+                        ...exerciseForm, 
+                        photoFile: null, 
+                        photoPreview: '', 
+                        existingPhotoUrl: '',
+                        mediaType: 'image'
+                      })}
+                      style={{
+                        position: 'absolute',
+                        top: '5px',
+                        right: '5px',
+                        background: 'rgba(245, 87, 108, 0.9)',
+                        border: 'none',
+                        color: 'white',
+                        borderRadius: '50%',
+                        width: '30px',
+                        height: '30px',
+                        cursor: 'pointer',
+                        fontSize: '16px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <button type="submit" disabled={exerciseFormLoading} className="submit-machine-btn">
+                {exerciseFormLoading ? (editingExercise ? 'Actualizando...' : 'Creando...') : (editingExercise ? '💾 Actualizar Ejercicio' : '💾 Crear Ejercicio')}
+              </button>
+              {editingExercise && (
+                <button type="button" onClick={resetExerciseForm} className="cancel-edit-btn">
+                  ✖ Cancelar Edición
+                </button>
+              )}
+            </form>
+          )}
+
+          {/* Filtro por máquina */}
+          {allExercises.length > 0 && (
+            <div className="category-filter" style={{ marginBottom: '20px' }}>
+              <label htmlFor="machine-filter-exercises" style={{ marginRight: '10px', color: '#e0e0e0' }}>
+                🏋️ Filtrar por máquina:
+              </label>
+              <select
+                id="machine-filter-exercises"
+                value={machineFilterExercises}
+                onChange={(e) => setMachineFilterExercises(e.target.value)}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid #444',
+                  background: '#2a2a2a',
+                  color: '#e0e0e0',
+                  fontSize: '14px',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="Todas">📋 Todas las máquinas ({allExercises.length} ejercicios)</option>
+                {machines.map(machine => {
+                  const count = getExercisesByMachine(machine.id).length;
+                  if (count === 0) return null;
+                  return (
+                    <option key={machine.id} value={machine.id}>
+                      {machine.number ? `#${machine.number} - ` : ''}{machine.name} ({count} ejercicio{count !== 1 ? 's' : ''})
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+          )}
+
+          {/* Lista de ejercicios */}
+          <div className="machines-list">
+            {allExercises.length === 0 ? (
+              <div style={{ 
+                gridColumn: '1 / -1', 
+                textAlign: 'center', 
+                padding: '40px', 
+                color: '#999' 
+              }}>
+                <p>No hay ejercicios creados aún.</p>
+                <p>Crea el primer ejercicio para comenzar.</p>
+              </div>
+            ) : (
+              allExercises
+                .filter(exercise => 
+                  machineFilterExercises === 'Todas' || exercise.machineId === machineFilterExercises
+                )
+                .map((exercise) => (
+                  <div key={exercise.id} className="machine-card">
+                    <div className="machine-info">
+                      {exercise.photoUrl && (
+                        exercise.mediaType === 'video' ? (
+                          <video
+                            src={exercise.photoUrl}
+                            className="machine-photo"
+                            onClick={() => openMediaModal(exercise.photoUrl || '', 'video', exercise.name)}
+                            style={{ cursor: 'pointer' }}
+                            title="Click para ampliar"
+                          />
+                        ) : (
+                          <img 
+                            src={exercise.photoUrl} 
+                            alt={exercise.name} 
+                            className="machine-photo"
+                            onClick={() => openMediaModal(exercise.photoUrl || '', 'image', exercise.name)}
+                            style={{ cursor: 'pointer' }}
+                            title="Click para ampliar"
+                          />
+                        )
+                      )}
+                      <div className="machine-details">
+                        <span className="machine-name">{exercise.name}</span>
+                        <span className="machine-category">
+                          🏋️ {exercise.machineName}
+                        </span>
+                        {exercise.description && (
+                          <span className="machine-description">{exercise.description}</span>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="machine-actions">
+                      <button 
+                        onClick={() => startEditExercise(exercise)}
+                        className="edit-machine-btn"
+                        title="Editar ejercicio"
+                      >
+                        ✏️
+                      </button>
+                      <button 
+                        onClick={() => setExerciseToDelete(exercise)}
+                        className="delete-machine-btn"
+                        title="Eliminar ejercicio"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
+                ))
+            )}
+          </div>
+
+          {/* Modal de confirmación para eliminar ejercicio */}
+          {exerciseToDelete && (
+          <div className="modal-overlay">
+            <div className="modal-content delete-modal">
+              <h3>⚠️ Confirmar Eliminación</h3>
+              
+              {(exerciseToDelete as any).needsConfirmation && (
+                <div className="delete-warning">
+                  <div className="warning-content">
+                    <p><strong>Este ejercicio está siendo usado en {(exerciseToDelete as any).affectedTables} tabla(s) de usuarios.</strong></p>
+                    <p>Si procedes con la eliminación:</p>
+                    <ul>
+                      <li>El ejercicio <strong>"{exerciseToDelete.name}"</strong> será eliminado permanentemente</li>
+                      <li>Será removido de todas las tablas de usuarios</li>
+                      <li>Los usuarios afectados perderán este ejercicio de sus rutinas actuales</li>
+                    </ul>
+                    <p>¿Estás seguro de que quieres continuar?</p>
+                  </div>
+                </div>
+              )}
+              
+              {!(exerciseToDelete as any).needsConfirmation && (
+                <>
+                  <p>¿Estás seguro de que quieres eliminar el ejercicio <strong>"{exerciseToDelete.name}"</strong>?</p>
+                  <p className="warning-text">Esta acción no se puede deshacer.</p>
+                </>
+              )}
+              
+              <div className="modal-actions">
+                <button 
+                  onClick={() => setExerciseToDelete(null)}
+                  className="cancel-btn"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={() => deleteExercise(exerciseToDelete, true)}
+                  className="confirm-delete-btn"
+                >
+                  {(exerciseToDelete as any).needsConfirmation ? '⚠️ Confirmar Eliminación' : '🗑️ Eliminar'}
+                </button>
+              </div>
+            </div>
+          </div>
+          )}
+        </div>
+        )}
+
         {/* Sección de asignación de tablas (mostrar solo si activeTab === 'tablas') */}
         {activeTab === 'tablas' && (
         <>
@@ -1702,15 +2316,20 @@ const AdminPanel: React.FC = () => {
                         <tr key={index}>
                           <td className="col-machine">
                             <div className="machine-cell">
-                              {exercise.machinePhotoUrl && (
+                              {(exercise.exercisePhotoUrl || exercise.machinePhotoUrl) && (
                                 <img 
-                                  src={exercise.machinePhotoUrl} 
-                                  alt={exercise.machineName} 
+                                  src={exercise.exercisePhotoUrl || exercise.machinePhotoUrl} 
+                                  alt={exercise.exerciseName || exercise.machineName} 
                                   className="machine-thumb"
                                 />
                               )}
                               <div className="machine-info">
                                 <strong>{exercise.machineName}</strong>
+                                {exercise.exerciseName && (
+                                  <div style={{ color: '#667eea', fontSize: '13px', marginTop: '2px' }}>
+                                    💪 {exercise.exerciseName}
+                                  </div>
+                                )}
                                 {exercise.notes && <div className="exercise-note">"{exercise.notes}"</div>}
                               </div>
                             </div>
@@ -1742,7 +2361,18 @@ const AdminPanel: React.FC = () => {
                   <label>Máquina</label>
                   <select
                     value={newExercise.machineId}
-                    onChange={(e) => setNewExercise({ ...newExercise, machineId: e.target.value })}
+                    onChange={(e) => {
+                      const machine = machines.find(m => m.id === e.target.value);
+                      setNewExercise({ 
+                        ...newExercise, 
+                        machineId: e.target.value,
+                        machineName: machine?.name || '',
+                        machinePhotoUrl: machine?.photoUrl || '',
+                        exerciseId: '',
+                        exerciseName: '',
+                        exercisePhotoUrl: ''
+                      });
+                    }}
                   >
                     <option value="">-- Selecciona una máquina --</option>
                     {machines
@@ -1754,6 +2384,37 @@ const AdminPanel: React.FC = () => {
                       ))}
                   </select>
                 </div>
+
+                {newExercise.machineId && (
+                  <div className="form-group">
+                    <label>Ejercicio (opcional)</label>
+                    <select
+                      value={newExercise.exerciseId || ''}
+                      onChange={(e) => {
+                        const exercise = allExercises.find(ex => ex.id === e.target.value);
+                        setNewExercise({ 
+                          ...newExercise, 
+                          exerciseId: e.target.value,
+                          exerciseName: exercise?.name || '',
+                          exercisePhotoUrl: exercise?.photoUrl || ''
+                        });
+                      }}
+                    >
+                      <option value="">-- Ejercicio general de la máquina --</option>
+                      {getExercisesByMachine(newExercise.machineId).map((exercise) => (
+                        <option key={exercise.id} value={exercise.id}>
+                          {exercise.name}
+                        </option>
+                      ))}
+                    </select>
+                    {getExercisesByMachine(newExercise.machineId).length === 0 && (
+                      <small style={{ color: '#999', display: 'block', marginTop: '5px' }}>
+                        💡 No hay ejercicios específicos para esta máquina. 
+                        Puedes crearlos en la sección "Gestión de Ejercicios".
+                      </small>
+                    )}
+                  </div>
+                )}
 
                 <div className="metrics-row">
                   <div className="form-group">
