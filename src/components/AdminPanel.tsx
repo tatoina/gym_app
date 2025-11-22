@@ -1892,6 +1892,31 @@ const AdminPanel: React.FC = () => {
         </div>
         )}
 
+        {/* Divisor entre secciones */}
+        {activeTab === 'ejercicios' && (
+          <div style={{
+            height: '2px',
+            background: 'linear-gradient(90deg, transparent 0%, rgba(102, 126, 234, 0.5) 50%, transparent 100%)',
+            margin: '40px 0',
+            position: 'relative'
+          }}>
+            <div style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              background: '#1a1a1a',
+              padding: '0 20px',
+              color: '#667eea',
+              fontSize: '12px',
+              fontWeight: 'bold',
+              letterSpacing: '2px'
+            }}>
+              EJERCICIOS
+            </div>
+          </div>
+        )}
+
         {/* Sección de Gestión de Ejercicios */}
         {activeTab === 'ejercicios' && (
         <div className="machines-section">
@@ -2230,6 +2255,31 @@ const AdminPanel: React.FC = () => {
           </div>
           )}
         </div>
+        )}
+
+        {/* Divisor entre secciones */}
+        {activeTab === 'tablas' && (
+          <div style={{
+            height: '2px',
+            background: 'linear-gradient(90deg, transparent 0%, rgba(102, 126, 234, 0.5) 50%, transparent 100%)',
+            margin: '40px 0',
+            position: 'relative'
+          }}>
+            <div style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              background: '#1a1a1a',
+              padding: '0 20px',
+              color: '#667eea',
+              fontSize: '12px',
+              fontWeight: 'bold',
+              letterSpacing: '2px'
+            }}>
+              TABLAS DE ENTRENAMIENTO
+            </div>
+          </div>
         )}
 
         {/* Sección de asignación de tablas (mostrar solo si activeTab === 'tablas') */}
