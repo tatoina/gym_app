@@ -128,20 +128,12 @@
 /* Navegación por pestañas */
 .admin-navigation {
   display: flex;
-  flex-direction: row;
-  gap: 0;
+  flex-direction: column;
+  gap: 15px;
   margin-bottom: 30px;
-  align-items: stretch;
-}
-
-.admin-navigation > div {
-  width: 2px;
-  background: rgba(255, 255, 255, 0.3);
-  margin: 10px 0;
 }
 
 .nav-tab {
-  flex: 1;
   background: linear-gradient(145deg, rgba(30, 30, 30, 0.8) 0%, rgba(20, 20, 20, 0.9) 100%);
   border: 2px solid rgba(255, 255, 255, 0.1);
   color: rgba(255, 255, 255, 0.7);
@@ -151,14 +143,26 @@
   border-radius: 12px;
   transition: all 0.3s ease;
   font-size: 16px;
-  text-align: center;
+  text-align: left;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  position: relative;
+}
+
+.nav-tab:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .nav-tab:hover {
   border-color: rgba(102, 126, 234, 0.5);
   color: rgba(255, 255, 255, 0.9);
-  transform: translateY(-2px);
+  transform: translateX(-5px);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 

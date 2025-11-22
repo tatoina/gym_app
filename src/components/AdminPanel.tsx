@@ -1231,14 +1231,12 @@ const AdminPanel: React.FC = () => {
         >
           {activeTab === 'maquinas' ? '✖ Cerrar' : '🏋️'} Gestión de Máquinas
         </button>
-        <div></div>
         <button 
           className={`nav-tab ${activeTab === 'ejercicios' ? 'active' : ''}`}
           onClick={() => setActiveTab(activeTab === 'ejercicios' ? null : 'ejercicios')}
         >
           {activeTab === 'ejercicios' ? '✖ Cerrar' : '💪'} Gestión de Ejercicios
         </button>
-        <div></div>
         <button 
           className={`nav-tab ${activeTab === 'tablas' ? 'active' : ''}`}
           onClick={() => setActiveTab(activeTab === 'tablas' ? null : 'tablas')}
