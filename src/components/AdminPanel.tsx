@@ -1892,8 +1892,10 @@ const AdminPanel: React.FC = () => {
         </div>
         )}
 
-        {/* Divisor entre secciones */}
+        {/* Sección de Gestión de Ejercicios */}
         {activeTab === 'ejercicios' && (
+        <>
+          {/* Divisor entre secciones */}
           <div style={{
             height: '2px',
             background: 'linear-gradient(90deg, transparent 0%, rgba(102, 126, 234, 0.5) 50%, transparent 100%)',
@@ -1915,11 +1917,8 @@ const AdminPanel: React.FC = () => {
               EJERCICIOS
             </div>
           </div>
-        )}
-
-        {/* Sección de Gestión de Ejercicios */}
-        {activeTab === 'ejercicios' && (
-        <div className="machines-section">
+          
+          <div className="machines-section">
           <div className="machines-header">
             <h2>💪 Gestión de Ejercicios</h2>
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
@@ -2255,10 +2254,13 @@ const AdminPanel: React.FC = () => {
           </div>
           )}
         </div>
+        </>
         )}
 
-        {/* Divisor entre secciones */}
+        {/* Sección de asignación de tablas (mostrar solo si activeTab === 'tablas') */}
         {activeTab === 'tablas' && (
+        <>
+          {/* Divisor entre secciones */}
           <div style={{
             height: '2px',
             background: 'linear-gradient(90deg, transparent 0%, rgba(102, 126, 234, 0.5) 50%, transparent 100%)',
@@ -2280,11 +2282,7 @@ const AdminPanel: React.FC = () => {
               TABLAS DE ENTRENAMIENTO
             </div>
           </div>
-        )}
 
-        {/* Sección de asignación de tablas (mostrar solo si activeTab === 'tablas') */}
-        {activeTab === 'tablas' && (
-        <>
           <div className="user-selector-section">
             <h3>Seleccionar Usuario</h3>
             <select
