@@ -1317,6 +1317,30 @@ const AdminPanel: React.FC = () => {
       <div className="admin-content">
         {/* Sección de Máquinas Globales (mostrar solo si activeTab === 'maquinas') */}
         {activeTab === 'maquinas' && (
+        <>
+          {/* Divisor entre secciones */}
+          <div style={{
+            height: '3px',
+            background: 'linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.3) 50%, transparent 100%)',
+            margin: '40px 0',
+            position: 'relative'
+          }}>
+            <div style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              background: '#1a1a1a',
+              padding: '0 20px',
+              color: 'white',
+              fontSize: '14px',
+              fontWeight: 'bold',
+              letterSpacing: '3px'
+            }}>
+              • MÁQUINAS •
+            </div>
+          </div>
+
           <div className="global-machines-section" style={{ marginBottom: '40px' }}>
             <div className="section-header">
               <h3>🏋️ Máquinas del Gimnasio ({machines.length})</h3>
@@ -1890,6 +1914,7 @@ const AdminPanel: React.FC = () => {
           </div>
           )}
         </div>
+        </>
         )}
 
         {/* Sección de Gestión de Ejercicios */}
