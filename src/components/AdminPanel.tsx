@@ -132,7 +132,7 @@ const AdminPanel: React.FC = () => {
   const [editingCategory, setEditingCategory] = useState<{id: string, name: string} | null>(null);
   const [editCategoryName, setEditCategoryName] = useState('');
   const [currentTableDate, setCurrentTableDate] = useState<Date | null>(null);
-  const [activeTab, setActiveTab] = useState<'maquinas' | 'tablas' | 'ejercicios' | 'usuarios' | null>(null);
+  const [activeTab, setActiveTab] = useState<'maquinas' | 'tablas' | 'ejercicios' | 'usuarios' | 'reproductor' | null>(null);
   
   // Estados para gestión de usuarios
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -149,6 +149,14 @@ const AdminPanel: React.FC = () => {
   const [showCreateUserModal, setShowCreateUserModal] = useState(false);
   const [creatingUser, setCreatingUser] = useState(false);
   const [userSearchQuery, setUserSearchQuery] = useState('');
+  
+  // Estados para reproductor de entrenamientos
+  const [playlist, setPlaylist] = useState<Exercise[]>([]);
+  const [currentExerciseIndex, setCurrentExerciseIndex] = useState<number | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [exerciseSearchQuery, setExerciseSearchQuery] = useState('');
+  const [showCastModal, setShowCastModal] = useState(false);
+  const [draggedExercise, setDraggedExercise] = useState<Exercise | null>(null);
   
   // Estados para gestión de ejercicios
   const [showExerciseForm, setShowExerciseForm] = useState(false);
@@ -1267,6 +1275,12 @@ const AdminPanel: React.FC = () => {
             onClick={() => setActiveTab('tablas')}
           >
             📋 Gestión de Tablas
+          </button>
+          <button 
+            className="nav-tab"
+            onClick={() => setActiveTab('reproductor')}
+          >
+            🎬 Reproductor de Entrenamientos
           </button>
         </div>
       )}
@@ -3383,6 +3397,594 @@ const AdminPanel: React.FC = () => {
               <p style={{ margin: 0, fontSize: '13px', color: '#ffc107' }}>
                 ⚠️ <strong>IMPORTANTE:</strong> Después de guardar, deberás ejecutar comandos en la terminal para actualizar los secrets de Firebase. Se te mostrarán las instrucciones.
               </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sección de Reproductor de Entrenamientos */}
+      {activeTab === 'reproductor' && (
+        <div className="reproductor-section">
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '30px'
+          }}>
+            <h2 style={{ margin: 0, color: '#e0e0e0', display: 'flex', alignItems: 'center', gap: '12px' }}>
+              🎬 Reproductor de Entrenamientos
+            </h2>
+            <button
+              onClick={() => setShowCastModal(true)}
+              style={{
+                padding: '12px 20px',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                border: 'none',
+                borderRadius: '10px',
+                color: 'white',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'all 0.3s ease',
+                boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.05)';
+                e.currentTarget.style.boxShadow = '0 6px 16px rgba(102, 126, 234, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.3)';
+              }}
+            >
+              📺 Enviar a TV/Proyector
+            </button>
+          </div>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '20px',
+            height: 'calc(100vh - 300px)'
+          }}>
+            {/* Panel Izquierdo - Lista de Reproducción */}
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              borderRadius: '12px',
+              padding: '20px',
+              border: '2px solid rgba(255, 255, 255, 0.1)',
+              display: 'flex',
+              flexDirection: 'column'
+            }}>
+              <h3 style={{ margin: '0 0 15px 0', color: '#51cf66', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                📋 Lista de Reproducción ({playlist.length})
+              </h3>
+              
+              {/* Área de drop */}
+              <div
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.currentTarget.style.background = 'rgba(81, 207, 102, 0.2)';
+                }}
+                onDragLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)';
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)';
+                  if (draggedExercise) {
+                    setPlaylist([...playlist, draggedExercise]);
+                    setDraggedExercise(null);
+                  }
+                }}
+                style={{
+                  flex: 1,
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  borderRadius: '8px',
+                  border: '2px dashed rgba(255, 255, 255, 0.2)',
+                  padding: '15px',
+                  overflowY: 'auto',
+                  transition: 'all 0.3s ease',
+                  minHeight: '300px'
+                }}
+              >
+                {playlist.length === 0 ? (
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    height: '100%',
+                    color: '#999',
+                    textAlign: 'center'
+                  }}>
+                    <div style={{ fontSize: '48px', marginBottom: '15px' }}>🎯</div>
+                    <p style={{ margin: 0, fontSize: '16px' }}>
+                      Arrastra ejercicios aquí para crear tu lista de reproducción
+                    </p>
+                  </div>
+                ) : (
+                  playlist.map((exercise, index) => (
+                    <div
+                      key={`${exercise.id}-${index}`}
+                      style={{
+                        background: currentExerciseIndex === index 
+                          ? 'linear-gradient(135deg, rgba(102, 126, 234, 0.3) 0%, rgba(118, 75, 162, 0.3) 100%)'
+                          : 'rgba(255, 255, 255, 0.05)',
+                        padding: '12px',
+                        borderRadius: '8px',
+                        marginBottom: '10px',
+                        border: currentExerciseIndex === index 
+                          ? '2px solid #667eea' 
+                          : '1px solid rgba(255, 255, 255, 0.1)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onClick={() => {
+                        setCurrentExerciseIndex(index);
+                        setIsPlaying(false);
+                      }}
+                    >
+                      <div style={{
+                        background: 'rgba(255, 255, 255, 0.1)',
+                        borderRadius: '6px',
+                        padding: '8px 12px',
+                        fontWeight: 'bold',
+                        color: '#667eea',
+                        minWidth: '40px',
+                        textAlign: 'center'
+                      }}>
+                        {index + 1}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ color: '#e0e0e0', fontWeight: 'bold', fontSize: '14px' }}>
+                          {exercise.name}
+                        </div>
+                        <div style={{ color: '#999', fontSize: '12px' }}>
+                          {exercise.machineName}
+                        </div>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPlaylist(playlist.filter((_, i) => i !== index));
+                          if (currentExerciseIndex === index) {
+                            setCurrentExerciseIndex(null);
+                          } else if (currentExerciseIndex !== null && currentExerciseIndex > index) {
+                            setCurrentExerciseIndex(currentExerciseIndex - 1);
+                          }
+                        }}
+                        style={{
+                          background: 'rgba(245, 87, 108, 0.2)',
+                          border: 'none',
+                          borderRadius: '6px',
+                          color: '#f5576c',
+                          padding: '6px 10px',
+                          cursor: 'pointer',
+                          fontSize: '14px',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = 'rgba(245, 87, 108, 0.3)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'rgba(245, 87, 108, 0.2)';
+                        }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Controles de reproducción */}
+              <div style={{
+                marginTop: '15px',
+                padding: '15px',
+                background: 'rgba(255, 255, 255, 0.05)',
+                borderRadius: '8px',
+                border: '1px solid rgba(255, 255, 255, 0.1)'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: '15px'
+                }}>
+                  <button
+                    onClick={() => {
+                      if (currentExerciseIndex !== null && currentExerciseIndex > 0) {
+                        setCurrentExerciseIndex(currentExerciseIndex - 1);
+                        setIsPlaying(false);
+                      }
+                    }}
+                    disabled={currentExerciseIndex === null || currentExerciseIndex === 0}
+                    style={{
+                      background: currentExerciseIndex !== null && currentExerciseIndex > 0 
+                        ? 'rgba(255, 255, 255, 0.1)' 
+                        : 'rgba(255, 255, 255, 0.03)',
+                      border: 'none',
+                      borderRadius: '50%',
+                      width: '50px',
+                      height: '50px',
+                      color: currentExerciseIndex !== null && currentExerciseIndex > 0 
+                        ? '#e0e0e0' 
+                        : '#555',
+                      fontSize: '20px',
+                      cursor: currentExerciseIndex !== null && currentExerciseIndex > 0 
+                        ? 'pointer' 
+                        : 'not-allowed',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (currentExerciseIndex !== null && currentExerciseIndex > 0) {
+                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+                        e.currentTarget.style.transform = 'scale(1.1)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = currentExerciseIndex !== null && currentExerciseIndex > 0 
+                        ? 'rgba(255, 255, 255, 0.1)' 
+                        : 'rgba(255, 255, 255, 0.03)';
+                      e.currentTarget.style.transform = 'scale(1)';
+                    }}
+                  >
+                    ⏮
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (playlist.length > 0) {
+                        if (currentExerciseIndex === null) {
+                          setCurrentExerciseIndex(0);
+                        }
+                        setIsPlaying(!isPlaying);
+                      }
+                    }}
+                    disabled={playlist.length === 0}
+                    style={{
+                      background: playlist.length > 0 
+                        ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' 
+                        : 'rgba(255, 255, 255, 0.03)',
+                      border: 'none',
+                      borderRadius: '50%',
+                      width: '70px',
+                      height: '70px',
+                      color: 'white',
+                      fontSize: '28px',
+                      cursor: playlist.length > 0 ? 'pointer' : 'not-allowed',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'all 0.2s ease',
+                      boxShadow: playlist.length > 0 ? '0 4px 12px rgba(102, 126, 234, 0.4)' : 'none'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (playlist.length > 0) {
+                        e.currentTarget.style.transform = 'scale(1.1)';
+                        e.currentTarget.style.boxShadow = '0 6px 16px rgba(102, 126, 234, 0.5)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'scale(1)';
+                      e.currentTarget.style.boxShadow = playlist.length > 0 
+                        ? '0 4px 12px rgba(102, 126, 234, 0.4)' 
+                        : 'none';
+                    }}
+                  >
+                    {isPlaying ? '⏸' : '▶'}
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (currentExerciseIndex !== null && currentExerciseIndex < playlist.length - 1) {
+                        setCurrentExerciseIndex(currentExerciseIndex + 1);
+                        setIsPlaying(false);
+                      }
+                    }}
+                    disabled={currentExerciseIndex === null || currentExerciseIndex === playlist.length - 1}
+                    style={{
+                      background: currentExerciseIndex !== null && currentExerciseIndex < playlist.length - 1 
+                        ? 'rgba(255, 255, 255, 0.1)' 
+                        : 'rgba(255, 255, 255, 0.03)',
+                      border: 'none',
+                      borderRadius: '50%',
+                      width: '50px',
+                      height: '50px',
+                      color: currentExerciseIndex !== null && currentExerciseIndex < playlist.length - 1 
+                        ? '#e0e0e0' 
+                        : '#555',
+                      fontSize: '20px',
+                      cursor: currentExerciseIndex !== null && currentExerciseIndex < playlist.length - 1 
+                        ? 'pointer' 
+                        : 'not-allowed',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (currentExerciseIndex !== null && currentExerciseIndex < playlist.length - 1) {
+                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+                        e.currentTarget.style.transform = 'scale(1.1)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = currentExerciseIndex !== null && currentExerciseIndex < playlist.length - 1 
+                        ? 'rgba(255, 255, 255, 0.1)' 
+                        : 'rgba(255, 255, 255, 0.03)';
+                      e.currentTarget.style.transform = 'scale(1)';
+                    }}
+                  >
+                    ⏭
+                  </button>
+                </div>
+
+                {currentExerciseIndex !== null && playlist[currentExerciseIndex] && (
+                  <div style={{
+                    marginTop: '15px',
+                    textAlign: 'center',
+                    color: '#e0e0e0',
+                    fontSize: '14px'
+                  }}>
+                    <div style={{ fontWeight: 'bold' }}>
+                      {playlist[currentExerciseIndex].name}
+                    </div>
+                    <div style={{ color: '#999', fontSize: '12px', marginTop: '5px' }}>
+                      {currentExerciseIndex + 1} de {playlist.length}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {playlist.length > 0 && (
+                <button
+                  onClick={() => {
+                    setPlaylist([]);
+                    setCurrentExerciseIndex(null);
+                    setIsPlaying(false);
+                  }}
+                  style={{
+                    marginTop: '10px',
+                    padding: '10px',
+                    background: 'rgba(245, 87, 108, 0.2)',
+                    border: '1px solid rgba(245, 87, 108, 0.3)',
+                    borderRadius: '8px',
+                    color: '#f5576c',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(245, 87, 108, 0.3)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(245, 87, 108, 0.2)';
+                  }}
+                >
+                  🗑️ Limpiar Lista
+                </button>
+              )}
+            </div>
+
+            {/* Panel Derecho - Base de Datos de Ejercicios */}
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              borderRadius: '12px',
+              padding: '20px',
+              border: '2px solid rgba(255, 255, 255, 0.1)',
+              display: 'flex',
+              flexDirection: 'column'
+            }}>
+              <h3 style={{ margin: '0 0 15px 0', color: '#667eea', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                💪 Base de Datos de Ejercicios
+              </h3>
+
+              {/* Buscador */}
+              <input
+                type="text"
+                placeholder="🔍 Buscar ejercicio..."
+                value={exerciseSearchQuery}
+                onChange={(e) => setExerciseSearchQuery(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '12px 15px',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: '8px',
+                  color: '#e0e0e0',
+                  fontSize: '14px',
+                  marginBottom: '15px',
+                  boxSizing: 'border-box'
+                }}
+              />
+
+              {/* Lista de ejercicios */}
+              <div style={{
+                flex: 1,
+                overflowY: 'auto',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+                gap: '15px',
+                alignContent: 'start'
+              }}>
+                {allExercises
+                  .filter(ex => 
+                    ex.name.toLowerCase().includes(exerciseSearchQuery.toLowerCase()) ||
+                    ex.machineName.toLowerCase().includes(exerciseSearchQuery.toLowerCase())
+                  )
+                  .map((exercise) => (
+                    <div
+                      key={exercise.id}
+                      draggable
+                      onDragStart={(e) => {
+                        setDraggedExercise(exercise);
+                        e.currentTarget.style.opacity = '0.5';
+                      }}
+                      onDragEnd={(e) => {
+                        e.currentTarget.style.opacity = '1';
+                      }}
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        borderRadius: '10px',
+                        overflow: 'hidden',
+                        cursor: 'grab',
+                        border: '2px solid rgba(255, 255, 255, 0.1)',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'scale(1.05)';
+                        e.currentTarget.style.borderColor = '#667eea';
+                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.3)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'scale(1)';
+                        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
+                    >
+                      <div style={{
+                        width: '100%',
+                        height: '120px',
+                        background: 'rgba(0, 0, 0, 0.3)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        overflow: 'hidden'
+                      }}>
+                        {exercise.photoUrl ? (
+                          exercise.mediaType === 'video' ? (
+                            <video 
+                              src={exercise.photoUrl} 
+                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                              muted
+                            />
+                          ) : (
+                            <img 
+                              src={exercise.photoUrl} 
+                              alt={exercise.name}
+                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            />
+                          )
+                        ) : (
+                          <span style={{ fontSize: '40px' }}>💪</span>
+                        )}
+                      </div>
+                      <div style={{ padding: '10px' }}>
+                        <div style={{
+                          color: '#e0e0e0',
+                          fontWeight: 'bold',
+                          fontSize: '13px',
+                          marginBottom: '4px',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis'
+                        }}>
+                          {exercise.name}
+                        </div>
+                        <div style={{
+                          color: '#999',
+                          fontSize: '11px',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis'
+                        }}>
+                          {exercise.machineName}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Cast a TV/Proyector */}
+      {showCastModal && (
+        <div className="modal-overlay" onClick={() => setShowCastModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ margin: '0 0 20px 0', color: '#667eea', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              📺 Enviar a TV/Proyector
+            </h3>
+            
+            <div style={{
+              background: 'rgba(102, 126, 234, 0.1)',
+              padding: '20px',
+              borderRadius: '8px',
+              border: '1px solid rgba(102, 126, 234, 0.3)',
+              marginBottom: '20px'
+            }}>
+              <p style={{ color: '#667eea', margin: '0 0 15px 0', fontSize: '14px', lineHeight: '1.6' }}>
+                📡 <strong>Función de Cast WiFi</strong>
+              </p>
+              <p style={{ color: '#999', margin: 0, fontSize: '13px', lineHeight: '1.6' }}>
+                Esta función te permitirá enviar la reproducción de entrenamientos a una TV o proyector compatible con WiFi Display (Miracast, Chromecast, AirPlay, etc.).
+              </p>
+            </div>
+
+            <div style={{
+              background: 'rgba(255, 193, 7, 0.1)',
+              padding: '15px',
+              borderRadius: '8px',
+              border: '1px solid rgba(255, 193, 7, 0.3)',
+              marginBottom: '20px'
+            }}>
+              <p style={{ color: '#ffc107', margin: 0, fontSize: '13px', lineHeight: '1.6' }}>
+                ⚠️ <strong>En desarrollo:</strong> La función de Cast WiFi requiere integración con Web Presentation API o APIs específicas de dispositivos (Chromecast SDK, AirPlay API). Por ahora, puedes usar el modo pantalla completa del navegador y compartir la pantalla manualmente.
+              </p>
+            </div>
+
+            <div className="modal-actions">
+              <button
+                onClick={() => {
+                  // Intentar entrar en modo pantalla completa
+                  if (document.documentElement.requestFullscreen) {
+                    document.documentElement.requestFullscreen();
+                  }
+                  setShowCastModal(false);
+                }}
+                style={{
+                  padding: '12px 24px',
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: 'white',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                🖥️ Pantalla Completa
+              </button>
+              <button
+                onClick={() => setShowCastModal(false)}
+                style={{
+                  padding: '12px 24px',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: '8px',
+                  color: '#e0e0e0',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                Cerrar
+              </button>
             </div>
           </div>
         </div>
