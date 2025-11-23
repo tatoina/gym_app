@@ -157,6 +157,7 @@ const AdminPanel: React.FC = () => {
   const [exerciseSearchQuery, setExerciseSearchQuery] = useState('');
   const [showCastModal, setShowCastModal] = useState(false);
   const [draggedExercise, setDraggedExercise] = useState<Exercise | null>(null);
+  const [draggedPlaylistIndex, setDraggedPlaylistIndex] = useState<number | null>(null);
   
   // Estados para gestión de ejercicios
   const [showExerciseForm, setShowExerciseForm] = useState(false);
@@ -3570,6 +3571,46 @@ const AdminPanel: React.FC = () => {
                   playlist.map((exercise, index) => (
                     <div
                       key={`${exercise.id}-${index}`}
+                      draggable
+                      onDragStart={(e) => {
+                        setDraggedPlaylistIndex(index);
+                        e.currentTarget.style.opacity = '0.5';
+                      }}
+                      onDragEnd={(e) => {
+                        e.currentTarget.style.opacity = '1';
+                        setDraggedPlaylistIndex(null);
+                      }}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.currentTarget.style.borderTop = '3px solid #667eea';
+                      }}
+                      onDragLeave={(e) => {
+                        e.currentTarget.style.borderTop = '';
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        e.currentTarget.style.borderTop = '';
+                        
+                        if (draggedPlaylistIndex !== null && draggedPlaylistIndex !== index) {
+                          const newPlaylist = [...playlist];
+                          const draggedItem = newPlaylist[draggedPlaylistIndex];
+                          newPlaylist.splice(draggedPlaylistIndex, 1);
+                          newPlaylist.splice(index, 0, draggedItem);
+                          
+                          // Actualizar el índice actual si es necesario
+                          if (currentExerciseIndex === draggedPlaylistIndex) {
+                            setCurrentExerciseIndex(index);
+                          } else if (currentExerciseIndex !== null) {
+                            if (draggedPlaylistIndex < currentExerciseIndex && index >= currentExerciseIndex) {
+                              setCurrentExerciseIndex(currentExerciseIndex - 1);
+                            } else if (draggedPlaylistIndex > currentExerciseIndex && index <= currentExerciseIndex) {
+                              setCurrentExerciseIndex(currentExerciseIndex + 1);
+                            }
+                          }
+                          
+                          setPlaylist(newPlaylist);
+                        }
+                      }}
                       style={{
                         background: currentExerciseIndex === index 
                           ? 'linear-gradient(135deg, rgba(102, 126, 234, 0.3) 0%, rgba(118, 75, 162, 0.3) 100%)'
@@ -3583,7 +3624,7 @@ const AdminPanel: React.FC = () => {
                         display: 'flex',
                         alignItems: 'center',
                         gap: '12px',
-                        cursor: 'pointer',
+                        cursor: 'move',
                         transition: 'all 0.2s ease'
                       }}
                       onClick={() => {
@@ -3591,6 +3632,14 @@ const AdminPanel: React.FC = () => {
                         setIsPlaying(false);
                       }}
                     >
+                      <div style={{
+                        color: '#999',
+                        fontSize: '18px',
+                        cursor: 'grab',
+                        padding: '0 5px'
+                      }}>
+                        ☰
+                      </div>
                       <div style={{
                         background: 'rgba(255, 255, 255, 0.1)',
                         borderRadius: '6px',
