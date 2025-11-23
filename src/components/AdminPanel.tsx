@@ -131,7 +131,19 @@ const AdminPanel: React.FC = () => {
   const [editingCategory, setEditingCategory] = useState<{id: string, name: string} | null>(null);
   const [editCategoryName, setEditCategoryName] = useState('');
   const [currentTableDate, setCurrentTableDate] = useState<Date | null>(null);
-  const [activeTab, setActiveTab] = useState<'maquinas' | 'tablas' | 'ejercicios' | null>(null);
+  const [activeTab, setActiveTab] = useState<'maquinas' | 'tablas' | 'ejercicios' | 'usuarios' | null>(null);
+  
+  // Estados para gestión de usuarios
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [userForm, setUserForm] = useState({
+    firstName: '',
+    lastName: '',
+    email: ''
+  });
+  const [savingUser, setSavingUser] = useState(false);
+  const [resetPasswordUserId, setResetPasswordUserId] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [resettingPassword, setResettingPassword] = useState(false);
   
   // Estados para gestión de ejercicios
   const [showExerciseForm, setShowExerciseForm] = useState(false);
@@ -1229,6 +1241,12 @@ const AdminPanel: React.FC = () => {
         <div className="admin-navigation">
           <button 
             className="nav-tab"
+            onClick={() => setActiveTab('usuarios')}
+          >
+            👥 Gestión de Usuarios
+          </button>
+          <button 
+            className="nav-tab"
             onClick={() => setActiveTab('maquinas')}
           >
             🏋️ Gestión de Máquinas
@@ -1365,6 +1383,343 @@ const AdminPanel: React.FC = () => {
       )}
 
       <div className="admin-content">
+        {/* Sección de Gestión de Usuarios */}
+        {activeTab === 'usuarios' && (
+        <>
+          {/* Título de la página */}
+          <div style={{ 
+            marginBottom: '30px',
+            padding: '20px',
+            background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)',
+            borderRadius: '15px',
+            border: '2px solid rgba(102, 126, 234, 0.3)'
+          }}>
+            <h2 style={{ 
+              margin: '0',
+              color: '#667eea',
+              fontSize: '28px',
+              fontWeight: 'bold',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px'
+            }}>
+              👥 Gestión de Usuarios
+            </h2>
+            <p style={{ 
+              margin: '8px 0 0 0',
+              color: '#b0b0b0',
+              fontSize: '14px'
+            }}>
+              Administra los perfiles de los usuarios, edita su información y gestiona sus contraseñas
+            </p>
+          </div>
+
+          {/* Lista de usuarios */}
+          <div className="users-list" style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+            gap: '20px',
+            marginBottom: '40px'
+          }}>
+            {users.map((user) => (
+              <div key={user.id} style={{
+                background: 'linear-gradient(145deg, #2d2d2d 0%, #1f1f1f 100%)',
+                border: '2px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '12px',
+                padding: '20px',
+                transition: 'all 0.3s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'rgba(102, 126, 234, 0.5)';
+                e.currentTarget.style.transform = 'translateY(-5px)';
+                e.currentTarget.style.boxShadow = '0 8px 20px rgba(102, 126, 234, 0.3)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = 'none';
+              }}>
+                <div style={{ marginBottom: '15px' }}>
+                  <div style={{
+                    width: '60px',
+                    height: '60px',
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '28px',
+                    fontWeight: 'bold',
+                    color: 'white',
+                    marginBottom: '10px'
+                  }}>
+                    {user.firstName.charAt(0).toUpperCase()}
+                  </div>
+                  <h3 style={{ margin: '0 0 5px 0', color: '#e0e0e0', fontSize: '20px' }}>
+                    {user.firstName} {user.lastName}
+                  </h3>
+                  <p style={{ margin: '0', color: '#999', fontSize: '14px' }}>
+                    📧 {user.email}
+                  </p>
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px', flexDirection: 'column' }}>
+                  <button
+                    onClick={() => {
+                      setEditingUser(user);
+                      setUserForm({
+                        firstName: user.firstName,
+                        lastName: user.lastName,
+                        email: user.email
+                      });
+                    }}
+                    style={{
+                      padding: '10px 15px',
+                      background: 'rgba(33, 150, 243, 0.2)',
+                      border: '1px solid rgba(33, 150, 243, 0.3)',
+                      borderRadius: '8px',
+                      color: '#2196F3',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(33, 150, 243, 0.3)';
+                      e.currentTarget.style.transform = 'scale(1.05)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(33, 150, 243, 0.2)';
+                      e.currentTarget.style.transform = 'scale(1)';
+                    }}
+                  >
+                    ✏️ Editar Información
+                  </button>
+                  <button
+                    onClick={() => setResetPasswordUserId(user.id)}
+                    style={{
+                      padding: '10px 15px',
+                      background: 'rgba(255, 152, 0, 0.2)',
+                      border: '1px solid rgba(255, 152, 0, 0.3)',
+                      borderRadius: '8px',
+                      color: '#ff9800',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(255, 152, 0, 0.3)';
+                      e.currentTarget.style.transform = 'scale(1.05)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(255, 152, 0, 0.2)';
+                      e.currentTarget.style.transform = 'scale(1)';
+                    }}
+                  >
+                    🔑 Restablecer Contraseña
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Modal de editar usuario */}
+          {editingUser && (
+            <div className="modal-overlay" onClick={() => setEditingUser(null)}>
+              <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                <h3 style={{ margin: '0 0 20px 0', color: '#667eea' }}>
+                  ✏️ Editar Usuario
+                </h3>
+                
+                <div className="form-group">
+                  <label>Nombre</label>
+                  <input
+                    type="text"
+                    value={userForm.firstName}
+                    onChange={(e) => setUserForm({ ...userForm, firstName: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      background: '#2d2d2d',
+                      border: '1px solid #3d3d3d',
+                      borderRadius: '6px',
+                      color: '#e0e0e0',
+                      fontSize: '14px',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Apellidos</label>
+                  <input
+                    type="text"
+                    value={userForm.lastName}
+                    onChange={(e) => setUserForm({ ...userForm, lastName: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      background: '#2d2d2d',
+                      border: '1px solid #3d3d3d',
+                      borderRadius: '6px',
+                      color: '#e0e0e0',
+                      fontSize: '14px',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Email</label>
+                  <input
+                    type="email"
+                    value={userForm.email}
+                    onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      background: '#2d2d2d',
+                      border: '1px solid #3d3d3d',
+                      borderRadius: '6px',
+                      color: '#e0e0e0',
+                      fontSize: '14px',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+
+                <div className="modal-actions">
+                  <button
+                    onClick={async () => {
+                      if (!userForm.firstName.trim() || !userForm.lastName.trim() || !userForm.email.trim()) {
+                        setMessage({ type: 'error', text: 'Todos los campos son obligatorios' });
+                        return;
+                      }
+
+                      try {
+                        setSavingUser(true);
+                        await updateDoc(doc(db, 'users', editingUser.id), {
+                          firstName: userForm.firstName.trim(),
+                          lastName: userForm.lastName.trim(),
+                          email: userForm.email.trim()
+                        });
+
+                        setUsers(users.map(u => 
+                          u.id === editingUser.id 
+                            ? { ...u, ...userForm }
+                            : u
+                        ));
+
+                        setMessage({ type: 'success', text: '✅ Usuario actualizado correctamente' });
+                        setEditingUser(null);
+                      } catch (error) {
+                        console.error('Error updating user:', error);
+                        setMessage({ type: 'error', text: 'Error al actualizar el usuario' });
+                      } finally {
+                        setSavingUser(false);
+                      }
+                    }}
+                    disabled={savingUser}
+                    className="primary-button"
+                  >
+                    {savingUser ? '⏳ Guardando...' : '💾 Guardar Cambios'}
+                  </button>
+                  <button
+                    onClick={() => setEditingUser(null)}
+                    disabled={savingUser}
+                    className="secondary-button"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Modal de restablecer contraseña */}
+          {resetPasswordUserId && (
+            <div className="modal-overlay" onClick={() => setResetPasswordUserId(null)}>
+              <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                <h3 style={{ margin: '0 0 20px 0', color: '#ff9800' }}>
+                  🔑 Restablecer Contraseña
+                </h3>
+                
+                <p style={{ color: '#b0b0b0', marginBottom: '20px' }}>
+                  Usuario: <strong style={{ color: '#e0e0e0' }}>
+                    {users.find(u => u.id === resetPasswordUserId)?.email}
+                  </strong>
+                </p>
+
+                <div className="form-group">
+                  <label>Nueva Contraseña</label>
+                  <input
+                    type="text"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Mínimo 6 caracteres"
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      background: '#2d2d2d',
+                      border: '1px solid #3d3d3d',
+                      borderRadius: '6px',
+                      color: '#e0e0e0',
+                      fontSize: '14px',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                  <small style={{ color: '#999', display: 'block', marginTop: '5px' }}>
+                    💡 Sugerencia: Usa una contraseña fácil de recordar como "gymapp2025"
+                  </small>
+                </div>
+
+                <div className="modal-actions">
+                  <button
+                    onClick={async () => {
+                      if (newPassword.length < 6) {
+                        setMessage({ type: 'error', text: 'La contraseña debe tener al menos 6 caracteres' });
+                        return;
+                      }
+
+                      try {
+                        setResettingPassword(true);
+                        
+                        // Aquí necesitarías una Cloud Function para cambiar la contraseña
+                        // Por ahora, solo mostramos un mensaje informativo
+                        alert(`⚠️ IMPORTANTE: Para cambiar la contraseña del usuario, debes:\n\n1. Ir a Firebase Console > Authentication\n2. Buscar el usuario: ${users.find(u => u.id === resetPasswordUserId)?.email}\n3. Hacer clic en "..." y seleccionar "Reset password"\n4. Copiar el link y enviárselo al usuario\n\nO implementar una Cloud Function para hacerlo automáticamente.`);
+                        
+                        setResetPasswordUserId(null);
+                        setNewPassword('');
+                      } catch (error) {
+                        console.error('Error resetting password:', error);
+                        setMessage({ type: 'error', text: 'Error al restablecer la contraseña' });
+                      } finally {
+                        setResettingPassword(false);
+                      }
+                    }}
+                    disabled={resettingPassword}
+                    className="primary-button"
+                  >
+                    {resettingPassword ? '⏳ Restableciendo...' : '🔑 Restablecer Contraseña'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setResetPasswordUserId(null);
+                      setNewPassword('');
+                    }}
+                    disabled={resettingPassword}
+                    className="secondary-button"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
+        )}
+
         {/* Sección de Máquinas Globales (mostrar solo si activeTab === 'maquinas') */}
         {activeTab === 'maquinas' && (
         <>
