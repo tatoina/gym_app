@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { collection, getDocs, query, where, doc, setDoc, addDoc, serverTimestamp, writeBatch, deleteDoc, updateDoc } from 'firebase/firestore';
 import { auth, db, storage, functions } from '../services/firebase';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL, deleteObject, uploadBytesResumable } from 'firebase/storage';
 import { httpsCallable } from 'firebase/functions';
 import './AdminPanel.css';
 
@@ -172,6 +172,7 @@ const AdminPanel: React.FC = () => {
     mediaType: 'image' as 'image' | 'video'
   });
   const [exerciseFormLoading, setExerciseFormLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
   const [exerciseToDelete, setExerciseToDelete] = useState<Exercise | null>(null);
   const [machineFilterExercises, setMachineFilterExercises] = useState<string>('Todas');
@@ -757,6 +758,7 @@ const AdminPanel: React.FC = () => {
 
     try {
       setExerciseFormLoading(true);
+      setUploadProgress(0);
 
       let photoUrl = exerciseForm.existingPhotoUrl;
 
@@ -767,7 +769,25 @@ const AdminPanel: React.FC = () => {
         const fileName = `exercises/${exerciseForm.machineId}_${exerciseForm.name.replace(/\s+/g, '_')}_${timestamp}.${fileExtension}`;
         const storageRef = ref(storage, fileName);
         
-        await uploadBytes(storageRef, exerciseForm.photoFile);
+        // Usar uploadBytesResumable para seguimiento de progreso
+        const uploadTask = uploadBytesResumable(storageRef, exerciseForm.photoFile);
+        
+        await new Promise((resolve, reject) => {
+          uploadTask.on('state_changed',
+            (snapshot) => {
+              // Calcular progreso
+              const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+              setUploadProgress(Math.round(progress));
+            },
+            (error) => {
+              reject(error);
+            },
+            () => {
+              resolve(uploadTask.snapshot);
+            }
+          );
+        });
+        
         photoUrl = await getDownloadURL(storageRef);
 
         // Eliminar foto anterior si existe y es diferente
@@ -824,6 +844,7 @@ const AdminPanel: React.FC = () => {
       setMessage({ type: 'error', text: 'Error al guardar el ejercicio' });
     } finally {
       setExerciseFormLoading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -2833,6 +2854,45 @@ const AdminPanel: React.FC = () => {
                   </div>
                 )}
               </div>
+
+              {/* Barra de progreso de subida */}
+              {exerciseFormLoading && uploadProgress > 0 && (
+                <div style={{
+                  marginTop: '15px',
+                  marginBottom: '15px',
+                  padding: '15px',
+                  background: 'rgba(102, 126, 234, 0.1)',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(102, 126, 234, 0.3)'
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    marginBottom: '8px',
+                    color: '#667eea',
+                    fontSize: '14px',
+                    fontWeight: 'bold'
+                  }}>
+                    <span>📤 Cargando fichero...</span>
+                    <span>{uploadProgress}%</span>
+                  </div>
+                  <div style={{
+                    width: '100%',
+                    height: '8px',
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    borderRadius: '4px',
+                    overflow: 'hidden'
+                  }}>
+                    <div style={{
+                      width: `${uploadProgress}%`,
+                      height: '100%',
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      transition: 'width 0.3s ease',
+                      borderRadius: '4px'
+                    }} />
+                  </div>
+                </div>
+              )}
 
               <button type="submit" disabled={exerciseFormLoading} className="submit-machine-btn">
                 {exerciseFormLoading ? (editingExercise ? 'Actualizando...' : 'Creando...') : (editingExercise ? '💾 Actualizar Ejercicio' : '💾 Crear Ejercicio')}
