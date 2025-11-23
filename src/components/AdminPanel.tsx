@@ -3505,6 +3505,104 @@ const AdminPanel: React.FC = () => {
             </button>
           </div>
 
+          {/* Visor de Video/Imagen */}
+          {currentExerciseIndex !== null && playlist[currentExerciseIndex] && (
+            <div style={{
+              background: 'rgba(0, 0, 0, 0.8)',
+              borderRadius: '12px',
+              padding: '20px',
+              marginBottom: '20px',
+              border: '2px solid rgba(102, 126, 234, 0.3)'
+            }}>
+              <div style={{
+                textAlign: 'center',
+                marginBottom: '15px'
+              }}>
+                <h3 style={{ 
+                  margin: 0, 
+                  color: '#667eea',
+                  fontSize: '24px',
+                  fontWeight: 'bold'
+                }}>
+                  {playlist[currentExerciseIndex].name}
+                </h3>
+                <p style={{ 
+                  margin: '5px 0 0 0', 
+                  color: '#999',
+                  fontSize: '16px'
+                }}>
+                  {playlist[currentExerciseIndex].machineName}
+                </p>
+              </div>
+
+              <div style={{
+                width: '100%',
+                maxHeight: '500px',
+                background: 'rgba(0, 0, 0, 0.5)',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflow: 'hidden'
+              }}>
+                {playlist[currentExerciseIndex].photoUrl ? (
+                  playlist[currentExerciseIndex].mediaType === 'video' ? (
+                    <video
+                      key={playlist[currentExerciseIndex].id}
+                      src={playlist[currentExerciseIndex].photoUrl}
+                      controls
+                      autoPlay={isPlaying}
+                      style={{
+                        width: '100%',
+                        maxHeight: '500px',
+                        objectFit: 'contain'
+                      }}
+                      onEnded={() => {
+                        // Avanzar automáticamente al siguiente ejercicio
+                        if (currentExerciseIndex < playlist.length - 1) {
+                          setCurrentExerciseIndex(currentExerciseIndex + 1);
+                        } else {
+                          setIsPlaying(false);
+                        }
+                      }}
+                    />
+                  ) : (
+                    <img
+                      src={playlist[currentExerciseIndex].photoUrl}
+                      alt={playlist[currentExerciseIndex].name}
+                      style={{
+                        width: '100%',
+                        maxHeight: '500px',
+                        objectFit: 'contain'
+                      }}
+                    />
+                  )
+                ) : (
+                  <div style={{
+                    fontSize: '100px',
+                    color: '#667eea'
+                  }}>
+                    💪
+                  </div>
+                )}
+              </div>
+
+              {playlist[currentExerciseIndex].description && (
+                <div style={{
+                  marginTop: '15px',
+                  padding: '15px',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  borderRadius: '8px',
+                  color: '#e0e0e0',
+                  lineHeight: '1.6'
+                }}>
+                  <strong style={{ color: '#667eea' }}>📝 Descripción:</strong><br/>
+                  {playlist[currentExerciseIndex].description}
+                </div>
+              )}
+            </div>
+          )}
+
           <div style={{
             display: 'grid',
             gridTemplateColumns: '1fr 1fr',
