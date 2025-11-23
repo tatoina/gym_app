@@ -155,7 +155,6 @@ const AdminPanel: React.FC = () => {
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [exerciseSearchQuery, setExerciseSearchQuery] = useState('');
-  const [showCastModal, setShowCastModal] = useState(false);
   const [draggedExercise, setDraggedExercise] = useState<Exercise | null>(null);
   const [draggedPlaylistIndex, setDraggedPlaylistIndex] = useState<number | null>(null);
   
@@ -3467,42 +3466,11 @@ const AdminPanel: React.FC = () => {
       {activeTab === 'reproductor' && (
         <div className="reproductor-section">
           <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
             marginBottom: '30px'
           }}>
             <h2 style={{ margin: 0, color: '#e0e0e0', display: 'flex', alignItems: 'center', gap: '12px' }}>
               🎬 Reproductor de Entrenamientos
             </h2>
-            <button
-              onClick={() => setShowCastModal(true)}
-              style={{
-                padding: '12px 20px',
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                border: 'none',
-                borderRadius: '10px',
-                color: 'white',
-                fontSize: '16px',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                transition: 'all 0.3s ease',
-                boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'scale(1.05)';
-                e.currentTarget.style.boxShadow = '0 6px 16px rgba(102, 126, 234, 0.4)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'scale(1)';
-                e.currentTarget.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.3)';
-              }}
-            >
-              📺 Enviar a TV/Proyector
-            </button>
           </div>
 
           {/* Visor de Video/Imagen */}
@@ -4118,84 +4086,6 @@ const AdminPanel: React.FC = () => {
         </div>
       )}
 
-      {/* Modal de Cast a TV/Proyector */}
-      {showCastModal && (
-        <div className="modal-overlay" onClick={() => setShowCastModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ margin: '0 0 20px 0', color: '#667eea', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              📺 Enviar a TV/Proyector
-            </h3>
-            
-            <div style={{
-              background: 'rgba(102, 126, 234, 0.1)',
-              padding: '20px',
-              borderRadius: '8px',
-              border: '1px solid rgba(102, 126, 234, 0.3)',
-              marginBottom: '20px'
-            }}>
-              <p style={{ color: '#667eea', margin: '0 0 15px 0', fontSize: '14px', lineHeight: '1.6' }}>
-                📡 <strong>Función de Cast WiFi</strong>
-              </p>
-              <p style={{ color: '#999', margin: 0, fontSize: '13px', lineHeight: '1.6' }}>
-                Esta función te permitirá enviar la reproducción de entrenamientos a una TV o proyector compatible con WiFi Display (Miracast, Chromecast, AirPlay, etc.).
-              </p>
-            </div>
-
-            <div style={{
-              background: 'rgba(255, 193, 7, 0.1)',
-              padding: '15px',
-              borderRadius: '8px',
-              border: '1px solid rgba(255, 193, 7, 0.3)',
-              marginBottom: '20px'
-            }}>
-              <p style={{ color: '#ffc107', margin: 0, fontSize: '13px', lineHeight: '1.6' }}>
-                ⚠️ <strong>En desarrollo:</strong> La función de Cast WiFi requiere integración con Web Presentation API o APIs específicas de dispositivos (Chromecast SDK, AirPlay API). Por ahora, puedes usar el modo pantalla completa del navegador y compartir la pantalla manualmente.
-              </p>
-            </div>
-
-            <div className="modal-actions">
-              <button
-                onClick={() => {
-                  // Intentar entrar en modo pantalla completa
-                  if (document.documentElement.requestFullscreen) {
-                    document.documentElement.requestFullscreen();
-                  }
-                  setShowCastModal(false);
-                }}
-                style={{
-                  padding: '12px 24px',
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  border: 'none',
-                  borderRadius: '8px',
-                  color: 'white',
-                  fontSize: '14px',
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                🖥️ Pantalla Completa
-              </button>
-              <button
-                onClick={() => setShowCastModal(false)}
-                style={{
-                  padding: '12px 24px',
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  borderRadius: '8px',
-                  color: '#e0e0e0',
-                  fontSize: '14px',
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                Cerrar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
