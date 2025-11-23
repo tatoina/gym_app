@@ -140,7 +140,7 @@ const AdminPanel: React.FC = () => {
     firstName: '',
     lastName: '',
     email: '',
-    password: ''
+    password: '000000'
   });
   const [savingUser, setSavingUser] = useState(false);
   const [resetPasswordUserId, setResetPasswordUserId] = useState<string | null>(null);
@@ -1688,40 +1688,26 @@ const AdminPanel: React.FC = () => {
                   />
                 </div>
 
-                <div className="form-group">
-                  <label>Contraseña *</label>
-                  <input
-                    type="password"
-                    value={userForm.password}
-                    onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
-                    placeholder="Mínimo 6 caracteres"
-                    style={{
-                      width: '100%',
-                      padding: '10px',
-                      background: '#2d2d2d',
-                      border: '1px solid #3d3d3d',
-                      borderRadius: '6px',
-                      color: '#e0e0e0',
-                      fontSize: '14px',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                  <small style={{ color: '#999', display: 'block', marginTop: '5px' }}>
-                    💡 El usuario podrá cambiar su contraseña después del primer inicio de sesión
-                  </small>
+                <div style={{ 
+                  background: 'rgba(81, 207, 102, 0.1)', 
+                  padding: '15px', 
+                  borderRadius: '8px',
+                  border: '1px solid rgba(81, 207, 102, 0.3)',
+                  marginBottom: '20px'
+                }}>
+                  <p style={{ color: '#51cf66', margin: 0, fontSize: '14px', lineHeight: '1.6' }}>
+                    🔐 <strong>Contraseña predeterminada:</strong> 000000<br/>
+                    📧 Se enviará un email al usuario indicándole que debe cambiar su contraseña en el primer inicio de sesión.
+                  </p>
                 </div>
 
                 <div className="modal-actions">
                   <button
                     onClick={async () => {
+                      // Validar campos
                       if (!userForm.firstName.trim() || !userForm.lastName.trim() || 
-                          !userForm.email.trim() || !userForm.password.trim()) {
-                        setMessage({ type: 'error', text: 'Todos los campos son obligatorios' });
-                        return;
-                      }
-
-                      if (userForm.password.length < 6) {
-                        setMessage({ type: 'error', text: 'La contraseña debe tener al menos 6 caracteres' });
+                          !userForm.email.trim()) {
+                        setMessage({ type: 'error', text: '⚠️ Todos los campos son obligatorios' });
                         return;
                       }
 
@@ -1737,11 +1723,11 @@ const AdminPanel: React.FC = () => {
                         const { createUserWithEmailAndPassword } = await import('firebase/auth');
                         const { doc, setDoc } = await import('firebase/firestore');
                         
-                        // Crear usuario en Firebase Authentication
+                        // Crear usuario en Firebase Authentication con contraseña predeterminada
                         const userCredential = await createUserWithEmailAndPassword(
                           auth,
                           userForm.email.trim(),
-                          userForm.password
+                          '000000' // Contraseña predeterminada
                         );
 
                         // Crear documento en Firestore
@@ -1751,6 +1737,19 @@ const AdminPanel: React.FC = () => {
                           email: userForm.email.trim(),
                           createdAt: serverTimestamp()
                         });
+
+                        // Enviar email de bienvenida
+                        try {
+                          const sendWelcomeEmail = httpsCallable(functions, 'sendWelcomeEmail');
+                          await sendWelcomeEmail({
+                            userEmail: userForm.email.trim(),
+                            userName: userForm.firstName.trim()
+                          });
+                          console.log('Email de bienvenida enviado');
+                        } catch (emailError) {
+                          console.error('Error al enviar email de bienvenida:', emailError);
+                          // No fallar la creación del usuario si el email falla
+                        }
 
                         // Actualizar lista local
                         setUsers([...users, {
@@ -1762,11 +1761,11 @@ const AdminPanel: React.FC = () => {
 
                         setMessage({ 
                           type: 'success', 
-                          text: `✅ Usuario ${userForm.firstName} ${userForm.lastName} creado correctamente` 
+                          text: `✅ Usuario ${userForm.firstName} ${userForm.lastName} creado correctamente. Se ha enviado un email de bienvenida.` 
                         });
                         
                         setShowCreateUserModal(false);
-                        setUserForm({ firstName: '', lastName: '', email: '', password: '' });
+                        setUserForm({ firstName: '', lastName: '', email: '', password: '000000' });
                       } catch (error: any) {
                         console.error('Error creating user:', error);
                         let errorMessage = 'Error al crear el usuario';
