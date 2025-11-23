@@ -1,5 +1,7 @@
 const {onDocumentCreated} = require("firebase-functions/v2/firestore");
+const {onCall} = require("firebase-functions/v2/https");
 const {initializeApp} = require("firebase-admin/app");
+const {getAuth} = require("firebase-admin/auth");
 const logger = require("firebase-functions/logger");
 const nodemailer = require("nodemailer");
 const {defineSecret} = require("firebase-functions/params");
@@ -152,3 +154,44 @@ exports.sendSuggestionEmail = onDocumentCreated(
       }
     },
 );
+
+// Cloud Function para restablecer la contraseña de un usuario
+exports.resetUserPassword = onCall(async (request) => {
+  try {
+    // Verificar que el usuario que llama sea admin (max@max.es)
+    if (!request.auth) {
+      throw new Error("No autenticado");
+    }
+
+    const callerEmail = request.auth.token.email;
+    if (callerEmail !== "max@max.es") {
+      throw new Error("No tienes permisos para realizar esta acción");
+    }
+
+    const {userId, newPassword} = request.data;
+
+    // Validar parámetros
+    if (!userId || !newPassword) {
+      throw new Error("userId y newPassword son obligatorios");
+    }
+
+    if (newPassword.length < 6) {
+      throw new Error("La contraseña debe tener al menos 6 caracteres");
+    }
+
+    // Actualizar la contraseña usando Firebase Admin SDK
+    await getAuth().updateUser(userId, {
+      password: newPassword,
+    });
+
+    logger.info(`Contraseña actualizada correctamente para usuario: ${userId}`);
+
+    return {
+      success: true,
+      message: "Contraseña actualizada correctamente",
+    };
+  } catch (error) {
+    logger.error("Error al restablecer contraseña:", error);
+    throw error;
+  }
+});

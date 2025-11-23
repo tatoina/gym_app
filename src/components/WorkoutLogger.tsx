@@ -6,22 +6,33 @@ import './WorkoutLogger.css';
 
 interface Exercise {
   name: string;
-  sets: number;
-  reps: number;
-  weight: number;
+  description?: string;
+  mediaFile?: File | null;
+  mediaPreview?: string;
+  sets?: number;
+  reps?: number;
+  weight?: number;
   machineId?: string;
   machineName?: string;
   machinePhotoUrl?: string;
 }
 
-interface Machine {
+interface Category {
   id: string;
   name: string;
-  category?: string;
+}
+
+interface Machine {
+  id: string;
+  number?: string;
+  name: string;
+  categoryId?: string;
+  categoryName?: string;
   description?: string;
   photoUrl?: string;
-  userId?: string; // Si está vacío o es null, es máquina global (del admin)
-  isGlobal?: boolean; // Indica si es máquina global del gimnasio
+  userId?: string;
+  isGlobal?: boolean;
+  exercises?: Exercise[];
 }
 
 const createEmptyExercise = (): Exercise => ({
@@ -61,11 +72,47 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
   const [machineFormError, setMachineFormError] = useState('');
   const [machineForm, setMachineForm] = useState({
     id: '',
+    number: '',
     name: '',
+    categoryId: '',
+    categoryName: '',
     description: '',
     photoFile: null as File | null,
-    existingPhotoUrl: ''
+    existingPhotoUrl: '',
+    exercises: [] as Exercise[],
   });
+
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [categoryError, setCategoryError] = useState('');
+  // CRUD de categorías
+  const loadCategories = async () => {
+    try {
+      const snapshot = await getDocs(collection(db, 'categories'));
+      setCategories(snapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) })));
+    } catch (e) {
+      setCategories([]);
+    }
+  };
+
+  const handleAddCategory = async () => {
+    if (!newCategoryName.trim()) {
+      setCategoryError('El nombre es obligatorio');
+      return;
+    }
+    try {
+      const docRef = await addDoc(collection(db, 'categories'), { name: newCategoryName.trim() });
+      setCategories([...categories, { id: docRef.id, name: newCategoryName.trim() }]);
+      setNewCategoryName('');
+      setCategoryModalOpen(false);
+      setCategoryError('');
+    } catch (e) {
+      setCategoryError('Error al crear la categoría');
+    }
+  };
+
+  useEffect(() => { loadCategories(); }, []);
   const [machinePreview, setMachinePreview] = useState<string>('');
   const [exerciseError, setExerciseError] = useState('');
   const [showMachinesManager, setShowMachinesManager] = useState(false);
@@ -173,10 +220,14 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
   const resetMachineForm = () => {
     setMachineForm({
       id: '',
+      number: '',
       name: '',
+      categoryId: '',
+      categoryName: '',
       description: '',
       photoFile: null,
-      existingPhotoUrl: ''
+      existingPhotoUrl: '',
+      exercises: [],
     });
     setMachineFormError('');
     if (machinePreview) {
@@ -191,13 +242,32 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
     setMachineModalOpen(true);
   };
 
+  // Añadir ejercicio a la máquina en el formulario
+  const handleAddExerciseToMachine = (exercise: Exercise) => {
+    setMachineForm(prev => ({
+      ...prev,
+      exercises: [...(prev.exercises || []), exercise]
+    }));
+  };
+
+  const handleRemoveExerciseFromMachine = (index: number) => {
+    setMachineForm(prev => ({
+      ...prev,
+      exercises: prev.exercises.filter((_, i) => i !== index)
+    }));
+  };
+
   const openMachineModalForEdit = (machine: Machine) => {
     setMachineForm({
       id: machine.id,
+      number: machine.number || '',
       name: machine.name,
+      categoryId: machine.categoryId || '',
+      categoryName: machine.categoryName || '',
       description: machine.description || '',
       photoFile: null,
-      existingPhotoUrl: machine.photoUrl || ''
+      existingPhotoUrl: machine.photoUrl || '',
+      exercises: machine.exercises || [],
     });
     if (machine.photoUrl) {
       setMachinePreview(machine.photoUrl);
@@ -280,6 +350,23 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
         uploadedPhotoUrl = await getDownloadURL(fileRef);
       }
 
+      // Subir archivos de ejercicios y obtener URLs
+      if (!auth.currentUser) throw new Error('No user');
+      const exercisesWithUrls = await Promise.all((machineForm.exercises || []).map(async (ex, idx) => {
+        let mediaUrl = '';
+        if (ex.mediaFile) {
+          const ext = ex.mediaFile.name.split('.').pop();
+          const fileRef = ref(storage, `machines/${auth.currentUser!.uid}/exercises/${Date.now()}-${idx}.${ext}`);
+          await uploadBytes(fileRef, ex.mediaFile);
+          mediaUrl = await getDownloadURL(fileRef);
+        }
+        return {
+          name: ex.name,
+          description: ex.description,
+          mediaUrl,
+        };
+      }));
+
       if (machineForm.id) {
         // Editar máquina existente
         const { doc: docImport, updateDoc } = await import('firebase/firestore');
@@ -287,6 +374,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
           name: trimmedName,
           description: trimmedDescription,
           photoUrl: uploadedPhotoUrl,
+          exercises: exercisesWithUrls,
           updatedAt: new Date()
         });
       } else {
@@ -297,6 +385,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
           name: trimmedName,
           description: trimmedDescription,
           photoUrl: uploadedPhotoUrl,
+          exercises: exercisesWithUrls,
           createdAt: new Date()
         });
 
@@ -502,6 +591,51 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
     ? machines.find((machine) => machine.id === newExercise.machineId)
     : undefined;
 
+  // Estado para nuevo ejercicio en el modal de máquina
+  const [machineExerciseForm, setMachineExerciseForm] = useState<Exercise>({
+    name: '',
+    description: '',
+    mediaFile: null,
+    mediaPreview: '',
+  });
+
+  const resetMachineExerciseForm = () => setMachineExerciseForm({ name: '', description: '', mediaFile: null, mediaPreview: '' });
+
+  const handleMachineExerciseFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    if (machineExerciseForm.mediaPreview) URL.revokeObjectURL(machineExerciseForm.mediaPreview);
+    setMachineExerciseForm((prev: Exercise) => ({
+      ...prev,
+      mediaFile: file,
+      mediaPreview: file ? URL.createObjectURL(file) : ''
+    }));
+  };
+
+  // Handlers de ejercicios por máquina
+  const handleAddExerciseToMachineForm = (): void => {
+    if (!machineExerciseForm.name.trim()) return;
+    setMachineForm((prev) => ({
+      ...prev,
+      exercises: [
+        ...prev.exercises,
+        {
+          name: machineExerciseForm.name.trim(),
+          description: machineExerciseForm.description?.trim() || '',
+          mediaFile: machineExerciseForm.mediaFile,
+          mediaPreview: machineExerciseForm.mediaPreview,
+        }
+      ]
+    }));
+    resetMachineExerciseForm();
+  };
+
+  const handleRemoveExerciseFromMachineForm = (idx: number): void => {
+    setMachineForm((prev) => ({
+      ...prev,
+      exercises: prev.exercises.filter((_: any, i: number) => i !== idx)
+    }));
+  };
+
   return (
     <div className="workout-logger">
       <h2 style={{ marginBottom: '20px', fontSize: '20px' }}>💪 Entrenamintos, registro e histórico</h2>
@@ -607,7 +741,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
                     )}
                     <div className="machine-item-info">
                       <strong>{machine.name}</strong>
-                      {machine.category && <span className="machine-category-badge">🏷️ {machine.category}</span>}
+                      {machine.categoryName && <span className="machine-category-badge">🏷️ {machine.categoryName}</span>}
                       {machine.description && <p>{machine.description}</p>}
                       {machine.isGlobal && <span className="global-badge">🌐 Global</span>}
                     </div>
@@ -676,7 +810,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
                         style={{ marginBottom: '15px' }}
                       >
                         <option value="Todas">📋 Todas las categorías</option>
-                        {Array.from(new Set(machines.map(m => m.category).filter(Boolean))).sort().map(cat => (
+                        {Array.from(new Set(machines.map(m => m.categoryName).filter(Boolean))).sort().map(cat => (
                           <option key={cat} value={cat}>🏷️ {cat}</option>
                         ))}
                       </select>
@@ -691,11 +825,11 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
                       >
                         <option value="">Selecciona una máquina</option>
                         {machines
-                          .filter(machine => categoryFilter === 'Todas' || machine.category === categoryFilter)
+                          .filter(machine => categoryFilter === 'Todas' || machine.categoryName === categoryFilter)
                           .map((machine) => (
                             <option key={machine.id} value={machine.id}>
                               {machine.isGlobal ? '🏋️ ' : '👤 '}{machine.name}
-                              {machine.category ? ` (${machine.category})` : ''}
+                              {machine.categoryName ? ` (${machine.categoryName})` : ''}
                             </option>
                           ))}
                       </select>
@@ -894,23 +1028,133 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
               </div>
 
               <div className="form-group">
-                <label htmlFor="machine-photo">Foto (opcional)</label>
+                <label htmlFor="machine-media">Foto o Video (opcional)</label>
                 <input
-                  id="machine-photo"
+                  id="machine-media"
                   type="file"
-                  accept="image/*"
+                  accept="image/*,video/*"
                   capture="environment"
                   onChange={handleMachineFileChange}
                 />
-                <p className="field-hint">Desde el móvil, pulsa para tomar una foto directamente con la cámara.</p>
+                <p className="field-hint">Desde el móvil, pulsa para tomar una foto o grabar un video directamente con la cámara.</p>
                 {machinePreview && (
-                  <img
-                    src={machinePreview}
-                    alt="Vista previa de la máquina"
-                    className="machine-preview"
+                  machinePreview.match(/video/) ? (
+                    <video src={machinePreview} controls className="machine-preview" />
+                  ) : (
+                    <img
+                      src={machinePreview}
+                      alt="Vista previa de la máquina"
+                      className="machine-preview"
+                    />
+                  )
+                )}
+
+                {/* Formulario para añadir ejercicios a la máquina */}
+                <div className="machine-exercise-form">
+                  <h4>Ejercicios de esta máquina</h4>
+                  <input
+                    type="text"
+                    placeholder="Nombre del ejercicio"
+                    value={machineExerciseForm.name}
+                    onChange={e => setMachineExerciseForm(prev => ({ ...prev, name: e.target.value }))}
                   />
+                  <textarea
+                    placeholder="Descripción (opcional)"
+                    value={machineExerciseForm.description}
+                    onChange={e => setMachineExerciseForm(prev => ({ ...prev, description: e.target.value }))}
+                  />
+                  <input
+                    type="file"
+                    accept="image/*,video/*"
+                    capture="environment"
+                    onChange={handleMachineExerciseFileChange}
+                  />
+                  {machineExerciseForm.mediaPreview && (
+                    machineExerciseForm.mediaPreview.match(/video/) ? (
+                      <video src={machineExerciseForm.mediaPreview} controls width={120} />
+                    ) : (
+                      <img src={machineExerciseForm.mediaPreview} alt="Preview" width={120} />
+                    )
+                  )}
+                  <button type="button" onClick={handleAddExerciseToMachineForm} disabled={!machineExerciseForm.name.trim()}>
+                    Añadir ejercicio
+                  </button>
+                </div>
+
+                {/* Lista de ejercicios añadidos */}
+                {machineForm.exercises.length > 0 && (
+                  <div className="machine-exercise-list">
+                    <h5>Ejercicios añadidos:</h5>
+                    <ul>
+                      {machineForm.exercises.map((ex, idx) => (
+                        <li key={idx}>
+                          <b>{ex.name}</b> {ex.description && <span>- {ex.description}</span>}
+                          {ex.mediaPreview && (
+                            ex.mediaPreview.match(/video/) ? (
+                              <video src={ex.mediaPreview} controls width={60} />
+                            ) : (
+                              <img src={ex.mediaPreview} alt="Preview" width={60} />
+                            )
+                          )}
+                          <button type="button" onClick={() => handleRemoveExerciseFromMachineForm(idx)}>
+                            Eliminar
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
               </div>
+
+              <div className="form-group">
+                <label htmlFor="machine-category">Categoría</label>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <select
+                    id="machine-category"
+                    value={machineForm.categoryId}
+                    onChange={e => {
+                      const selected = categories.find(cat => cat.id === e.target.value);
+                      setMachineForm(prev => ({
+                        ...prev,
+                        categoryId: e.target.value,
+                        categoryName: selected ? selected.name : ''
+                      }));
+                    }}
+                    required
+                  >
+                    <option value="">Selecciona una categoría...</option>
+                    {categories.map(cat => (
+                      <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    ))}
+                  </select>
+                  <button type="button" onClick={() => setCategoryModalOpen(true)} className="secondary-button" style={{padding: '0 10px'}}>+ Nueva</button>
+                </div>
+              </div>
+
+              {/* Modal para crear nueva categoría */}
+              {categoryModalOpen && (
+                <div className="category-modal-backdrop" role="dialog" aria-modal="true">
+                  <div className="category-modal">
+                    <h4>Nueva Categoría</h4>
+                    <input
+                      type="text"
+                      value={newCategoryName}
+                      onChange={e => setNewCategoryName(e.target.value)}
+                      placeholder="Nombre de la categoría"
+                      autoFocus
+                    />
+                    {categoryError && <div className="form-error">{categoryError}</div>}
+                    <div style={{marginTop: 12, display: 'flex', gap: 8}}>
+                      <button type="button" className="primary-button" onClick={handleAddCategory} disabled={!newCategoryName.trim()}>
+                        Crear
+                      </button>
+                      <button type="button" className="secondary-button" onClick={() => { setCategoryModalOpen(false); setNewCategoryName(''); setCategoryError(''); }}>
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {machineFormError && <div className="form-error">{machineFormError}</div>}
 

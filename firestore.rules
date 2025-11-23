@@ -76,5 +76,29 @@ service cloud.firestore {
       // Solo el admin puede leer y actualizar sugerencias
       allow read, update, delete: if isAdmin();
     }
+    
+    // Colección de categorías
+    match /categories/{categoryId} {
+      // Todos los usuarios autenticados pueden leer categorías
+      allow read: if isAuthenticated();
+      
+      // Solo el admin puede crear, actualizar y eliminar categorías
+      allow create, update, delete: if isAdmin();
+    }
+    
+    // Colección de ejercicios
+    match /exercises/{exerciseId} {
+      // Todos los usuarios autenticados pueden leer ejercicios
+      allow read: if isAuthenticated();
+      
+      // Solo el admin puede crear, actualizar y eliminar ejercicios
+      allow create, update, delete: if isAdmin();
+    }
+    
+    // Colección de configuración
+    match /config/{configId} {
+      // Solo el admin puede leer y escribir configuración
+      allow read, write: if isAdmin();
+    }
   }
 }

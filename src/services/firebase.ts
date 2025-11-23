@@ -3,6 +3,7 @@ import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
+import { getFunctions } from 'firebase/functions';
 // FIREBASE MESSAGING DESACTIVADO - Usamos email notifications
 // import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 
@@ -22,6 +23,7 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
+export const functions = getFunctions(app);
 
 // MESSAGING DESACTIVADO - Ahora usamos notificaciones por email
 // let messaging: any = null;

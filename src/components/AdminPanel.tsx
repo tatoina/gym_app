@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { collection, getDocs, query, where, doc, setDoc, addDoc, serverTimestamp, writeBatch, deleteDoc, updateDoc } from 'firebase/firestore';
-import { auth, db, storage } from '../services/firebase';
+import { auth, db, storage, functions } from '../services/firebase';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { httpsCallable } from 'firebase/functions';
 import './AdminPanel.css';
 
 interface User {
@@ -1685,15 +1686,25 @@ const AdminPanel: React.FC = () => {
                       try {
                         setResettingPassword(true);
                         
-                        // Aquí necesitarías una Cloud Function para cambiar la contraseña
-                        // Por ahora, solo mostramos un mensaje informativo
-                        alert(`⚠️ IMPORTANTE: Para cambiar la contraseña del usuario, debes:\n\n1. Ir a Firebase Console > Authentication\n2. Buscar el usuario: ${users.find(u => u.id === resetPasswordUserId)?.email}\n3. Hacer clic en "..." y seleccionar "Reset password"\n4. Copiar el link y enviárselo al usuario\n\nO implementar una Cloud Function para hacerlo automáticamente.`);
+                        // Llamar a la Cloud Function para restablecer la contraseña
+                        const resetPasswordFunction = httpsCallable(functions, 'resetUserPassword');
+                        const result = await resetPasswordFunction({
+                          userId: resetPasswordUserId,
+                          newPassword: newPassword
+                        });
+
+                        console.log('Contraseña actualizada:', result.data);
+                        setMessage({ 
+                          type: 'success', 
+                          text: `✅ Contraseña actualizada correctamente para ${users.find(u => u.id === resetPasswordUserId)?.email}` 
+                        });
                         
                         setResetPasswordUserId(null);
                         setNewPassword('');
-                      } catch (error) {
+                      } catch (error: any) {
                         console.error('Error resetting password:', error);
-                        setMessage({ type: 'error', text: 'Error al restablecer la contraseña' });
+                        const errorMessage = error.message || 'Error al restablecer la contraseña';
+                        setMessage({ type: 'error', text: `❌ ${errorMessage}` });
                       } finally {
                         setResettingPassword(false);
                       }
