@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../services/firebase';
 import './Auth.css';
@@ -9,12 +9,9 @@ interface AuthProps {
 }
 
 const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
-  const [isLogin, setIsLogin] = useState(true);
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -26,34 +23,23 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
     setSuccessMessage('');
 
     try {
-      if (isLogin) {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        
-        // Verificar si el usuario tiene documento en Firestore, si no, crearlo
-        const { getDoc } = await import('firebase/firestore');
-        const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
-        
-        if (!userDoc.exists()) {
-          // Crear documento para usuarios que no lo tienen
-          await setDoc(doc(db, 'users', userCredential.user.uid), {
-            firstName: 'Usuario',
-            lastName: '',
-            email: userCredential.user.email || email,
-            createdAt: new Date()
-          });
-        }
-        
-        onAuthSuccess();
-      } else {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      
+      // Verificar si el usuario tiene documento en Firestore, si no, crearlo
+      const { getDoc } = await import('firebase/firestore');
+      const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
+      
+      if (!userDoc.exists()) {
+        // Crear documento para usuarios que no lo tienen
         await setDoc(doc(db, 'users', userCredential.user.uid), {
-          firstName: firstName.trim(),
-          lastName: lastName.trim(),
-          email: email,
+          firstName: 'Usuario',
+          lastName: '',
+          email: userCredential.user.email || email,
           createdAt: new Date()
         });
-        onAuthSuccess();
       }
+      
+      onAuthSuccess();
     } catch (error: any) {
       setError(error.message);
     } finally {
@@ -132,35 +118,9 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
         <div className="auth-logo">
           <img src="/icons/icon-512.png" alt="MAXGYM Logo" />
         </div>
-        <h2>{isLogin ? 'Iniciar Sesión' : 'Registrarse'}</h2>
+        <h2>Iniciar Sesión</h2>
         
         <form onSubmit={handleSubmit}>
-          {!isLogin && (
-            <>
-              <div className="form-group">
-                <label>Nombre:</label>
-                <input
-                  type="text"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  required
-                  placeholder="Tu nombre"
-                />
-              </div>
-              
-              <div className="form-group">
-                <label>Apellido:</label>
-                <input
-                  type="text"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  required
-                  placeholder="Tu apellido"
-                />
-              </div>
-            </>
-          )}
-          
           <div className="form-group">
             <label>Email:</label>
             <input
@@ -187,34 +147,17 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
           {successMessage && <div className="success-message">{successMessage}</div>}
           
           <button type="submit" disabled={loading}>
-            {loading ? 'Procesando...' : (isLogin ? 'Iniciar Sesión' : 'Registrarse')}
+            {loading ? 'Procesando...' : 'Iniciar Sesión'}
           </button>
         </form>
         
-        {isLogin && (
-          <p>
-            <button
-              type="button"
-              className="link-button"
-              onClick={() => setShowResetPassword(true)}
-            >
-              ¿Olvidaste tu contraseña?
-            </button>
-          </p>
-        )}
-        
         <p>
-          {isLogin ? '¿No tienes cuenta?' : '¿Ya tienes cuenta?'}
           <button
             type="button"
             className="link-button"
-            onClick={() => {
-              setIsLogin(!isLogin);
-              setError('');
-              setSuccessMessage('');
-            }}
+            onClick={() => setShowResetPassword(true)}
           >
-            {isLogin ? 'Registrarse' : 'Iniciar Sesión'}
+            ¿Olvidaste tu contraseña?
           </button>
         </p>
       </div>
