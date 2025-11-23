@@ -3505,7 +3505,9 @@ const AdminPanel: React.FC = () => {
 
               <div style={{
                 width: '100%',
-                maxHeight: '500px',
+                maxHeight: window.innerHeight < 600 && window.matchMedia('(orientation: landscape)').matches 
+                  ? '250px' 
+                  : '500px',
                 background: 'rgba(0, 0, 0, 0.5)',
                 borderRadius: '8px',
                 display: 'flex',
@@ -3522,7 +3524,9 @@ const AdminPanel: React.FC = () => {
                       autoPlay={isPlaying}
                       style={{
                         width: '100%',
-                        maxHeight: '500px',
+                        maxHeight: window.innerHeight < 600 && window.matchMedia('(orientation: landscape)').matches 
+                          ? '250px' 
+                          : '500px',
                         objectFit: 'contain'
                       }}
                       onEnded={() => {
@@ -3540,7 +3544,9 @@ const AdminPanel: React.FC = () => {
                       alt={playlist[currentExerciseIndex].name}
                       style={{
                         width: '100%',
-                        maxHeight: '500px',
+                        maxHeight: window.innerHeight < 600 && window.matchMedia('(orientation: landscape)').matches 
+                          ? '250px' 
+                          : '500px',
                         objectFit: 'contain'
                       }}
                     />
@@ -3571,12 +3577,15 @@ const AdminPanel: React.FC = () => {
             </div>
           )}
 
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: '20px',
-            height: 'calc(100vh - 300px)'
-          }}>
+          <div 
+            className="reproductor-grid"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: window.innerWidth < 768 ? '1fr' : '1fr 1fr',
+              gap: '20px',
+              height: 'calc(100vh - 300px)'
+            }}
+          >
             {/* Panel Izquierdo - Lista de Reproducción */}
             <div style={{
               background: 'rgba(255, 255, 255, 0.05)',
