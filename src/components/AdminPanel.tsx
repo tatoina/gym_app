@@ -139,12 +139,16 @@ const AdminPanel: React.FC = () => {
   const [userForm, setUserForm] = useState({
     firstName: '',
     lastName: '',
-    email: ''
+    email: '',
+    password: ''
   });
   const [savingUser, setSavingUser] = useState(false);
   const [resetPasswordUserId, setResetPasswordUserId] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [resettingPassword, setResettingPassword] = useState(false);
+  const [showCreateUserModal, setShowCreateUserModal] = useState(false);
+  const [creatingUser, setCreatingUser] = useState(false);
+  const [userSearchQuery, setUserSearchQuery] = useState('');
   
   // Estados para gestión de ejercicios
   const [showExerciseForm, setShowExerciseForm] = useState(false);
@@ -1415,6 +1419,86 @@ const AdminPanel: React.FC = () => {
             </p>
           </div>
 
+          {/* Header con búsqueda y botón de crear */}
+          <div style={{
+            display: 'flex',
+            gap: '15px',
+            marginBottom: '25px',
+            alignItems: 'center',
+            flexWrap: 'wrap'
+          }}>
+            <input
+              type="text"
+              placeholder="🔍 Buscar usuario por nombre o email..."
+              value={userSearchQuery}
+              onChange={(e) => setUserSearchQuery(e.target.value)}
+              style={{
+                flex: '1',
+                minWidth: '250px',
+                padding: '12px 20px',
+                background: '#2d2d2d',
+                border: '2px solid #3d3d3d',
+                borderRadius: '10px',
+                color: '#e0e0e0',
+                fontSize: '14px',
+                transition: 'all 0.3s ease'
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = 'rgba(102, 126, 234, 0.5)';
+                e.currentTarget.style.background = '#333';
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = '#3d3d3d';
+                e.currentTarget.style.background = '#2d2d2d';
+              }}
+            />
+            <button
+              onClick={() => {
+                setUserForm({ firstName: '', lastName: '', email: '', password: '' });
+                setShowCreateUserModal(true);
+              }}
+              style={{
+                padding: '12px 24px',
+                background: 'linear-gradient(135deg, #51cf66 0%, #40c057 100%)',
+                border: 'none',
+                borderRadius: '10px',
+                color: 'white',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                whiteSpace: 'nowrap',
+                boxShadow: '0 4px 12px rgba(81, 207, 102, 0.3)'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 6px 20px rgba(81, 207, 102, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(81, 207, 102, 0.3)';
+              }}
+            >
+              ➕ Crear Usuario
+            </button>
+          </div>
+
+          {/* Contador de resultados */}
+          {userSearchQuery && (
+            <p style={{ 
+              color: '#999', 
+              fontSize: '14px', 
+              marginBottom: '15px',
+              fontStyle: 'italic'
+            }}>
+              {users.filter(user => 
+                user.firstName.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
+                user.lastName.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
+                user.email.toLowerCase().includes(userSearchQuery.toLowerCase())
+              ).length} resultado(s) encontrado(s)
+            </p>
+          )}
+
           {/* Lista de usuarios */}
           <div className="users-list" style={{
             display: 'grid',
@@ -1422,7 +1506,17 @@ const AdminPanel: React.FC = () => {
             gap: '20px',
             marginBottom: '40px'
           }}>
-            {users.map((user) => (
+            {users
+              .filter(user => {
+                if (!userSearchQuery) return true;
+                const query = userSearchQuery.toLowerCase();
+                return (
+                  user.firstName.toLowerCase().includes(query) ||
+                  user.lastName.toLowerCase().includes(query) ||
+                  user.email.toLowerCase().includes(query)
+                );
+              })
+              .map((user) => (
               <div key={user.id} style={{
                 background: 'linear-gradient(145deg, #2d2d2d 0%, #1f1f1f 100%)',
                 border: '2px solid rgba(255, 255, 255, 0.1)',
@@ -1471,7 +1565,8 @@ const AdminPanel: React.FC = () => {
                       setUserForm({
                         firstName: user.firstName,
                         lastName: user.lastName,
-                        email: user.email
+                        email: user.email,
+                        password: ''
                       });
                     }}
                     style={{
@@ -1524,6 +1619,190 @@ const AdminPanel: React.FC = () => {
               </div>
             ))}
           </div>
+
+          {/* Modal de crear usuario */}
+          {showCreateUserModal && (
+            <div className="modal-overlay" onClick={() => setShowCreateUserModal(false)}>
+              <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                <h3 style={{ margin: '0 0 20px 0', color: '#51cf66' }}>
+                  ➕ Crear Nuevo Usuario
+                </h3>
+                
+                <div className="form-group">
+                  <label>Nombre *</label>
+                  <input
+                    type="text"
+                    value={userForm.firstName}
+                    onChange={(e) => setUserForm({ ...userForm, firstName: e.target.value })}
+                    placeholder="Juan"
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      background: '#2d2d2d',
+                      border: '1px solid #3d3d3d',
+                      borderRadius: '6px',
+                      color: '#e0e0e0',
+                      fontSize: '14px',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Apellidos *</label>
+                  <input
+                    type="text"
+                    value={userForm.lastName}
+                    onChange={(e) => setUserForm({ ...userForm, lastName: e.target.value })}
+                    placeholder="Pérez García"
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      background: '#2d2d2d',
+                      border: '1px solid #3d3d3d',
+                      borderRadius: '6px',
+                      color: '#e0e0e0',
+                      fontSize: '14px',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Email *</label>
+                  <input
+                    type="email"
+                    value={userForm.email}
+                    onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
+                    placeholder="usuario@ejemplo.com"
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      background: '#2d2d2d',
+                      border: '1px solid #3d3d3d',
+                      borderRadius: '6px',
+                      color: '#e0e0e0',
+                      fontSize: '14px',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Contraseña *</label>
+                  <input
+                    type="password"
+                    value={userForm.password}
+                    onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
+                    placeholder="Mínimo 6 caracteres"
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      background: '#2d2d2d',
+                      border: '1px solid #3d3d3d',
+                      borderRadius: '6px',
+                      color: '#e0e0e0',
+                      fontSize: '14px',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                  <small style={{ color: '#999', display: 'block', marginTop: '5px' }}>
+                    💡 El usuario podrá cambiar su contraseña después del primer inicio de sesión
+                  </small>
+                </div>
+
+                <div className="modal-actions">
+                  <button
+                    onClick={async () => {
+                      if (!userForm.firstName.trim() || !userForm.lastName.trim() || 
+                          !userForm.email.trim() || !userForm.password.trim()) {
+                        setMessage({ type: 'error', text: 'Todos los campos son obligatorios' });
+                        return;
+                      }
+
+                      if (userForm.password.length < 6) {
+                        setMessage({ type: 'error', text: 'La contraseña debe tener al menos 6 caracteres' });
+                        return;
+                      }
+
+                      if (!userForm.email.includes('@')) {
+                        setMessage({ type: 'error', text: 'Email inválido' });
+                        return;
+                      }
+
+                      try {
+                        setCreatingUser(true);
+                        
+                        // Importar las funciones necesarias
+                        const { createUserWithEmailAndPassword } = await import('firebase/auth');
+                        const { doc, setDoc } = await import('firebase/firestore');
+                        
+                        // Crear usuario en Firebase Authentication
+                        const userCredential = await createUserWithEmailAndPassword(
+                          auth,
+                          userForm.email.trim(),
+                          userForm.password
+                        );
+
+                        // Crear documento en Firestore
+                        await setDoc(doc(db, 'users', userCredential.user.uid), {
+                          firstName: userForm.firstName.trim(),
+                          lastName: userForm.lastName.trim(),
+                          email: userForm.email.trim(),
+                          createdAt: serverTimestamp()
+                        });
+
+                        // Actualizar lista local
+                        setUsers([...users, {
+                          id: userCredential.user.uid,
+                          firstName: userForm.firstName.trim(),
+                          lastName: userForm.lastName.trim(),
+                          email: userForm.email.trim()
+                        }]);
+
+                        setMessage({ 
+                          type: 'success', 
+                          text: `✅ Usuario ${userForm.firstName} ${userForm.lastName} creado correctamente` 
+                        });
+                        
+                        setShowCreateUserModal(false);
+                        setUserForm({ firstName: '', lastName: '', email: '', password: '' });
+                      } catch (error: any) {
+                        console.error('Error creating user:', error);
+                        let errorMessage = 'Error al crear el usuario';
+                        
+                        if (error.code === 'auth/email-already-in-use') {
+                          errorMessage = 'El email ya está registrado';
+                        } else if (error.code === 'auth/invalid-email') {
+                          errorMessage = 'Email inválido';
+                        } else if (error.code === 'auth/weak-password') {
+                          errorMessage = 'La contraseña es muy débil';
+                        }
+                        
+                        setMessage({ type: 'error', text: `❌ ${errorMessage}` });
+                      } finally {
+                        setCreatingUser(false);
+                      }
+                    }}
+                    disabled={creatingUser}
+                    className="primary-button"
+                  >
+                    {creatingUser ? '⏳ Creando...' : '✅ Crear Usuario'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowCreateUserModal(false);
+                      setUserForm({ firstName: '', lastName: '', email: '', password: '' });
+                    }}
+                    disabled={creatingUser}
+                    className="secondary-button"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Modal de editar usuario */}
           {editingUser && (
