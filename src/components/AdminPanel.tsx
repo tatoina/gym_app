@@ -4003,6 +4003,12 @@ const AdminPanel: React.FC = () => {
                     <div
                       key={exercise.id}
                       draggable
+                      onClick={() => {
+                        // Click para añadir a playlist (funciona en tablets)
+                        if (!playlist.find(e => e.id === exercise.id)) {
+                          setPlaylist([...playlist, exercise]);
+                        }
+                      }}
                       onDragStart={(e) => {
                         setDraggedExercise(exercise);
                         e.currentTarget.style.opacity = '0.5';
@@ -4014,7 +4020,7 @@ const AdminPanel: React.FC = () => {
                         background: 'rgba(255, 255, 255, 0.05)',
                         borderRadius: '10px',
                         overflow: 'hidden',
-                        cursor: 'grab',
+                        cursor: 'pointer',
                         border: '2px solid rgba(255, 255, 255, 0.1)',
                         transition: 'all 0.2s ease'
                       }}
