@@ -153,67 +153,58 @@
   transform: translateY(-2px);
 }
 
-/* Navegación por pestañas */
+/* Navegación por pestañas - Menú Principal */
 .admin-navigation {
   display: flex;
   flex-direction: column;
   gap: 15px;
   margin-bottom: 30px;
+  padding: 10px;
 }
 
 .nav-tab {
   background: linear-gradient(145deg, rgba(30, 30, 30, 0.8) 0%, rgba(20, 20, 20, 0.9) 100%);
   border: 2px solid rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.7);
-  padding: 12px 15px;
+  color: rgba(255, 255, 255, 0.9);
+  padding: 20px 25px;
   cursor: pointer;
   font-weight: bold;
-  border-radius: 10px;
+  border-radius: 12px;
   transition: all 0.3s ease;
-  font-size: 14px;
+  font-size: 16px;
   text-align: left;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 @media (min-width: 768px) {
   .nav-tab {
-    padding: 18px 25px;
-    font-size: 16px;
-    border-radius: 12px;
+    padding: 25px 30px;
+    font-size: 18px;
+    border-radius: 15px;
   }
-}
-
-.nav-tab:not(:last-child)::after {
-  content: '';
-  position: absolute;
-  bottom: -8px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 60%;
-  height: 2px;
-  background: rgba(255, 255, 255, 0.3);
 }
 
 .nav-tab:hover {
-  border-color: rgba(102, 126, 234, 0.5);
-  color: rgba(255, 255, 255, 0.9);
-  transform: translateX(-5px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  border-color: rgba(102, 126, 234, 0.6);
+  background: linear-gradient(145deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
+  color: white;
+  transform: translateX(10px) scale(1.02);
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
 }
 
 @media (max-width: 767px) {
-  .nav-tab:hover {
-    transform: translateX(-2px);
+  .nav-tab {
+    padding: 16px 20px;
+    font-size: 15px;
   }
-}
-
-.nav-tab.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border-color: #667eea;
-  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
-  transform: translateY(-2px);
+  
+  .nav-tab:hover {
+    transform: translateX(5px) scale(1.01);
+  }
 }
 
 .admin-message {

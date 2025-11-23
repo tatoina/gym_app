@@ -1224,27 +1224,62 @@ const AdminPanel: React.FC = () => {
         </div>
       </div>
 
-      {/* Navegación de secciones */}
-      <div className="admin-navigation">
-        <button 
-          className={`nav-tab ${activeTab === 'maquinas' ? 'active' : ''}`}
-          onClick={() => setActiveTab(activeTab === 'maquinas' ? null : 'maquinas')}
-        >
-          {activeTab === 'maquinas' ? '✖ Cerrar' : '🏋️'} Gestión de Máquinas
-        </button>
-        <button 
-          className={`nav-tab ${activeTab === 'ejercicios' ? 'active' : ''}`}
-          onClick={() => setActiveTab(activeTab === 'ejercicios' ? null : 'ejercicios')}
-        >
-          {activeTab === 'ejercicios' ? '✖ Cerrar' : '💪'} Gestión de Ejercicios
-        </button>
-        <button 
-          className={`nav-tab ${activeTab === 'tablas' ? 'active' : ''}`}
-          onClick={() => setActiveTab(activeTab === 'tablas' ? null : 'tablas')}
-        >
-          {activeTab === 'tablas' ? '✖ Cerrar' : '📋'} Gestión de Tablas
-        </button>
-      </div>
+      {/* Navegación de secciones - Solo mostrar si no hay tab activo */}
+      {!activeTab && (
+        <div className="admin-navigation">
+          <button 
+            className="nav-tab"
+            onClick={() => setActiveTab('maquinas')}
+          >
+            🏋️ Gestión de Máquinas
+          </button>
+          <button 
+            className="nav-tab"
+            onClick={() => setActiveTab('ejercicios')}
+          >
+            💪 Gestión de Ejercicios
+          </button>
+          <button 
+            className="nav-tab"
+            onClick={() => setActiveTab('tablas')}
+          >
+            📋 Gestión de Tablas
+          </button>
+        </div>
+      )}
+
+      {/* Botón de volver cuando hay un tab activo */}
+      {activeTab && (
+        <div style={{ marginBottom: '20px' }}>
+          <button
+            onClick={() => setActiveTab(null)}
+            style={{
+              padding: '12px 24px',
+              background: 'rgba(255, 255, 255, 0.1)',
+              border: '2px solid rgba(255, 255, 255, 0.2)',
+              borderRadius: '10px',
+              color: '#e0e0e0',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+              e.currentTarget.style.transform = 'translateX(-5px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+              e.currentTarget.style.transform = 'translateX(0)';
+            }}
+          >
+            ← Volver al Menú Principal
+          </button>
+        </div>
+      )}
 
       {message && (
         <div className={`admin-message ${message.type}`}>
@@ -1252,8 +1287,8 @@ const AdminPanel: React.FC = () => {
         </div>
       )}
 
-      {/* Notificaciones de solicitudes de cambio */}
-      {notifications.length > 0 && (
+      {/* Notificaciones de solicitudes de cambio - Solo en menú principal o sección de tablas */}
+      {(!activeTab || activeTab === 'tablas') && notifications.length > 0 && (
         <div className="notifications-section" style={{ 
           background: 'rgba(245, 87, 108, 0.1)', 
           border: '1px solid rgba(245, 87, 108, 0.3)',
@@ -1333,27 +1368,32 @@ const AdminPanel: React.FC = () => {
         {/* Sección de Máquinas Globales (mostrar solo si activeTab === 'maquinas') */}
         {activeTab === 'maquinas' && (
         <>
-          {/* Divisor entre secciones */}
-          <div style={{
-            height: '3px',
-            background: 'linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.3) 50%, transparent 100%)',
-            margin: '40px 0',
-            position: 'relative'
+          {/* Título de la página */}
+          <div style={{ 
+            marginBottom: '30px',
+            padding: '20px',
+            background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)',
+            borderRadius: '15px',
+            border: '2px solid rgba(102, 126, 234, 0.3)'
           }}>
-            <div style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              background: '#1a1a1a',
-              padding: '0 20px',
-              color: 'white',
-              fontSize: '14px',
+            <h2 style={{ 
+              margin: '0',
+              color: '#667eea',
+              fontSize: '28px',
               fontWeight: 'bold',
-              letterSpacing: '3px'
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px'
             }}>
-              • MÁQUINAS •
-            </div>
+              🏋️ Gestión de Máquinas
+            </h2>
+            <p style={{ 
+              margin: '8px 0 0 0',
+              color: '#b0b0b0',
+              fontSize: '14px'
+            }}>
+              Administra las máquinas del gimnasio, organízalas por categorías y asígnalas a los usuarios
+            </p>
           </div>
 
           <div className="global-machines-section" style={{ marginBottom: '40px' }}>
@@ -1935,32 +1975,37 @@ const AdminPanel: React.FC = () => {
         {/* Sección de Gestión de Ejercicios */}
         {activeTab === 'ejercicios' && (
         <>
-          {/* Divisor entre secciones */}
-          <div style={{
-            height: '3px',
-            background: 'linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.3) 50%, transparent 100%)',
-            margin: '40px 0',
-            position: 'relative'
+          {/* Título de la página */}
+          <div style={{ 
+            marginBottom: '30px',
+            padding: '20px',
+            background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)',
+            borderRadius: '15px',
+            border: '2px solid rgba(102, 126, 234, 0.3)'
           }}>
-            <div style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              background: '#1a1a1a',
-              padding: '0 20px',
-              color: 'white',
-              fontSize: '14px',
+            <h2 style={{ 
+              margin: '0',
+              color: '#667eea',
+              fontSize: '28px',
               fontWeight: 'bold',
-              letterSpacing: '3px'
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px'
             }}>
-              • EJERCICIOS •
-            </div>
+              💪 Gestión de Ejercicios
+            </h2>
+            <p style={{ 
+              margin: '8px 0 0 0',
+              color: '#b0b0b0',
+              fontSize: '14px'
+            }}>
+              Crea y gestiona ejercicios específicos para cada máquina del gimnasio
+            </p>
           </div>
           
           <div className="machines-section">
           <div className="machines-header">
-            <h2>💪 Gestión de Ejercicios</h2>
+            <h2 style={{ display: 'none' }}>💪 Gestión de Ejercicios</h2>
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
               <button 
                 onClick={() => showExerciseForm ? setShowExerciseForm(false) : openNewExerciseForm()}
@@ -2300,27 +2345,32 @@ const AdminPanel: React.FC = () => {
         {/* Sección de asignación de tablas (mostrar solo si activeTab === 'tablas') */}
         {activeTab === 'tablas' && (
         <>
-          {/* Divisor entre secciones */}
-          <div style={{
-            height: '3px',
-            background: 'linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.3) 50%, transparent 100%)',
-            margin: '40px 0',
-            position: 'relative'
+          {/* Título de la página */}
+          <div style={{ 
+            marginBottom: '30px',
+            padding: '20px',
+            background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)',
+            borderRadius: '15px',
+            border: '2px solid rgba(102, 126, 234, 0.3)'
           }}>
-            <div style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              background: '#1a1a1a',
-              padding: '0 20px',
-              color: 'white',
-              fontSize: '14px',
+            <h2 style={{ 
+              margin: '0',
+              color: '#667eea',
+              fontSize: '28px',
               fontWeight: 'bold',
-              letterSpacing: '3px'
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px'
             }}>
-              • TABLAS DE ENTRENAMIENTO •
-            </div>
+              📋 Gestión de Tablas de Entrenamiento
+            </h2>
+            <p style={{ 
+              margin: '8px 0 0 0',
+              color: '#b0b0b0',
+              fontSize: '14px'
+            }}>
+              Asigna y gestiona las rutinas de entrenamiento de cada usuario
+            </p>
           </div>
 
           <div className="user-selector-section">
