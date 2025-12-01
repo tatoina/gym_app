@@ -15,6 +15,9 @@ interface Exercise {
   machineId?: string;
   machineName?: string;
   machinePhotoUrl?: string;
+  // Campos específicos para CORE
+  time?: number;
+  additionalNotes?: string;
 }
 
 interface Category {
@@ -729,6 +732,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
             {currentWorkout.exercises.map((exercise, index) => {
               const machineLabel = exercise.machineName || 'Máquina no especificada';
               const displayName = exercise.name || machineLabel;
+              const isCoreExercise = exercise.machineName === 'CORE';
 
               return (
                 <div key={index} className="exercise-item">
@@ -743,10 +747,25 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
                     <div>
                       <p className="exercise-machine-name">{machineLabel}</p>
                       <p className="exercise-name">{displayName}</p>
+                      {isCoreExercise && exercise.additionalNotes && (
+                        <p className="exercise-additional-notes" style={{ fontSize: '12px', color: '#999', marginTop: '4px' }}>
+                          ➕ {exercise.additionalNotes}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="exercise-meta">
-                    {exercise.sets} series × {exercise.reps} repeticiones @ {exercise.weight} kg
+                    {isCoreExercise ? (
+                      // Mostrar información especial para CORE
+                      <>
+                        {exercise.time && <span>⏱️ {exercise.time}s</span>}
+                        {exercise.sets && <span>{exercise.sets} series</span>}
+                        {exercise.reps && <span>× {exercise.reps} reps</span>}
+                      </>
+                    ) : (
+                      // Mostrar información normal
+                      <>{exercise.sets} series × {exercise.reps} repeticiones @ {exercise.weight} kg</>
+                    )}
                   </div>
                   <button onClick={() => removeExercise(index)} className="remove-btn" aria-label="Eliminar ejercicio">❌</button>
                 </div>
@@ -819,7 +838,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
                       <input
                         id="exercise-name"
                         type="text"
-                        placeholder="Ej. Press pecho en máquina"
+                        placeholder={selectedMachine?.name === 'CORE' ? 'Ej. Plancha frontal' : 'Ej. Press pecho en máquina'}
                         value={newExercise.name}
                         onChange={(e) => {
                           setExerciseError('');
@@ -828,69 +847,149 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
                       />
                     </div>
 
-                    <div className="metrics-grid">
-                      <div className="form-group">
-                        <label htmlFor="exercise-sets">Series</label>
-                        <input
-                          id="exercise-sets"
-                          type="number"
-                          min="1"
-                          value={newExercise.sets}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            if (value === '') {
-                              setNewExercise((prev) => ({ ...prev, sets: '' as any }));
-                            } else {
-                              const parsed = parseInt(value, 10);
-                              if (!Number.isNaN(parsed)) {
-                                setNewExercise((prev) => ({ ...prev, sets: Math.max(1, parsed) }));
+                    {selectedMachine?.name === 'CORE' ? (
+                      // Campos especiales para CORE
+                      <>
+                        <div className="metrics-grid">
+                          <div className="form-group">
+                            <label htmlFor="exercise-time">⏱️ Tiempo (segundos)</label>
+                            <input
+                              id="exercise-time"
+                              type="number"
+                              min="0"
+                              placeholder="Ej. 60"
+                              value={newExercise.time || ''}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                if (value === '') {
+                                  setNewExercise((prev) => ({ ...prev, time: undefined }));
+                                } else {
+                                  const parsed = parseInt(value, 10);
+                                  if (!Number.isNaN(parsed)) {
+                                    setNewExercise((prev) => ({ ...prev, time: Math.max(0, parsed) }));
+                                  }
+                                }
+                              }}
+                            />
+                          </div>
+                          <div className="form-group">
+                            <label htmlFor="exercise-sets">Series</label>
+                            <input
+                              id="exercise-sets"
+                              type="number"
+                              min="1"
+                              value={newExercise.sets}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                if (value === '') {
+                                  setNewExercise((prev) => ({ ...prev, sets: '' as any }));
+                                } else {
+                                  const parsed = parseInt(value, 10);
+                                  if (!Number.isNaN(parsed)) {
+                                    setNewExercise((prev) => ({ ...prev, sets: Math.max(1, parsed) }));
+                                  }
+                                }
+                              }}
+                            />
+                          </div>
+                          <div className="form-group">
+                            <label htmlFor="exercise-reps">Repeticiones</label>
+                            <input
+                              id="exercise-reps"
+                              type="number"
+                              min="1"
+                              value={newExercise.reps}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                if (value === '') {
+                                  setNewExercise((prev) => ({ ...prev, reps: '' as any }));
+                                } else {
+                                  const parsed = parseInt(value, 10);
+                                  if (!Number.isNaN(parsed)) {
+                                    setNewExercise((prev) => ({ ...prev, reps: Math.max(1, parsed) }));
+                                  }
+                                }
+                              }}
+                            />
+                          </div>
+                        </div>
+                        <div className="form-group">
+                          <label htmlFor="exercise-additional">➕ Notas adicionales</label>
+                          <textarea
+                            id="exercise-additional"
+                            placeholder="Añade cualquier información adicional..."
+                            value={newExercise.additionalNotes || ''}
+                            onChange={(e) => setNewExercise((prev) => ({ ...prev, additionalNotes: e.target.value }))}
+                            rows={3}
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      // Campos normales para otras máquinas
+                      <div className="metrics-grid">
+                        <div className="form-group">
+                          <label htmlFor="exercise-sets">Series</label>
+                          <input
+                            id="exercise-sets"
+                            type="number"
+                            min="1"
+                            value={newExercise.sets}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (value === '') {
+                                setNewExercise((prev) => ({ ...prev, sets: '' as any }));
+                              } else {
+                                const parsed = parseInt(value, 10);
+                                if (!Number.isNaN(parsed)) {
+                                  setNewExercise((prev) => ({ ...prev, sets: Math.max(1, parsed) }));
+                                }
                               }
-                            }
-                          }}
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label htmlFor="exercise-reps">Repeticiones</label>
-                        <input
-                          id="exercise-reps"
-                          type="number"
-                          min="1"
-                          value={newExercise.reps}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            if (value === '') {
-                              setNewExercise((prev) => ({ ...prev, reps: '' as any }));
-                            } else {
-                              const parsed = parseInt(value, 10);
-                              if (!Number.isNaN(parsed)) {
-                                setNewExercise((prev) => ({ ...prev, reps: Math.max(1, parsed) }));
+                            }}
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label htmlFor="exercise-reps">Repeticiones</label>
+                          <input
+                            id="exercise-reps"
+                            type="number"
+                            min="1"
+                            value={newExercise.reps}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (value === '') {
+                                setNewExercise((prev) => ({ ...prev, reps: '' as any }));
+                              } else {
+                                const parsed = parseInt(value, 10);
+                                if (!Number.isNaN(parsed)) {
+                                  setNewExercise((prev) => ({ ...prev, reps: Math.max(1, parsed) }));
+                                }
                               }
-                            }
-                          }}
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label htmlFor="exercise-weight">Peso (kg)</label>
-                        <input
-                          id="exercise-weight"
-                          type="number"
-                          min="0"
-                          step="0.5"
-                          value={newExercise.weight}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            if (value === '') {
-                              setNewExercise((prev) => ({ ...prev, weight: '' as any }));
-                            } else {
-                              const parsed = parseFloat(value);
-                              if (!Number.isNaN(parsed)) {
-                                setNewExercise((prev) => ({ ...prev, weight: Math.max(0, parsed) }));
+                            }}
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label htmlFor="exercise-weight">Peso (kg)</label>
+                          <input
+                            id="exercise-weight"
+                            type="number"
+                            min="0"
+                            step="0.5"
+                            value={newExercise.weight}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (value === '') {
+                                setNewExercise((prev) => ({ ...prev, weight: '' as any }));
+                              } else {
+                                const parsed = parseFloat(value);
+                                if (!Number.isNaN(parsed)) {
+                                  setNewExercise((prev) => ({ ...prev, weight: Math.max(0, parsed) }));
+                                }
                               }
-                            }
-                          }}
-                        />
+                            }}
+                          />
+                        </div>
                       </div>
-                    </div>
+                    )}
 
                     {exerciseError && <div className="form-error">{exerciseError}</div>}
 
