@@ -249,7 +249,11 @@ const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false }) => {
   // Verificar si una fecha tiene entrenamientos
   const tileClassName = ({ date, view }: { date: Date; view: string }) => {
     if (view === 'month') {
-      const dateStr = date.toISOString().split('T')[0];
+      // Usar fecha local para evitar desfase de zona horaria
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const dateStr = `${year}-${month}-${day}`;
       const datesWithWorkouts = getDatesWithWorkouts();
       if (datesWithWorkouts.has(dateStr)) {
         return 'has-workout';
@@ -261,7 +265,11 @@ const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false }) => {
   // Manejar selección de fecha en el calendario
   const handleCalendarChange = (value: any) => {
     if (value && value instanceof Date) {
-      const dateStr = value.toISOString().split('T')[0];
+      // Usar fecha local para evitar desfase de zona horaria
+      const year = value.getFullYear();
+      const month = String(value.getMonth() + 1).padStart(2, '0');
+      const day = String(value.getDate()).padStart(2, '0');
+      const dateStr = `${year}-${month}-${day}`;
       setSelectedCalendarDate(value);
       setExpandedDate(dateStr);
       
@@ -332,19 +340,21 @@ const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false }) => {
       </div>
 
       {/* Calendario */}
-      <div className="calendar-section" style={{ marginTop: '20px', marginBottom: '30px' }}>
-        <h3 style={{ marginBottom: '15px' }}>📅 Calendario de Entrenamientos</h3>
-        <div className="calendar-wrapper">
-          <Calendar
-            onChange={handleCalendarChange}
-            value={selectedCalendarDate}
-            tileClassName={tileClassName}
-            locale="es-ES"
-          />
-        </div>
-        <div style={{ marginTop: '10px', fontSize: '14px', color: '#b0b0b0' }}>
-          <span style={{ display: 'inline-block', width: '12px', height: '12px', backgroundColor: '#FFD700', marginRight: '8px', borderRadius: '3px' }}></span>
-          Días con entrenamientos
+      <div style={{ marginTop: '20px', marginBottom: '30px' }}>
+        <h3 style={{ marginBottom: '15px', textAlign: 'center' }}>📅 Calendario de Entrenamientos</h3>
+        <div className="calendar-section">
+          <div className="calendar-wrapper">
+            <Calendar
+              onChange={handleCalendarChange}
+              value={selectedCalendarDate}
+              tileClassName={tileClassName}
+              locale="es-ES"
+            />
+          </div>
+          <div style={{ marginTop: '10px', fontSize: '14px', color: lightTheme ? '#6b7280' : '#b0b0b0', textAlign: 'center' }}>
+            <span style={{ display: 'inline-block', width: '12px', height: '12px', backgroundColor: lightTheme ? '#667eea' : '#FFD700', marginRight: '8px', borderRadius: '3px' }}></span>
+            Días con entrenamientos
+          </div>
         </div>
       </div>
 
@@ -545,52 +555,84 @@ const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false }) => {
             </div>
           )}
 
-          {/* Peso máximo por máquina */}
-          <div className="workout-group" style={{ marginTop: '20px' }}>
-            <div 
-              className="group-header clickable"
-              onClick={() => setShowMaxWeights(!showMaxWeights)}
-            >
-              <h4 className="group-title">
-                🏆 Peso Máximo por Máquina
-              </h4>
-              <button className="expand-button">
-                {showMaxWeights ? '▲' : '▼'}
-              </button>
-            </div>
-            {showMaxWeights && (
-              <div className="exercises-detail" style={{ padding: '15px' }}>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={getMaxWeightByMachine()}>
-                    <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
-                    <XAxis 
-                      dataKey="name" 
-                      stroke={chartColors.axis}
-                      tick={{ fill: chartColors.axis, fontSize: 12 }}
-                      angle={-45}
-                      textAnchor="end"
-                      height={80}
-                    />
-                    <YAxis 
-                      stroke={chartColors.axis}
-                      tick={{ fill: chartColors.axis, fontSize: 12 }}
-                      label={{ value: 'Peso (kg)', angle: -90, position: 'insideLeft', style: { fill: chartColors.axis } }}
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: chartColors.tooltipBg, 
-                        border: `1px solid ${chartColors.tooltipBorder}`,
-                        borderRadius: '8px',
-                        color: chartColors.tooltipText
-                      }}
-                      formatter={(value: any) => [`${value} kg`, 'Peso Máximo']}
-                    />
-                    <Bar dataKey="weight" fill="#FFD700" radius={[8, 8, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+          {/* Gráficos individuales por máquina */}
+          <h3 style={{ marginTop: '30px', marginBottom: '15px' }}>📊 Evolución por Máquina</h3>
+          {machines.map((machine) => {
+            const machineWorkouts = workouts.filter(w => w.machineId === machine.id);
+            if (machineWorkouts.length === 0) return null;
+            
+            // Obtener peso máximo por fecha para esta máquina
+            const weightsByDate = new Map<string, number>();
+            machineWorkouts.forEach((w) => {
+              const weight = Number(w.weight) || 0;
+              const currentMax = weightsByDate.get(w.date) || 0;
+              if (weight > currentMax) {
+                weightsByDate.set(w.date, weight);
+              }
+            });
+            
+            const chartData = Array.from(weightsByDate.entries())
+              .sort((a, b) => a[0].localeCompare(b[0]))
+              .map(([date, weight]) => ({
+                date,
+                displayDate: new Date(date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }),
+                weight
+              }));
+            
+            const maxWeight = Math.max(...chartData.map(d => d.weight), 0);
+            const isExpanded = expandedGraphDate === machine.id;
+            
+            return (
+              <div key={machine.id} className="workout-group" style={{ marginTop: '15px' }}>
+                <div 
+                  className="group-header clickable"
+                  onClick={() => setExpandedGraphDate(isExpanded ? null : machine.id)}
+                >
+                  <h4 className="group-title">
+                    🏋️ {machine.name} - Máx: {maxWeight} kg
+                  </h4>
+                  <div className="group-header-right">
+                    <span className="exercises-count-badge">
+                      {chartData.length} día{chartData.length > 1 ? 's' : ''}
+                    </span>
+                    <button className="expand-button">
+                      {isExpanded ? '▲' : '▼'}
+                    </button>
+                  </div>
+                </div>
+                {isExpanded && (
+                  <div className="exercises-detail" style={{ padding: '15px' }}>
+                    <ResponsiveContainer width="100%" height={250}>
+                      <BarChart data={chartData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
+                        <XAxis 
+                          dataKey="displayDate" 
+                          stroke={chartColors.axis}
+                          tick={{ fill: chartColors.axis, fontSize: 11 }}
+                        />
+                        <YAxis 
+                          stroke={chartColors.axis}
+                          tick={{ fill: chartColors.axis, fontSize: 11 }}
+                          label={{ value: 'Peso (kg)', angle: -90, position: 'insideLeft', style: { fill: chartColors.axis, fontSize: 11 } }}
+                        />
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: chartColors.tooltipBg, 
+                            border: `1px solid ${chartColors.tooltipBorder}`,
+                            borderRadius: '8px',
+                            color: chartColors.tooltipText
+                          }}
+                          formatter={(value: any) => [`${value} kg`, 'Peso Máximo']}
+                          labelFormatter={(label) => `Fecha: ${label}`}
+                        />
+                        <Bar dataKey="weight" fill={lightTheme ? '#667eea' : '#FFD700'} radius={[8, 8, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            );
+          })}
         </>
       )}
     </div>

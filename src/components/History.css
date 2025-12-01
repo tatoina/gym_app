@@ -951,23 +951,26 @@
 .calendar-wrapper {
   display: flex;
   justify-content: center;
+  overflow-x: auto;
+  padding: 5px;
 }
 
 .react-calendar {
   background: #1a1a1a !important;
   border: 1px solid rgba(255, 255, 255, 0.2) !important;
   border-radius: 12px !important;
-  padding: 15px !important;
+  padding: 10px !important;
   color: #e0e0e0 !important;
   font-family: inherit !important;
   width: 100% !important;
-  max-width: 500px !important;
+  max-width: 450px !important;
+  font-size: 13px !important;
 }
 
 .react-calendar__navigation {
   display: flex !important;
-  height: 44px !important;
-  margin-bottom: 15px !important;
+  height: 40px !important;
+  margin-bottom: 10px !important;
 }
 
 .react-calendar__navigation button {
@@ -975,9 +978,10 @@
   color: #e0e0e0 !important;
   border: 1px solid rgba(255, 255, 255, 0.2) !important;
   border-radius: 8px !important;
-  font-size: 16px !important;
+  font-size: 14px !important;
   font-weight: 600 !important;
-  min-width: 44px !important;
+  min-width: 40px !important;
+  padding: 5px !important;
 }
 
 .react-calendar__navigation button:hover:not(:disabled) {
@@ -992,20 +996,20 @@
 .react-calendar__month-view__weekdays {
   text-align: center !important;
   font-weight: 700 !important;
-  font-size: 12px !important;
+  font-size: 10px !important;
   color: #b0b0b0 !important;
   text-transform: uppercase !important;
 }
 
 .react-calendar__month-view__weekdays__weekday {
-  padding: 10px 0 !important;
+  padding: 5px 2px !important;
 }
 
 .react-calendar__month-view__days__day {
   color: #e0e0e0 !important;
-  border-radius: 8px !important;
-  padding: 10px !important;
-  font-size: 14px !important;
+  border-radius: 6px !important;
+  padding: 8px 4px !important;
+  font-size: 13px !important;
   transition: all 0.2s ease !important;
 }
 
@@ -1033,7 +1037,7 @@
   background: rgba(255, 215, 0, 0.4) !important;
 }
 
-/* Días con entrenamientos */
+/* Dï¿½as con entrenamientos */
 .react-calendar__tile.has-workout {
   background: rgba(255, 215, 0, 0.2) !important;
   border: 2px solid #FFD700 !important;
