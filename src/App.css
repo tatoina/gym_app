@@ -131,37 +131,41 @@
   transform: translateY(-1px);
 }
 
-/* Navegación principal */
+/* Navegación principal - Grid de botones */
 .main-navigation {
   position: fixed;
   top: 80px;
   left: 0;
   right: 0;
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  padding: 12px 8px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 15px;
   background: rgba(26, 26, 26, 0.95);
   backdrop-filter: blur(10px);
   z-index: 998;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  overflow-x: auto;
-  overflow-y: hidden;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
 .main-nav-btn {
-  padding: 10px 16px;
+  padding: 25px 20px;
   background: rgba(255, 255, 255, 0.05);
   color: #b0b0b0;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
+  border-radius: 12px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 600;
   transition: all 0.3s ease;
   white-space: nowrap;
-  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 80px;
 }
 
 .main-nav-btn:hover {
@@ -212,7 +216,7 @@
 
 main {
   min-height: 100vh;
-  padding: 180px 1rem 3rem;
+  padding: 280px 1rem 3rem;
   display: flex;
   justify-content: center;
   background: #0d0d0d;
@@ -225,15 +229,19 @@ main > * {
 
 @media (max-width: 768px) {
   .main-navigation {
-    gap: 6px;
-    padding: 10px 6px;
-    justify-content: flex-start;
+    gap: 8px;
+    padding: 10px;
+    grid-template-columns: 1fr 1fr;
   }
 
   .main-nav-btn {
-    padding: 8px 12px;
-    font-size: 12px;
-    min-width: fit-content;
+    padding: 20px 15px;
+    font-size: 14px;
+    min-height: 70px;
+  }
+  
+  main {
+    padding: 260px 0.5rem 3rem;
   }
 
   .app-container {
@@ -370,19 +378,20 @@ main > * {
 }
 
 .App.light-theme .main-nav-btn {
-  background: rgba(0, 0, 0, 0.05);
+  background: #f7fafc;
   color: #4a5568;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
 }
 
 .App.light-theme .main-nav-btn:hover {
-  background: rgba(0, 0, 0, 0.1);
+  background: #edf2f7;
   color: #2d3748;
 }
 
 .App.light-theme .main-nav-btn.active {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: #ffffff;
+  border-color: transparent;
 }
 
 .App.light-theme main {
