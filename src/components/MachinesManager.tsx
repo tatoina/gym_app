@@ -55,6 +55,8 @@ const MachinesManager: React.FC = () => {
   const [categoryError, setCategoryError] = useState('');
   const [machinePreview, setMachinePreview] = useState<string>('');
   const [exerciseError, setExerciseError] = useState('');
+  const [showGlobalMachines, setShowGlobalMachines] = useState(true);
+  const [showPersonalMachines, setShowPersonalMachines] = useState(true);
 
   const loadCategories = async () => {
     try {
@@ -263,6 +265,8 @@ const MachinesManager: React.FC = () => {
         // Editar máquina existente
         await updateDoc(doc(db, 'machines', machineForm.id), {
           name: trimmedName,
+          categoryId: machineForm.categoryId || null,
+          categoryName: machineForm.categoryName || null,
           description: trimmedDescription,
           photoUrl: uploadedPhotoUrl,
           exercises: exercisesWithUrls,
@@ -274,6 +278,8 @@ const MachinesManager: React.FC = () => {
           userId: auth.currentUser.uid,
           isGlobal: false,
           name: trimmedName,
+          categoryId: machineForm.categoryId || null,
+          categoryName: machineForm.categoryName || null,
           description: trimmedDescription,
           photoUrl: uploadedPhotoUrl,
           exercises: exercisesWithUrls,
@@ -306,10 +312,16 @@ const MachinesManager: React.FC = () => {
   };
 
   const getFilteredMachines = () => {
-    if (categoryFilter === 'Todas') {
-      return machines;
-    }
-    return machines.filter(m => m.categoryName === categoryFilter);
+    return machines.filter(m => {
+      // Filtro por tipo (global/personal)
+      if (!showGlobalMachines && m.isGlobal) return false;
+      if (!showPersonalMachines && !m.isGlobal) return false;
+      
+      // Filtro por categoría
+      if (categoryFilter !== 'Todas' && m.categoryName !== categoryFilter) return false;
+      
+      return true;
+    });
   };
 
   const getUniqueCategories = () => {
@@ -339,20 +351,52 @@ const MachinesManager: React.FC = () => {
         </div>
       </div>
 
-      {/* Filtro por categoría */}
+      {/* Filtros */}
       {machines.length > 0 && (
-        <div className="category-filter-section">
-          <label>Filtrar por categoría:</label>
-          <select 
-            value={categoryFilter} 
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            className="category-filter-select"
-          >
-            <option value="Todas">Todas las categorías</option>
-            {getUniqueCategories().map(cat => (
-              <option key={cat} value={cat}>{cat}</option>
-            ))}
-          </select>
+        <div className="filters-section" style={{ marginBottom: '1rem' }}>
+          {/* Checkboxes para tipo de máquina */}
+          <div className="filter-checkboxes" style={{ 
+            display: 'flex', 
+            gap: '1rem', 
+            marginBottom: '1rem',
+            padding: '0.75rem',
+            background: 'rgba(255, 255, 255, 0.05)',
+            borderRadius: '8px'
+          }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', color: '#e0e0e0' }}>
+              <input
+                type="checkbox"
+                checked={showGlobalMachines}
+                onChange={(e) => setShowGlobalMachines(e.target.checked)}
+                style={{ cursor: 'pointer' }}
+              />
+              <span>🏋️ MAXGYM</span>
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', color: '#e0e0e0' }}>
+              <input
+                type="checkbox"
+                checked={showPersonalMachines}
+                onChange={(e) => setShowPersonalMachines(e.target.checked)}
+                style={{ cursor: 'pointer' }}
+              />
+              <span>👤 Mis máquinas</span>
+            </label>
+          </div>
+
+          {/* Filtro por categoría */}
+          <div className="category-filter-section">
+            <label>Filtrar por categoría:</label>
+            <select 
+              value={categoryFilter} 
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="category-filter-select"
+            >
+              <option value="Todas">📋 Todas las categorías</option>
+              {categories.map(cat => (
+                <option key={cat.id} value={cat.name}>🏷️ {cat.name}</option>
+              ))}
+            </select>
+          </div>
         </div>
       )}
 
@@ -412,6 +456,27 @@ const MachinesManager: React.FC = () => {
                   disabled={machineFormLoading}
                   required
                 />
+              </div>
+
+              <div className="form-group">
+                <label>Categoría</label>
+                <select
+                  value={machineForm.categoryId}
+                  onChange={(e) => {
+                    const selectedCategory = categories.find(cat => cat.id === e.target.value);
+                    setMachineForm({ 
+                      ...machineForm, 
+                      categoryId: e.target.value,
+                      categoryName: selectedCategory?.name || ''
+                    });
+                  }}
+                  disabled={machineFormLoading}
+                >
+                  <option value="">📋 Sin categoría</option>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.id}>🏷️ {cat.name}</option>
+                  ))}
+                </select>
               </div>
 
               <div className="form-group">
