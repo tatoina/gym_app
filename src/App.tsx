@@ -17,7 +17,7 @@ import AppTour from './components/AppTour';
 import './App.css';
 import './theme-light.css';
 
-type View = 'workout' | 'history' | 'assigned' | 'machines' | 'social' | 'admin';
+type View = 'home' | 'workout' | 'history' | 'assigned' | 'machines' | 'social' | 'admin';
 
 const ADMIN_EMAIL = 'max@max.es';
 const APP_VERSION = '2.0.0'; // Incrementar con cada deploy importante
@@ -25,7 +25,7 @@ const APP_VERSION = '2.0.0'; // Incrementar con cada deploy importante
 function App() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [currentView, setCurrentView] = useState<View>('workout');
+  const [currentView, setCurrentView] = useState<View>('home');
   const [isAdmin, setIsAdmin] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [lightTheme, setLightTheme] = useState(false);
@@ -411,41 +411,43 @@ function App() {
                 💡 Sugerencias APP
               </button>
               <button onClick={handleLogout} className="user-menu-logout">
-                🚪 Cerrar Sesión
+                🚺 Cerrar Sesión
               </button>
             </div>
           )}
 
-          <nav className="main-navigation">
+          {currentView === 'home' && (
+            <nav className="main-navigation">
             <button
-              className={`main-nav-btn ${currentView === 'workout' ? 'active' : ''}`}
+              className="main-nav-btn"
               onClick={() => setCurrentView('workout')}
               data-tour="nav-entrenar"
             >
               🏋 Entrenar
             </button>
             <button
-              className={`main-nav-btn ${currentView === 'history' ? 'active' : ''}`}
+              className="main-nav-btn"
               onClick={() => setCurrentView('history')}
               data-tour="nav-historial"
             >
               📊 Historial
             </button>
             <button
-              className={`main-nav-btn ${currentView === 'machines' ? 'active' : ''}`}
+              className="main-nav-btn"
               onClick={() => setCurrentView('machines')}
               data-tour="nav-maquinas"
             >
               🏷️ Máquinas
             </button>
             <button
-              className={`main-nav-btn ${currentView === 'assigned' ? 'active' : ''}`}
+              className="main-nav-btn"
               onClick={() => setCurrentView('assigned')}
               data-tour="nav-tablas"
             >
               📋 Mis Tablas
             </button>
-          </nav>
+            </nav>
+          )}
         </>
       )}
       <main>
@@ -453,14 +455,44 @@ function App() {
           <AdminPanel />
         ) : (
           <>
+            {currentView === 'home' && (
+              <div className="home-view">
+                <h2 style={{ textAlign: 'center', marginBottom: '2rem', color: '#e0e0e0' }}>🏋️‍♂️ MAXGYM</h2>
+                <p style={{ textAlign: 'center', color: '#b0b0b0', marginBottom: '3rem' }}>Selecciona una opción para continuar</p>
+              </div>
+            )}
             {currentView === 'workout' && (
-              <WorkoutLogger onNavigateToHistory={() => setCurrentView('history')} />
+              <>
+                <button onClick={() => setCurrentView('home')} style={{ marginBottom: '1rem', padding: '0.75rem 1.5rem', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', color: '#e0e0e0', cursor: 'pointer', fontSize: '14px' }}>
+                  ← Volver al menú
+                </button>
+                <WorkoutLogger onNavigateToHistory={() => setCurrentView('history')} />
+              </>
             )}
             {currentView === 'history' && (
-              <History onBack={() => setCurrentView('workout')} lightTheme={lightTheme} />
+              <>
+                <button onClick={() => setCurrentView('home')} style={{ marginBottom: '1rem', padding: '0.75rem 1.5rem', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', color: '#e0e0e0', cursor: 'pointer', fontSize: '14px' }}>
+                  ← Volver al menú
+                </button>
+                <History onBack={() => setCurrentView('home')} lightTheme={lightTheme} />
+              </>
             )}
-            {currentView === 'machines' && <MachinesManager />}
-            {currentView === 'assigned' && <AssignedTable />}
+            {currentView === 'machines' && (
+              <>
+                <button onClick={() => setCurrentView('home')} style={{ marginBottom: '1rem', padding: '0.75rem 1.5rem', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', color: '#e0e0e0', cursor: 'pointer', fontSize: '14px' }}>
+                  ← Volver al menú
+                </button>
+                <MachinesManager />
+              </>
+            )}
+            {currentView === 'assigned' && (
+              <>
+                <button onClick={() => setCurrentView('home')} style={{ marginBottom: '1rem', padding: '0.75rem 1.5rem', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', color: '#e0e0e0', cursor: 'pointer', fontSize: '14px' }}>
+                  ← Volver al menú
+                </button>
+                <AssignedTable />
+              </>
+            )}
             {/* FUNCIONALIDAD SOCIAL DESACTIVADA TEMPORALMENTE - FUTURO */}
             {/* {currentView === 'social' && <SocialFeed />} */}
           </>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { collection, query, where, getDocs, orderBy, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { auth, db } from '../services/firebase';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import './History.css';
 
 interface WorkoutRecord {
@@ -47,10 +47,8 @@ const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ sets: 0, reps: 0, weight: 0 });
   
-  // Estados para secciones colapsables
+  // Estado para sección colapsable
   const [showMaxWeights, setShowMaxWeights] = useState(true);
-  const [showCharts, setShowCharts] = useState(true);
-  const [showHistory, setShowHistory] = useState(true);
 
   useEffect(() => {
     loadData();
@@ -221,48 +219,7 @@ const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false }) => {
     return Object.entries(byDate).sort((a, b) => b[0].localeCompare(a[0]));
   };
 
-  const getEvolutionData = (machineId: string) => {
-    const machineWorkouts = workouts
-      .filter((w) => w.machineId === machineId && w.date >= filterDateFrom && w.date <= filterDateTo)
-      .sort((a, b) => a.date.localeCompare(b.date));
 
-    // Agrupar por fecha y obtener peso máximo de cada día
-    const byDate = new Map<string, number>();
-    machineWorkouts.forEach((w) => {
-      const weight = Number(w.weight) || 0;
-      const currentMax = byDate.get(w.date) || 0;
-      if (weight > currentMax) {
-        byDate.set(w.date, weight);
-      }
-    });
-
-    // Convertir a array para gráfico
-    return Array.from(byDate.entries())
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([date, weight]) => ({
-        date,
-        displayDate: new Date(date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }),
-        weight
-      }));
-  };
-
-  const getAllMachinesEvolutionData = () => {
-    const machinesData = machines.map(machine => {
-      const machineEvolution = getEvolutionData(machine.id);
-      const maxWeight = Math.max(...machineEvolution.map(d => d.weight), 0);
-      const workoutsCount = machineEvolution.length;
-      
-      return {
-        machineName: machine.name,
-        machineId: machine.id,
-        maxWeight,
-        workoutsCount,
-        evolution: machineEvolution
-      };
-    }).filter(m => m.workoutsCount > 0);
-
-    return machinesData.sort((a, b) => b.maxWeight - a.maxWeight);
-  };
 
   // Colores dinámicos según el tema
   const chartColors = {
@@ -330,145 +287,45 @@ const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false }) => {
             style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}
           >
             <span>{showMaxWeights ? '▼' : '▶'}</span>
-            Peso Máximo por Máquina
+            🏆 Peso Máximo por Máquina
           </h3>
           {showMaxWeights && (
-            <div className="machine-max-grid">
-              {getMaxWeightByMachine().map((machine, index) => (
-                <div key={index} className="machine-max-card">
-                  <span className="machine-name">{machine.name}</span>
-                  <span className="machine-weight">{machine.weight.toFixed(0)} kg</span>
-                </div>
-              ))}
-            </div>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={getMaxWeightByMachine()}>
+                <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
+                <XAxis 
+                  dataKey="name" 
+                  stroke={chartColors.axis}
+                  tick={{ fill: chartColors.axis, fontSize: 12 }}
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                />
+                <YAxis 
+                  stroke={chartColors.axis}
+                  tick={{ fill: chartColors.axis, fontSize: 12 }}
+                  label={{ value: 'Peso (kg)', angle: -90, position: 'insideLeft', style: { fill: chartColors.axis } }}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: chartColors.tooltipBg, 
+                    border: `1px solid ${chartColors.tooltipBorder}`,
+                    borderRadius: '8px',
+                    color: chartColors.tooltipText
+                  }}
+                  formatter={(value: any) => [`${value} kg`, 'Peso Máximo']}
+                />
+                <Bar dataKey="weight" fill="#FFD700" radius={[8, 8, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           )}
         </div>
       )}
 
-      {filteredWorkouts.length > 0 && (
-        <div className="evolution-charts-section">
-          <h3 
-            onClick={() => setShowCharts(!showCharts)}
-            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}
-          >
-            <span>{showCharts ? '▼' : '▶'}</span>
-            📈 Gráficos de Evolución por Máquina
-          </h3>
-          
-          {showCharts && (
-            filterMachine ? (
-              // Mostrar gráfico detallado de una máquina específica
-              (() => {
-                const evolutionData = getEvolutionData(filterMachine);
-                const machineName = machines.find(m => m.id === filterMachine)?.name || 'Máquina';
-                
-                return evolutionData.length > 0 ? (
-                <div className="single-machine-chart">
-                  <h4>Evolución de {machineName}</h4>
-                  <ResponsiveContainer width="100%" height={400}>
-                    <LineChart data={evolutionData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
-                      <XAxis 
-                        dataKey="displayDate" 
-                        stroke={chartColors.axis}
-                        tick={{ fill: chartColors.axis, style: { fill: chartColors.axis } }}
-                      />
-                      <YAxis 
-                        stroke={chartColors.axis}
-                        tick={{ fill: chartColors.axis, style: { fill: chartColors.axis } }}
-                        label={{ value: 'Peso (kg)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: chartColors.axis } }}
-                      />
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: chartColors.tooltipBg, 
-                          border: `1px solid ${chartColors.tooltipBorder}`,
-                          borderRadius: '8px',
-                          color: chartColors.tooltipText
-                        }}
-                        formatter={(value: any, name: string) => [
-                          `${value} kg`,
-                          'Peso Máximo'
-                        ]}
-                        labelFormatter={(label) => `Fecha: ${label}`}
-                      />
-                      <Line 
-                        type="monotone" 
-                        dataKey="weight" 
-                        stroke="#FFD700" 
-                        strokeWidth={3}
-                        dot={{ fill: '#FFD700', r: 6 }}
-                        activeDot={{ r: 8, fill: '#FFA500' }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                  <div className="chart-legend">
-                    <span className="legend-item">
-                      <span className="legend-color" style={{ backgroundColor: '#FFD700' }}></span>
-                      Peso máximo por fecha
-                    </span>
-                  </div>
-                </div>
-                ) : (
-                  <p className="no-chart-data">Se necesitan al menos 2 entrenamientos para mostrar tendencia</p>
-                );
-              })()
-            ) : (
-              // Mostrar gráficos múltiples de todas las máquinas
-              <div className="multiple-machines-charts">
-                {getAllMachinesEvolutionData().slice(0, 6).map((machineData) => (
-                <div key={machineData.machineId} className="machine-chart-card">
-                  <h4>{machineData.machineName}</h4>
-                  <div className="machine-stats">
-                    <span>Máx: {machineData.maxWeight}kg</span>
-                    <span>{machineData.workoutsCount} entrenamientos</span>
-                  </div>
-                  {machineData.evolution.length > 0 ? (
-                    <ResponsiveContainer width="100%" height={200}>
-                      <LineChart data={machineData.evolution}>
-                        <XAxis 
-                          dataKey="displayDate" 
-                          stroke={chartColors.axis}
-                          tick={{ fontSize: 10, fill: chartColors.axis, style: { fill: chartColors.axis } }}
-                          interval="preserveStartEnd"
-                        />
-                        <YAxis 
-                          stroke={chartColors.axis}
-                          tick={{ fontSize: 10, fill: chartColors.axis, style: { fill: chartColors.axis } }}
-                          domain={['dataMin - 5', 'dataMax + 5']}
-                        />
-                        <Tooltip 
-                          contentStyle={{ 
-                            backgroundColor: chartColors.tooltipBg, 
-                            border: `1px solid ${chartColors.tooltipBorder}`,
-                            borderRadius: '4px',
-                            fontSize: '12px',
-                            color: chartColors.tooltipText
-                          }}
-                          formatter={(value) => [`${value} kg`, 'Peso']}
-                        />
-                        <Line 
-                          type="monotone" 
-                          dataKey="weight" 
-                          stroke="#FFD700" 
-                          strokeWidth={2}
-                          dot={{ fill: '#FFD700', r: 3 }}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="single-point-chart">
-                      <span>Solo 1 entrenamiento registrado</span>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-            )
-          )}
-        </div>
-      )}
+
 
       <div className="grouped-workouts">
+        <h3 style={{ marginTop: '30px', marginBottom: '15px' }}>📅 Historial por Día</h3>
         {groupedData().map(([key, records]) => {
           const isExpanded = expandedDate === key;
           const dateFormatted = new Date(key).toLocaleDateString('es-ES', {
@@ -484,9 +341,9 @@ const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false }) => {
                 className="group-header clickable"
                 onClick={() => setExpandedDate(isExpanded ? null : key)}
               >
-                <h3 className="group-title">
-                  📋 {dateFormatted}
-                </h3>
+                <h4 className="group-title">
+                  {dateFormatted}
+                </h4>
                 <div className="group-header-right">
                   <span className="exercises-count-badge">
                     {records.length} ejercicio{records.length > 1 ? 's' : ''}
@@ -507,7 +364,6 @@ const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false }) => {
                           <th className="col-compact">S</th>
                           <th className="col-compact">R</th>
                           <th className="col-compact">P</th>
-                          <th className="col-photo">Foto</th>
                           <th className="col-actions">Acciones</th>
                         </tr>
                       </thead>
@@ -557,17 +413,6 @@ const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false }) => {
                                   />
                                 ) : (
                                   workout.weight
-                                )}
-                              </td>
-                              <td className="col-photo">
-                                {workout.machinePhotoUrl ? (
-                                  <img
-                                    src={workout.machinePhotoUrl}
-                                    alt={workout.machineName}
-                                    className="machine-thumb"
-                                  />
-                                ) : (
-                                  <span className="no-photo">-</span>
                                 )}
                               </td>
                               <td className="col-actions">

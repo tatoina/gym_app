@@ -216,10 +216,15 @@
 
 main {
   min-height: 100vh;
-  padding: 280px 1rem 3rem;
+  padding: 80px 1rem 3rem;
   display: flex;
   justify-content: center;
   background: #0d0d0d;
+}
+
+/* Cuando está en home, más padding para el menú */
+.App:has(.main-navigation) main {
+  padding-top: 280px;
 }
 
 main > * {
@@ -241,7 +246,11 @@ main > * {
   }
   
   main {
-    padding: 260px 0.5rem 3rem;
+    padding: 80px 0.5rem 3rem;
+  }
+  
+  .App:has(.main-navigation) main {
+    padding-top: 260px;
   }
 
   .app-container {
