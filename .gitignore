@@ -16,6 +16,9 @@ firebase-debug.log
 .env.local
 .env.*.local
 
+# Firebase Admin credentials
+serviceAccountKey.json
+
 # Misc
 .DS_Store
 .vscode/

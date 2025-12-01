@@ -137,23 +137,10 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
         where('isGlobal', '==', true)
       );
       const globalSnapshot = await getDocs(globalMachinesQuery);
-      console.log('📦 Total documentos globales:', globalSnapshot.size);
-      
-      const globalMachines: Machine[] = globalSnapshot.docs.map((docSnap) => {
-        const data = docSnap.data();
-        console.log('🔍 Máquina:', data.name, 'categoryId:', data.categoryId, 'categoryName:', data.categoryName);
-        return {
-          id: docSnap.id,
-          ...(data as Omit<Machine, 'id'>)
-        };
-      });
-      
-      console.log('🏋️ Máquinas globales procesadas:', globalMachines.length);
-      console.log('📋 Categorías en máquinas:', globalMachines.map(m => ({ 
-        name: m.name, 
-        categoryName: m.categoryName,
-        categoryId: m.categoryId 
-      })));
+      const globalMachines: Machine[] = globalSnapshot.docs.map((docSnap) => ({
+        id: docSnap.id,
+        ...(docSnap.data() as Omit<Machine, 'id'>)
+      }));
 
       // Cargar máquinas personales del usuario (incluye las antiguas sin isGlobal)
       const personalMachinesQuery = query(
@@ -796,29 +783,22 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
                       <select
                         id="category-filter"
                         value={categoryFilter}
-                        onChange={(e) => {
-                          console.log('📂 Categoría seleccionada:', e.target.value);
-                          setCategoryFilter(e.target.value);
-                        }}
+                        onChange={(e) => setCategoryFilter(e.target.value)}
                         style={{ marginBottom: '15px' }}
                       >
                         <option value="Todas">📋 Todas las categorías</option>
-                        {(() => {
-                          const filteredMachines = machines.filter(machine => {
-                            if (ownerFilter === 'MAXGYM' && !machine.isGlobal) return false;
-                            if (ownerFilter === 'Personal' && machine.isGlobal) return false;
-                            return true;
-                          });
-                          const categories = Array.from(new Set(
-                            filteredMachines
-                              .map(m => m.categoryName)
-                              .filter(Boolean)
-                          )).sort();
-                          console.log('📋 Categorías disponibles:', categories);
-                          return categories.map(cat => (
-                            <option key={cat} value={cat}>🏷️ {cat}</option>
-                          ));
-                        })()}
+                        {Array.from(new Set(
+                          machines
+                            .filter(machine => {
+                              if (ownerFilter === 'MAXGYM' && !machine.isGlobal) return false;
+                              if (ownerFilter === 'Personal' && machine.isGlobal) return false;
+                              return true;
+                            })
+                            .map(m => m.categoryName)
+                            .filter(Boolean)
+                        )).sort().map(cat => (
+                          <option key={cat} value={cat}>🏷️ {cat}</option>
+                        ))}
                       </select>
                     </div>
 
