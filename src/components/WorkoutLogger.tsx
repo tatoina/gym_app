@@ -715,20 +715,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
           <div className="exercises-section">
             <h4>Ejercicios</h4>
 
-            <div className="machines-toolbar">
-              <span className="machines-status">
-                {loadingMachines
-                  ? 'Cargando máquinas...'
-                  : machines.length === 0
-                    ? 'No tienes máquinas registradas todavía.'
-                    : `${machines.length} máquina${machines.length > 1 ? 's' : ''} disponibles`}
-              </span>
-              <div className="machines-toolbar-buttons">
-                <button type="button" className="ghost-button" onClick={openMachineModalForNew}>
-                  + Añadir máquina
-                </button>
-              </div>
-            </div>
+
             
             {currentWorkout.exercises.map((exercise, index) => {
               const machineLabel = exercise.machineName || 'Máquina no especificada';

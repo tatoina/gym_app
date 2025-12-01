@@ -139,25 +139,29 @@
   right: 0;
   display: flex;
   justify-content: center;
-  gap: 10px;
-  padding: 15px;
+  gap: 8px;
+  padding: 12px 8px;
   background: rgba(26, 26, 26, 0.95);
   backdrop-filter: blur(10px);
   z-index: 998;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .main-nav-btn {
-  padding: 10px 20px;
+  padding: 10px 16px;
   background: rgba(255, 255, 255, 0.05);
   color: #b0b0b0;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 10px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   transition: all 0.3s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .main-nav-btn:hover {
@@ -220,6 +224,18 @@ main > * {
 }
 
 @media (max-width: 768px) {
+  .main-navigation {
+    gap: 6px;
+    padding: 10px 6px;
+    justify-content: flex-start;
+  }
+
+  .main-nav-btn {
+    padding: 8px 12px;
+    font-size: 12px;
+    min-width: fit-content;
+  }
+
   .app-container {
     padding: 0;
   }
