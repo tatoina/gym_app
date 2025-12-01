@@ -137,13 +137,23 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
         where('isGlobal', '==', true)
       );
       const globalSnapshot = await getDocs(globalMachinesQuery);
-      const globalMachines: Machine[] = globalSnapshot.docs.map((docSnap) => ({
-        id: docSnap.id,
-        ...(docSnap.data() as Omit<Machine, 'id'>)
-      }));
+      console.log('📦 Total documentos globales:', globalSnapshot.size);
       
-      console.log('🏋️ Máquinas globales cargadas:', globalMachines.length);
-      console.log('📋 Categorías encontradas:', globalMachines.map(m => ({ name: m.name, category: m.categoryName })));
+      const globalMachines: Machine[] = globalSnapshot.docs.map((docSnap) => {
+        const data = docSnap.data();
+        console.log('🔍 Máquina:', data.name, 'categoryId:', data.categoryId, 'categoryName:', data.categoryName);
+        return {
+          id: docSnap.id,
+          ...(data as Omit<Machine, 'id'>)
+        };
+      });
+      
+      console.log('🏋️ Máquinas globales procesadas:', globalMachines.length);
+      console.log('📋 Categorías en máquinas:', globalMachines.map(m => ({ 
+        name: m.name, 
+        categoryName: m.categoryName,
+        categoryId: m.categoryId 
+      })));
 
       // Cargar máquinas personales del usuario (incluye las antiguas sin isGlobal)
       const personalMachinesQuery = query(
