@@ -131,6 +131,35 @@
   transform: translateY(-1px);
 }
 
+/* Botón de volver pequeño arriba a la derecha */
+.back-btn-top-right {
+  position: fixed;
+  top: 15px;
+  right: 15px;
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #e0e0e0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.back-btn-top-right:hover {
+  background: rgba(255, 215, 0, 0.2);
+  border-color: #FFD700;
+  transform: scale(1.05);
+  box-shadow: 0 6px 16px rgba(255, 215, 0, 0.4);
+}
+
 /* Navegación principal - Grid de botones */
 .main-navigation {
   position: fixed;
@@ -405,6 +434,18 @@ main > * {
 
 .App.light-theme main {
   background: #ffffff;
+}
+
+.App.light-theme .back-btn-top-right {
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  color: #2d3748;
+}
+
+.App.light-theme .back-btn-top-right:hover {
+  background: rgba(102, 126, 234, 0.1);
+  border-color: #667eea;
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.3);
 }
 
 .App.light-theme .theme-toggle-button {
