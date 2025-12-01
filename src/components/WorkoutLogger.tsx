@@ -787,7 +787,17 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
                         style={{ marginBottom: '15px' }}
                       >
                         <option value="Todas">📋 Todas las categorías</option>
-                        {Array.from(new Set(machines.map(m => m.categoryName).filter(Boolean))).sort().map(cat => (
+                        {Array.from(new Set(
+                          machines
+                            .filter(machine => {
+                              // Solo mostrar categorías de máquinas que pasan el filtro de origen
+                              if (ownerFilter === 'MAXGYM' && !machine.isGlobal) return false;
+                              if (ownerFilter === 'Personal' && machine.isGlobal) return false;
+                              return true;
+                            })
+                            .map(m => m.categoryName)
+                            .filter(Boolean)
+                        )).sort().map(cat => (
                           <option key={cat} value={cat}>🏷️ {cat}</option>
                         ))}
                       </select>
