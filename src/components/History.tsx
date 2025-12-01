@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { collection, query, where, getDocs, orderBy, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { auth, db } from '../services/firebase';
 import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import Calendar from 'react-calendar';
+import 'react-calendar/dist/Calendar.css';
 import './History.css';
 
 interface WorkoutRecord {
@@ -29,20 +31,12 @@ interface HistoryProps {
 }
 
 const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false }) => {
-  // Calcular fechas por defecto: última semana
-  const today = new Date();
-  const weekAgo = new Date();
-  weekAgo.setDate(today.getDate() - 7);
-  
-  const defaultDateFrom = weekAgo.toISOString().split('T')[0];
-  const defaultDateTo = today.toISOString().split('T')[0];
-
   const [workouts, setWorkouts] = useState<WorkoutRecord[]>([]);
   const [machines, setMachines] = useState<Machine[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterMachine, setFilterMachine] = useState<string>('');
-  const [filterDateFrom, setFilterDateFrom] = useState<string>(defaultDateFrom);
-  const [filterDateTo, setFilterDateTo] = useState<string>(defaultDateTo);
+  const [filterDateFrom, setFilterDateFrom] = useState<string>('');
+  const [filterDateTo, setFilterDateTo] = useState<string>('');
   const [expandedDate, setExpandedDate] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ sets: 0, reps: 0, weight: 0 });
@@ -50,6 +44,7 @@ const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false }) => {
   // Estados para secciones colapsables
   const [showMaxWeights, setShowMaxWeights] = useState(true);
   const [expandedGraphDate, setExpandedGraphDate] = useState<string | null>(null);
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState<Date | null>(null);
 
   useEffect(() => {
     loadData();
@@ -244,6 +239,42 @@ const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false }) => {
       }));
   };
 
+  // Obtener fechas con entrenamientos para el calendario
+  const getDatesWithWorkouts = () => {
+    const dates = new Set<string>();
+    workouts.forEach(w => dates.add(w.date));
+    return dates;
+  };
+
+  // Verificar si una fecha tiene entrenamientos
+  const tileClassName = ({ date, view }: { date: Date; view: string }) => {
+    if (view === 'month') {
+      const dateStr = date.toISOString().split('T')[0];
+      const datesWithWorkouts = getDatesWithWorkouts();
+      if (datesWithWorkouts.has(dateStr)) {
+        return 'has-workout';
+      }
+    }
+    return null;
+  };
+
+  // Manejar selección de fecha en el calendario
+  const handleCalendarChange = (value: any) => {
+    if (value && value instanceof Date) {
+      const dateStr = value.toISOString().split('T')[0];
+      setSelectedCalendarDate(value);
+      setExpandedDate(dateStr);
+      
+      // Scroll hacia el día seleccionado
+      setTimeout(() => {
+        const element = document.getElementById(`workout-date-${dateStr}`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    }
+  };
+
 
 
   // Colores dinámicos según el tema
@@ -300,6 +331,23 @@ const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false }) => {
         </div>
       </div>
 
+      {/* Calendario */}
+      <div className="calendar-section" style={{ marginTop: '20px', marginBottom: '30px' }}>
+        <h3 style={{ marginBottom: '15px' }}>📅 Calendario de Entrenamientos</h3>
+        <div className="calendar-wrapper">
+          <Calendar
+            onChange={handleCalendarChange}
+            value={selectedCalendarDate}
+            tileClassName={tileClassName}
+            locale="es-ES"
+          />
+        </div>
+        <div style={{ marginTop: '10px', fontSize: '14px', color: '#b0b0b0' }}>
+          <span style={{ display: 'inline-block', width: '12px', height: '12px', backgroundColor: '#FFD700', marginRight: '8px', borderRadius: '3px' }}></span>
+          Días con entrenamientos
+        </div>
+      </div>
+
       {/* Historial por día - PRIMERO */}
       <div className="grouped-workouts">
         {groupedData().map(([key, records]) => {
@@ -312,7 +360,7 @@ const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false }) => {
           });
           
           return (
-            <div key={key} className="workout-group">
+            <div key={key} id={`workout-date-${key}`} className="workout-group">
               <div 
                 className="group-header clickable"
                 onClick={() => setExpandedDate(isExpanded ? null : key)}
