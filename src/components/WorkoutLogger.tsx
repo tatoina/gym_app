@@ -115,7 +115,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
   useEffect(() => { loadCategories(); }, []);
   const [machinePreview, setMachinePreview] = useState<string>('');
   const [exerciseError, setExerciseError] = useState('');
-  const [showMachinesManager, setShowMachinesManager] = useState(false);
   const [sharePublicly, setSharePublicly] = useState(false);
   const [todayExercisesCount, setTodayExercisesCount] = useState(0);
   const [postComment, setPostComment] = useState('');
@@ -724,52 +723,8 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
                 <button type="button" className="ghost-button" onClick={openMachineModalForNew}>
                   + Añadir máquina
                 </button>
-                {machines.length > 0 && (
-                  <button type="button" className="ghost-button" onClick={() => setShowMachinesManager(!showMachinesManager)}>
-                    ⚙️ Gestionar
-                  </button>
-                )}
               </div>
             </div>
-
-            {showMachinesManager && machines.length > 0 && (
-              <div className="machines-list">
-                <h5>Máquinas Disponibles</h5>
-                {machines.map((machine) => (
-                  <div key={machine.id} className="machine-item">
-                    {machine.photoUrl && (
-                      <img src={machine.photoUrl} alt={machine.name} className="machine-item-photo" />
-                    )}
-                    <div className="machine-item-info">
-                      <strong>{machine.name}</strong>
-                      {machine.categoryName && <span className="machine-category-badge">🏷️ {machine.categoryName}</span>}
-                      {machine.description && <p>{machine.description}</p>}
-                      {machine.isGlobal && <span className="global-badge">🌐 Global</span>}
-                    </div>
-                    {!machine.isGlobal && (
-                      <div className="machine-item-actions">
-                        <button
-                          type="button"
-                          className="edit-machine-btn"
-                          onClick={() => openMachineModalForEdit(machine)}
-                          aria-label="Editar máquina"
-                        >
-                          ✏️
-                        </button>
-                        <button
-                          type="button"
-                          className="delete-machine-btn"
-                          onClick={() => handleDeleteMachine(machine.id, machine.name)}
-                          aria-label="Eliminar máquina"
-                        >
-                          🗑️
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
             
             {currentWorkout.exercises.map((exercise, index) => {
               const machineLabel = exercise.machineName || 'Máquina no especificada';

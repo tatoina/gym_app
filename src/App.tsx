@@ -7,6 +7,7 @@ import Auth from './components/Auth';
 import WorkoutLogger from './components/WorkoutLogger';
 import History from './components/History';
 import AssignedTable from './components/AssignedTable';
+import MachinesManager from './components/MachinesManager';
 import AdminPanel from './components/AdminPanel';
 import AppTour from './components/AppTour';
 // PUSH NOTIFICATIONS DESACTIVADAS - No funcionan en Safari iOS
@@ -16,7 +17,7 @@ import AppTour from './components/AppTour';
 import './App.css';
 import './theme-light.css';
 
-type View = 'workout' | 'history' | 'assigned' | 'social' | 'admin';
+type View = 'workout' | 'history' | 'assigned' | 'machines' | 'social' | 'admin';
 
 const ADMIN_EMAIL = 'max@max.es';
 const APP_VERSION = '2.0.0'; // Incrementar con cada deploy importante
@@ -431,6 +432,13 @@ function App() {
               📊 Historial
             </button>
             <button
+              className={`main-nav-btn ${currentView === 'machines' ? 'active' : ''}`}
+              onClick={() => setCurrentView('machines')}
+              data-tour="nav-maquinas"
+            >
+              🏷️ Máquinas
+            </button>
+            <button
               className={`main-nav-btn ${currentView === 'assigned' ? 'active' : ''}`}
               onClick={() => setCurrentView('assigned')}
               data-tour="nav-tablas"
@@ -451,6 +459,7 @@ function App() {
             {currentView === 'history' && (
               <History onBack={() => setCurrentView('workout')} lightTheme={lightTheme} />
             )}
+            {currentView === 'machines' && <MachinesManager />}
             {currentView === 'assigned' && <AssignedTable />}
             {/* FUNCIONALIDAD SOCIAL DESACTIVADA TEMPORALMENTE - FUTURO */}
             {/* {currentView === 'social' && <SocialFeed />} */}
