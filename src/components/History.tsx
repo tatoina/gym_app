@@ -42,8 +42,7 @@ const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false }) => {
   const [editForm, setEditForm] = useState({ sets: 0, reps: 0, weight: 0 });
   
   // Estados para secciones colapsables
-  const [showMaxWeights, setShowMaxWeights] = useState(true);
-  const [expandedGraphDate, setExpandedGraphDate] = useState<string | null>(null);
+  const [showGraphsSection, setShowGraphsSection] = useState(true);
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<Date | null>(null);
 
   useEffect(() => {
@@ -213,30 +212,6 @@ const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false }) => {
       byDate[w.date].push(w);
     });
     return Object.entries(byDate).sort((a, b) => b[0].localeCompare(a[0]));
-  };
-
-  // Obtener datos de peso máximo por fecha para una máquina específica
-  const getMaxWeightByDate = () => {
-    if (!filterMachine) return [];
-    
-    const machineWorkouts = filteredWorkouts.filter(w => w.machineId === filterMachine);
-    const byDate = new Map<string, number>();
-    
-    machineWorkouts.forEach((w) => {
-      const weight = Number(w.weight) || 0;
-      const currentMax = byDate.get(w.date) || 0;
-      if (weight > currentMax) {
-        byDate.set(w.date, weight);
-      }
-    });
-    
-    return Array.from(byDate.entries())
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([date, weight]) => ({
-        date,
-        displayDate: new Date(date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }),
-        weight
-      }));
   };
 
   // Obtener fechas con entrenamientos para el calendario
@@ -507,101 +482,55 @@ const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false }) => {
 
       {/* Gráficos - DESPUÉS del historial */}
       {filteredWorkouts.length > 0 && (
-        <>
-          {/* Gráfico de evolución por máquina seleccionada */}
-          {filterMachine && (
-            <div className="workout-group" style={{ marginTop: '20px' }}>
-              <div 
-                className="group-header clickable"
-                onClick={() => setExpandedGraphDate(expandedGraphDate === 'evolution' ? null : 'evolution')}
-              >
-                <h4 className="group-title">
-                  📈 Evolución de {machines.find(m => m.id === filterMachine)?.name || 'Máquina'}
-                </h4>
-                <button className="expand-button">
-                  {expandedGraphDate === 'evolution' ? '▲' : '▼'}
-                </button>
-              </div>
-              {expandedGraphDate === 'evolution' && (
-                <div className="exercises-detail" style={{ padding: '15px' }}>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={getMaxWeightByDate()}>
-                      <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
-                      <XAxis 
-                        dataKey="displayDate" 
-                        stroke={chartColors.axis}
-                        tick={{ fill: chartColors.axis, fontSize: 12 }}
-                      />
-                      <YAxis 
-                        stroke={chartColors.axis}
-                        tick={{ fill: chartColors.axis, fontSize: 12 }}
-                        label={{ value: 'Peso (kg)', angle: -90, position: 'insideLeft', style: { fill: chartColors.axis } }}
-                      />
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: chartColors.tooltipBg, 
-                          border: `1px solid ${chartColors.tooltipBorder}`,
-                          borderRadius: '8px',
-                          color: chartColors.tooltipText
-                        }}
-                        formatter={(value: any) => [`${value} kg`, 'Peso']}
-                        labelFormatter={(label) => `Fecha: ${label}`}
-                      />
-                      <Bar dataKey="weight" fill="#FFD700" radius={[8, 8, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
+        <div className="workout-group" style={{ marginTop: '30px' }}>
+          <div 
+            className="group-header clickable"
+            onClick={() => setShowGraphsSection(!showGraphsSection)}
+          >
+            <h4 className="group-title">
+              📊 Gráficos de Evolución
+            </h4>
+            <div className="group-header-right">
+              <span className="exercises-count-badge">
+                {machines.filter(m => workouts.some(w => w.machineId === m.id)).length} máquina{machines.filter(m => workouts.some(w => w.machineId === m.id)).length !== 1 ? 's' : ''}
+              </span>
+              <button className="expand-button">
+                {showGraphsSection ? '▲' : '▼'}
+              </button>
             </div>
-          )}
-
-          {/* Gráficos individuales por máquina */}
-          <h3 style={{ marginTop: '30px', marginBottom: '15px' }}>📊 Evolución por Máquina</h3>
-          {machines.map((machine) => {
-            const machineWorkouts = workouts.filter(w => w.machineId === machine.id);
-            if (machineWorkouts.length === 0) return null;
-            
-            // Obtener peso máximo por fecha para esta máquina
-            const weightsByDate = new Map<string, number>();
-            machineWorkouts.forEach((w) => {
-              const weight = Number(w.weight) || 0;
-              const currentMax = weightsByDate.get(w.date) || 0;
-              if (weight > currentMax) {
-                weightsByDate.set(w.date, weight);
-              }
-            });
-            
-            const chartData = Array.from(weightsByDate.entries())
-              .sort((a, b) => a[0].localeCompare(b[0]))
-              .map(([date, weight]) => ({
-                date,
-                displayDate: new Date(date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }),
-                weight
-              }));
-            
-            const maxWeight = Math.max(...chartData.map(d => d.weight), 0);
-            const isExpanded = expandedGraphDate === machine.id;
-            
-            return (
-              <div key={machine.id} className="workout-group" style={{ marginTop: '15px' }}>
-                <div 
-                  className="group-header clickable"
-                  onClick={() => setExpandedGraphDate(isExpanded ? null : machine.id)}
-                >
-                  <h4 className="group-title">
-                    🏋️ {machine.name} - Máx: {maxWeight} kg
-                  </h4>
-                  <div className="group-header-right">
-                    <span className="exercises-count-badge">
-                      {chartData.length} día{chartData.length > 1 ? 's' : ''}
-                    </span>
-                    <button className="expand-button">
-                      {isExpanded ? '▲' : '▼'}
-                    </button>
-                  </div>
-                </div>
-                {isExpanded && (
-                  <div className="exercises-detail" style={{ padding: '15px' }}>
+          </div>
+          
+          {showGraphsSection && (
+            <div style={{ padding: '20px 10px' }}>
+              {machines.map((machine) => {
+                const machineWorkouts = workouts.filter(w => w.machineId === machine.id);
+                if (machineWorkouts.length === 0) return null;
+                
+                // Obtener peso máximo por fecha para esta máquina
+                const weightsByDate = new Map<string, number>();
+                machineWorkouts.forEach((w) => {
+                  const weight = Number(w.weight) || 0;
+                  const currentMax = weightsByDate.get(w.date) || 0;
+                  if (weight > currentMax) {
+                    weightsByDate.set(w.date, weight);
+                  }
+                });
+                
+                const chartData = Array.from(weightsByDate.entries())
+                  .sort((a, b) => a[0].localeCompare(b[0]))
+                  .map(([date, weight]) => ({
+                    date,
+                    displayDate: new Date(date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }),
+                    weight
+                  }));
+                
+                const maxWeight = Math.max(...chartData.map(d => d.weight), 0);
+                
+                return (
+                  <div key={machine.id} style={{ marginBottom: '30px', background: lightTheme ? '#f9fafb' : 'rgba(255, 255, 255, 0.03)', padding: '15px', borderRadius: '12px', border: `1px solid ${lightTheme ? '#e5e7eb' : 'rgba(255, 255, 255, 0.1)'}` }}>
+                    <h4 style={{ margin: '0 0 15px 0', color: lightTheme ? '#111827' : '#e0e0e0', fontSize: '16px' }}>
+                      🏋️ {machine.name} <span style={{ color: lightTheme ? '#667eea' : '#FFD700', fontWeight: '700' }}>- Máx: {maxWeight} kg</span>
+                    </h4>
                     <ResponsiveContainer width="100%" height={250}>
                       <BarChart data={chartData}>
                         <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
@@ -628,12 +557,15 @@ const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false }) => {
                         <Bar dataKey="weight" fill={lightTheme ? '#667eea' : '#FFD700'} radius={[8, 8, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
+                    <p style={{ fontSize: '13px', color: lightTheme ? '#6b7280' : '#b0b0b0', marginTop: '10px', textAlign: 'center' }}>
+                      {chartData.length} día{chartData.length > 1 ? 's' : ''} registrado{chartData.length > 1 ? 's' : ''}
+                    </p>
                   </div>
-                )}
-              </div>
-            );
-          })}
-        </>
+                );
+              })}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
