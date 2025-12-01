@@ -39,7 +39,8 @@ const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false }) => {
   const [editForm, setEditForm] = useState({ sets: 0, reps: 0, weight: 0 });
   
   // Estados para secciones colapsables
-  const [showGraphsSection, setShowGraphsSection] = useState(true);
+  const [showExercisesSection, setShowExercisesSection] = useState(false);
+  const [showGraphsSection, setShowGraphsSection] = useState(false);
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<Date | null>(null);
 
   useEffect(() => {
@@ -294,10 +295,45 @@ const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false }) => {
         </div>
       </div>
 
-      {/* Historial por día - PRIMERO */}
-      <div className="grouped-workouts">
-        {groupedData().map(([key, records]) => {
-          const isExpanded = expandedDate === key;
+      {/* Sección de Ejercicios por Día */}
+      <div style={{ marginBottom: '30px' }}>
+        <div 
+          className="section-header clickable"
+          onClick={() => setShowExercisesSection(!showExercisesSection)}
+          style={{
+            background: lightTheme ? 'linear-gradient(145deg, #ffffff 0%, #f3f4f6 100%)' : 'linear-gradient(145deg, #2d2d2d 0%, #1f1f1f 100%)',
+            padding: '20px',
+            borderRadius: '12px',
+            border: `1px solid ${lightTheme ? '#e5e7eb' : 'rgba(255, 255, 255, 0.1)'}`,
+            cursor: 'pointer',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: showExercisesSection ? '20px' : '0'
+          }}
+        >
+          <h3 style={{ margin: 0, color: lightTheme ? '#111827' : '#e0e0e0', fontSize: '18px' }}>
+            📝 Historial de Ejercicios por Día
+          </h3>
+          <button 
+            className="expand-button"
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: lightTheme ? '#667eea' : '#FFD700',
+              fontSize: '20px',
+              cursor: 'pointer',
+              padding: '5px 10px'
+            }}
+          >
+            {showExercisesSection ? '▲' : '▼'}
+          </button>
+        </div>
+
+        {showExercisesSection && (
+          <div className="grouped-workouts">
+            {groupedData().map(([key, records]) => {
+              const isExpanded = expandedDate === key;
           const dateFormatted = new Date(key).toLocaleDateString('es-ES', {
             weekday: 'long',
             year: 'numeric',
@@ -433,34 +469,46 @@ const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false }) => {
             </div>
           );
         })}
+          </div>
+        )}
       </div>
 
-      {filteredWorkouts.length === 0 && (
-        <div className="no-results">
-          <p>No se encontraron ejercicios con los filtros aplicados.</p>
-        </div>
-      )}
-
-      {/* Gráficos - DESPUÉS del historial */}
+      {/* Sección de Gráficos de Evolución */}
       {filteredWorkouts.length > 0 && (
-        <div className="workout-group" style={{ marginTop: '30px' }}>
+        <div style={{ marginBottom: '30px' }}>
           <div 
-            className="group-header clickable"
+            className="section-header clickable"
             onClick={() => setShowGraphsSection(!showGraphsSection)}
+            style={{
+              background: lightTheme ? 'linear-gradient(145deg, #ffffff 0%, #f3f4f6 100%)' : 'linear-gradient(145deg, #2d2d2d 0%, #1f1f1f 100%)',
+              padding: '20px',
+              borderRadius: '12px',
+              border: `1px solid ${lightTheme ? '#e5e7eb' : 'rgba(255, 255, 255, 0.1)'}`,
+              cursor: 'pointer',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: showGraphsSection ? '20px' : '0'
+            }}
           >
-            <h4 className="group-title">
+            <h3 style={{ margin: 0, color: lightTheme ? '#111827' : '#e0e0e0', fontSize: '18px' }}>
               📊 Gráficos de Evolución
-            </h4>
-            <div className="group-header-right">
-              <span className="exercises-count-badge">
-                {machines.filter(m => workouts.some(w => w.machineId === m.id)).length} máquina{machines.filter(m => workouts.some(w => w.machineId === m.id)).length !== 1 ? 's' : ''}
-              </span>
-              <button className="expand-button">
-                {showGraphsSection ? '▲' : '▼'}
-              </button>
-            </div>
+            </h3>
+            <button 
+              className="expand-button"
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: lightTheme ? '#667eea' : '#FFD700',
+                fontSize: '20px',
+                cursor: 'pointer',
+                padding: '5px 10px'
+              }}
+            >
+              {showGraphsSection ? '▲' : '▼'}
+            </button>
           </div>
-          
+
           {showGraphsSection && (
             <div style={{ padding: '20px 10px' }}>
               {machines.map((machine) => {
@@ -526,6 +574,12 @@ const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false }) => {
               })}
             </div>
           )}
+        </div>
+      )}
+
+      {filteredWorkouts.length === 0 && (
+        <div className="no-results">
+          <p>No se encontraron ejercicios registrados.</p>
         </div>
       )}
     </div>
