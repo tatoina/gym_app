@@ -25,13 +25,18 @@ service cloud.firestore {
     
     // Colección de máquinas
     match /machines/{machineId} {
+      // Todos pueden leer (luego se filtra en el cliente)
       allow read: if isAuthenticated();
+      
+      // Cualquier usuario puede crear una máquina con su userId
+      // El admin puede crear máquinas globales
       allow create: if isAuthenticated() && 
-        (request.resource.data.userId == request.auth.uid || 
-         (request.resource.data.isGlobal == true && isAdmin()));
+        request.resource.data.userId == request.auth.uid;
+      
+      // Solo el dueño puede actualizar/eliminar su máquina
+      // El admin puede actualizar/eliminar cualquier máquina
       allow update, delete: if isAuthenticated() && 
-        (resource.data.userId == request.auth.uid || 
-         (resource.data.isGlobal == true && isAdmin()));
+        (resource.data.userId == request.auth.uid || isAdmin());
     }
     
     // Colección de entrenamientos
