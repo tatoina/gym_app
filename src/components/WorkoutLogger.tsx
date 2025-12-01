@@ -165,6 +165,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
 
   useEffect(() => {
     loadMachines();
+    loadCategories();
   }, []);
 
   useEffect(() => {

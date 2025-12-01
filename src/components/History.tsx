@@ -46,6 +46,11 @@ const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false }) => {
   const [expandedDate, setExpandedDate] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ sets: 0, reps: 0, weight: 0 });
+  
+  // Estados para secciones colapsables
+  const [showMaxWeights, setShowMaxWeights] = useState(true);
+  const [showCharts, setShowCharts] = useState(true);
+  const [showHistory, setShowHistory] = useState(true);
 
   useEffect(() => {
     loadData();
@@ -320,29 +325,44 @@ const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false }) => {
 
       {filteredWorkouts.length > 0 && (
         <div className="max-weights-by-machine">
-          <h3>Peso Máximo por Máquina</h3>
-          <div className="machine-max-grid">
-            {getMaxWeightByMachine().map((machine, index) => (
-              <div key={index} className="machine-max-card">
-                <span className="machine-name">{machine.name}</span>
-                <span className="machine-weight">{machine.weight.toFixed(0)} kg</span>
-              </div>
-            ))}
-          </div>
+          <h3 
+            onClick={() => setShowMaxWeights(!showMaxWeights)}
+            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}
+          >
+            <span>{showMaxWeights ? '▼' : '▶'}</span>
+            Peso Máximo por Máquina
+          </h3>
+          {showMaxWeights && (
+            <div className="machine-max-grid">
+              {getMaxWeightByMachine().map((machine, index) => (
+                <div key={index} className="machine-max-card">
+                  <span className="machine-name">{machine.name}</span>
+                  <span className="machine-weight">{machine.weight.toFixed(0)} kg</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       {filteredWorkouts.length > 0 && (
         <div className="evolution-charts-section">
-          <h3>📈 Gráficos de Evolución por Máquina</h3>
+          <h3 
+            onClick={() => setShowCharts(!showCharts)}
+            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}
+          >
+            <span>{showCharts ? '▼' : '▶'}</span>
+            📈 Gráficos de Evolución por Máquina
+          </h3>
           
-          {filterMachine ? (
-            // Mostrar gráfico detallado de una máquina específica
-            (() => {
-              const evolutionData = getEvolutionData(filterMachine);
-              const machineName = machines.find(m => m.id === filterMachine)?.name || 'Máquina';
-              
-              return evolutionData.length > 0 ? (
+          {showCharts && (
+            filterMachine ? (
+              // Mostrar gráfico detallado de una máquina específica
+              (() => {
+                const evolutionData = getEvolutionData(filterMachine);
+                const machineName = machines.find(m => m.id === filterMachine)?.name || 'Máquina';
+                
+                return evolutionData.length > 0 ? (
                 <div className="single-machine-chart">
                   <h4>Evolución de {machineName}</h4>
                   <ResponsiveContainer width="100%" height={400}>
@@ -388,14 +408,14 @@ const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false }) => {
                     </span>
                   </div>
                 </div>
-              ) : (
-                <p className="no-chart-data">Se necesitan al menos 2 entrenamientos para mostrar tendencia</p>
-              );
-            })()
-          ) : (
-            // Mostrar gráficos múltiples de todas las máquinas
-            <div className="multiple-machines-charts">
-              {getAllMachinesEvolutionData().slice(0, 6).map((machineData) => (
+                ) : (
+                  <p className="no-chart-data">Se necesitan al menos 2 entrenamientos para mostrar tendencia</p>
+                );
+              })()
+            ) : (
+              // Mostrar gráficos múltiples de todas las máquinas
+              <div className="multiple-machines-charts">
+                {getAllMachinesEvolutionData().slice(0, 6).map((machineData) => (
                 <div key={machineData.machineId} className="machine-chart-card">
                   <h4>{machineData.machineName}</h4>
                   <div className="machine-stats">
@@ -443,6 +463,7 @@ const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false }) => {
                 </div>
               ))}
             </div>
+            )
           )}
         </div>
       )}
