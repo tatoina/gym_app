@@ -34,9 +34,6 @@ const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false }) => {
   const [workouts, setWorkouts] = useState<WorkoutRecord[]>([]);
   const [machines, setMachines] = useState<Machine[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filterMachine, setFilterMachine] = useState<string>('');
-  const [filterDateFrom, setFilterDateFrom] = useState<string>('');
-  const [filterDateTo, setFilterDateTo] = useState<string>('');
   const [expandedDate, setExpandedDate] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ sets: 0, reps: 0, weight: 0 });
@@ -179,12 +176,8 @@ const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false }) => {
     }
   };
 
-  const filteredWorkouts = workouts.filter((workout) => {
-    if (filterMachine && workout.machineId !== filterMachine) return false;
-    if (filterDateFrom && workout.date < filterDateFrom) return false;
-    if (filterDateTo && workout.date > filterDateTo) return false;
-    return true;
-  });
+  // Mostrar todos los entrenamientos sin filtros
+  const filteredWorkouts = workouts;
 
   // Calcular peso máximo por máquina
   const getMaxWeightByMachine = () => {
@@ -279,41 +272,6 @@ const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false }) => {
     <div className={`history-container ${lightTheme ? 'light-theme-charts' : ''}`}>
       <h2>📊 Historial y Estadísticas</h2>
 
-      <div className="filters-section">
-        <h3>Filtros</h3>
-        <div className="filters-grid">
-          <div className="filter-group">
-            <label>Máquina:</label>
-            <select value={filterMachine} onChange={(e) => setFilterMachine(e.target.value)}>
-              <option value="">Todas</option>
-              {machines.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="filter-group">
-            <label>Desde:</label>
-            <input
-              type="date"
-              value={filterDateFrom}
-              onChange={(e) => setFilterDateFrom(e.target.value)}
-            />
-          </div>
-
-          <div className="filter-group">
-            <label>Hasta:</label>
-            <input
-              type="date"
-              value={filterDateTo}
-              onChange={(e) => setFilterDateTo(e.target.value)}
-            />
-          </div>
-        </div>
-      </div>
-
       {/* Calendario */}
       <div style={{ marginTop: '20px', marginBottom: '30px' }}>
         <h3 style={{ marginBottom: '15px', textAlign: 'center' }}>📅 Calendario de Entrenamientos</h3>
@@ -324,6 +282,9 @@ const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false }) => {
               value={selectedCalendarDate}
               tileClassName={tileClassName}
               locale="es-ES"
+              formatMonthYear={(locale, date) => 
+                date.toLocaleDateString(locale, { month: 'short', year: 'numeric' }).toUpperCase()
+              }
             />
           </div>
           <div style={{ marginTop: '10px', fontSize: '14px', color: lightTheme ? '#6b7280' : '#b0b0b0', textAlign: 'center' }}>
