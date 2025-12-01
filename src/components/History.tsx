@@ -47,8 +47,9 @@ const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ sets: 0, reps: 0, weight: 0 });
   
-  // Estado para sección colapsable
+  // Estados para secciones colapsables
   const [showMaxWeights, setShowMaxWeights] = useState(true);
+  const [expandedGraphDate, setExpandedGraphDate] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -219,6 +220,30 @@ const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false }) => {
     return Object.entries(byDate).sort((a, b) => b[0].localeCompare(a[0]));
   };
 
+  // Obtener datos de peso máximo por fecha para una máquina específica
+  const getMaxWeightByDate = () => {
+    if (!filterMachine) return [];
+    
+    const machineWorkouts = filteredWorkouts.filter(w => w.machineId === filterMachine);
+    const byDate = new Map<string, number>();
+    
+    machineWorkouts.forEach((w) => {
+      const weight = Number(w.weight) || 0;
+      const currentMax = byDate.get(w.date) || 0;
+      if (weight > currentMax) {
+        byDate.set(w.date, weight);
+      }
+    });
+    
+    return Array.from(byDate.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([date, weight]) => ({
+        date,
+        displayDate: new Date(date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }),
+        weight
+      }));
+  };
+
 
 
   // Colores dinámicos según el tema
@@ -238,12 +263,7 @@ const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false }) => {
 
   return (
     <div className={`history-container ${lightTheme ? 'light-theme-charts' : ''}`}>
-      <header className="history-header">
-        <h1>📊 Historial y Estadísticas</h1>
-        <button onClick={() => onBack?.()} className="back-button">
-          ← Volver
-        </button>
-      </header>
+      <h2>📊 Historial y Estadísticas</h2>
 
       <div className="filters-section">
         <h3>Filtros</h3>
@@ -280,52 +300,8 @@ const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false }) => {
         </div>
       </div>
 
-      {filteredWorkouts.length > 0 && (
-        <div className="max-weights-by-machine">
-          <h3 
-            onClick={() => setShowMaxWeights(!showMaxWeights)}
-            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}
-          >
-            <span>{showMaxWeights ? '▼' : '▶'}</span>
-            🏆 Peso Máximo por Máquina
-          </h3>
-          {showMaxWeights && (
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={getMaxWeightByMachine()}>
-                <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
-                <XAxis 
-                  dataKey="name" 
-                  stroke={chartColors.axis}
-                  tick={{ fill: chartColors.axis, fontSize: 12 }}
-                  angle={-45}
-                  textAnchor="end"
-                  height={80}
-                />
-                <YAxis 
-                  stroke={chartColors.axis}
-                  tick={{ fill: chartColors.axis, fontSize: 12 }}
-                  label={{ value: 'Peso (kg)', angle: -90, position: 'insideLeft', style: { fill: chartColors.axis } }}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: chartColors.tooltipBg, 
-                    border: `1px solid ${chartColors.tooltipBorder}`,
-                    borderRadius: '8px',
-                    color: chartColors.tooltipText
-                  }}
-                  formatter={(value: any) => [`${value} kg`, 'Peso Máximo']}
-                />
-                <Bar dataKey="weight" fill="#FFD700" radius={[8, 8, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-      )}
-
-
-
+      {/* Historial por día - PRIMERO */}
       <div className="grouped-workouts">
-        <h3 style={{ marginTop: '30px', marginBottom: '15px' }}>📅 Historial por Día</h3>
         {groupedData().map(([key, records]) => {
           const isExpanded = expandedDate === key;
           const dateFormatted = new Date(key).toLocaleDateString('es-ES', {
@@ -469,6 +445,105 @@ const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false }) => {
         <div className="no-results">
           <p>No se encontraron ejercicios con los filtros aplicados.</p>
         </div>
+      )}
+
+      {/* Gráficos - DESPUÉS del historial */}
+      {filteredWorkouts.length > 0 && (
+        <>
+          {/* Gráfico de evolución por máquina seleccionada */}
+          {filterMachine && (
+            <div className="workout-group" style={{ marginTop: '20px' }}>
+              <div 
+                className="group-header clickable"
+                onClick={() => setExpandedGraphDate(expandedGraphDate === 'evolution' ? null : 'evolution')}
+              >
+                <h4 className="group-title">
+                  📈 Evolución de {machines.find(m => m.id === filterMachine)?.name || 'Máquina'}
+                </h4>
+                <button className="expand-button">
+                  {expandedGraphDate === 'evolution' ? '▲' : '▼'}
+                </button>
+              </div>
+              {expandedGraphDate === 'evolution' && (
+                <div className="exercises-detail" style={{ padding: '15px' }}>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={getMaxWeightByDate()}>
+                      <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
+                      <XAxis 
+                        dataKey="displayDate" 
+                        stroke={chartColors.axis}
+                        tick={{ fill: chartColors.axis, fontSize: 12 }}
+                      />
+                      <YAxis 
+                        stroke={chartColors.axis}
+                        tick={{ fill: chartColors.axis, fontSize: 12 }}
+                        label={{ value: 'Peso (kg)', angle: -90, position: 'insideLeft', style: { fill: chartColors.axis } }}
+                      />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: chartColors.tooltipBg, 
+                          border: `1px solid ${chartColors.tooltipBorder}`,
+                          borderRadius: '8px',
+                          color: chartColors.tooltipText
+                        }}
+                        formatter={(value: any) => [`${value} kg`, 'Peso']}
+                        labelFormatter={(label) => `Fecha: ${label}`}
+                      />
+                      <Bar dataKey="weight" fill="#FFD700" radius={[8, 8, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Peso máximo por máquina */}
+          <div className="workout-group" style={{ marginTop: '20px' }}>
+            <div 
+              className="group-header clickable"
+              onClick={() => setShowMaxWeights(!showMaxWeights)}
+            >
+              <h4 className="group-title">
+                🏆 Peso Máximo por Máquina
+              </h4>
+              <button className="expand-button">
+                {showMaxWeights ? '▲' : '▼'}
+              </button>
+            </div>
+            {showMaxWeights && (
+              <div className="exercises-detail" style={{ padding: '15px' }}>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={getMaxWeightByMachine()}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
+                    <XAxis 
+                      dataKey="name" 
+                      stroke={chartColors.axis}
+                      tick={{ fill: chartColors.axis, fontSize: 12 }}
+                      angle={-45}
+                      textAnchor="end"
+                      height={80}
+                    />
+                    <YAxis 
+                      stroke={chartColors.axis}
+                      tick={{ fill: chartColors.axis, fontSize: 12 }}
+                      label={{ value: 'Peso (kg)', angle: -90, position: 'insideLeft', style: { fill: chartColors.axis } }}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: chartColors.tooltipBg, 
+                        border: `1px solid ${chartColors.tooltipBorder}`,
+                        borderRadius: '8px',
+                        color: chartColors.tooltipText
+                      }}
+                      formatter={(value: any) => [`${value} kg`, 'Peso Máximo']}
+                    />
+                    <Bar dataKey="weight" fill="#FFD700" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
+        </>
       )}
     </div>
   );
