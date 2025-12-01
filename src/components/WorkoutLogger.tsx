@@ -71,6 +71,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
   const [loadingMachines, setLoadingMachines] = useState(true);
   const [machineModalOpen, setMachineModalOpen] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<string>('Todas');
+  const [ownerFilter, setOwnerFilter] = useState<string>('Todas');
   const [machineFormLoading, setMachineFormLoading] = useState(false);
   const [machineFormError, setMachineFormError] = useState('');
   const [machineForm, setMachineForm] = useState({
@@ -777,6 +778,20 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
                 {machines.length > 0 ? (
                   <>
                     <div className="form-group">
+                      <label htmlFor="owner-filter">Filtrar por Origen</label>
+                      <select
+                        id="owner-filter"
+                        value={ownerFilter}
+                        onChange={(e) => setOwnerFilter(e.target.value)}
+                        style={{ marginBottom: '15px' }}
+                      >
+                        <option value="Todas">🏋️ Todas las máquinas</option>
+                        <option value="MAXGYM">🏋️ MAXGYM</option>
+                        <option value="Personal">👤 Mis máquinas</option>
+                      </select>
+                    </div>
+
+                    <div className="form-group">
                       <label htmlFor="category-filter">Filtrar por Categoría</label>
                       <select
                         id="category-filter"
@@ -800,7 +815,14 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) =>
                       >
                         <option value="">Selecciona una máquina</option>
                         {machines
-                          .filter(machine => categoryFilter === 'Todas' || machine.categoryName === categoryFilter)
+                          .filter(machine => {
+                            // Filtro por origen
+                            if (ownerFilter === 'MAXGYM' && !machine.isGlobal) return false;
+                            if (ownerFilter === 'Personal' && machine.isGlobal) return false;
+                            // Filtro por categoría
+                            if (categoryFilter !== 'Todas' && machine.categoryName !== categoryFilter) return false;
+                            return true;
+                          })
                           .map((machine) => (
                             <option key={machine.id} value={machine.id}>
                               {machine.isGlobal ? '🏋️ ' : '👤 '}{machine.name}

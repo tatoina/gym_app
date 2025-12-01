@@ -1,19 +1,19 @@
 .workout-logger {
   width: 100%;
-  padding: 1.5rem 1rem 3rem;
+  padding: 1rem 0.5rem 3rem;
 }
 
 .current-workout {
   background: linear-gradient(145deg, #2d2d2d 0%, #1f1f1f 100%);
-  padding: 1.5rem;
+  padding: 1rem;
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .workout-form .form-group {
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 .workout-form .share-toggle {
@@ -104,22 +104,24 @@
 
 .workout-form label {
   display: block;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.4rem;
   font-weight: 500;
   color: #b0b0b0;
+  font-size: 0.9rem;
 }
 
 .workout-form input,
 .workout-form textarea,
 .workout-form select {
   width: 100%;
-  padding: 0.75rem;
+  padding: 0.65rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
-  font-size: 1rem;
+  font-size: 0.95rem;
   background: rgba(0, 0, 0, 0.3);
   color: #e0e0e0;
   transition: all 0.3s ease;
+  box-sizing: border-box;
 }
 
 .workout-form input[type="date"] {
@@ -389,20 +391,20 @@
 }
 
 .add-exercise-form {
-  margin-top: 1.25rem;
+  margin-top: 1rem;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.75rem;
   background: rgba(0, 0, 0, 0.3);
   border: 1px dashed rgba(255, 255, 255, 0.2);
-  padding: 1.25rem;
+  padding: 0.75rem;
   border-radius: 12px;
 }
 
 .metrics-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 0.5rem;
 }
 
 .form-error {
@@ -724,11 +726,12 @@
 
 @media (max-width: 768px) {
   .workout-logger {
-    padding: 1rem 0.5rem 2.5rem;
+    padding: 0.5rem 0.25rem 2.5rem;
   }
 
   .current-workout {
-    padding: 1rem;
+    padding: 0.75rem;
+    border-radius: 8px;
   }
 
   .machines-toolbar {
@@ -886,7 +889,24 @@
   }
 
   .add-exercise-form {
-    padding: 1rem;
+    padding: 0.5rem;
+    gap: 0.5rem;
+  }
+
+  .add-exercise-form .form-group {
+    margin-bottom: 0.5rem;
+  }
+
+  .workout-form label {
+    font-size: 0.85rem;
+    margin-bottom: 0.3rem;
+  }
+
+  .workout-form input,
+  .workout-form textarea,
+  .workout-form select {
+    padding: 0.6rem 0.5rem;
+    font-size: 0.95rem;
   }
 }
 
