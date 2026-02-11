@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { collection, query, where, getDocs, orderBy, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { User } from 'firebase/auth';
 import { auth, db } from '../services/firebase';
 import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import Calendar from 'react-calendar';
@@ -28,9 +29,10 @@ interface Machine {
 interface HistoryProps {
   onBack?: () => void;
   lightTheme?: boolean;
+  user: User | null;
 }
 
-const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false }) => {
+const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false, user }) => {
   const [workouts, setWorkouts] = useState<WorkoutRecord[]>([]);
   const [machines, setMachines] = useState<Machine[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,11 +46,16 @@ const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false }) => {
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<Date | null>(null);
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (user) {
+      loadData();
+    }
+  }, [user]);
 
   const loadData = async () => {
-    if (!auth.currentUser) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
@@ -56,7 +63,7 @@ const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false }) => {
       // Cargar entrenamientos (sin orderBy para evitar índice compuesto)
       const workoutsQuery = query(
         collection(db, 'workouts'),
-        where('userId', '==', auth.currentUser.uid)
+        where('userId', '==', user.uid)
       );
       const workoutsSnapshot = await getDocs(workoutsQuery);
       const workoutsData: WorkoutRecord[] = workoutsSnapshot.docs.map((doc) => {

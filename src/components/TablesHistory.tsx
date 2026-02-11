@@ -1,12 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
+import { User } from 'firebase/auth';
 import { auth, db } from '../services/firebase';
 import './TablesHistory.css';
 
 interface AssignedExercise {
-  machineId: string;
-  machineName: string;
+  // Nuevo formato con categorías
+  categoryId?: string;
+  categoryName?: string;
+  // Formato antiguo con máquinas (para compatibilidad)
+  machineId?: string;
+  machineName?: string;
   machinePhotoUrl?: string;
+  // Campos del ejercicio específico
+  exerciseId?: string;
+  exerciseName?: string;
+  exercisePhotoUrl?: string;
+  // Métricas
   series: number;
   reps: number;
   weight?: number;
@@ -27,25 +37,31 @@ interface CompletedTable {
 
 interface TablesHistoryProps {
   onBack?: () => void;
+  user: User | null;
 }
 
-const TablesHistory: React.FC<TablesHistoryProps> = ({ onBack }) => {
+const TablesHistory: React.FC<TablesHistoryProps> = ({ onBack, user }) => {
   const [completedTables, setCompletedTables] = useState<CompletedTable[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedTableId, setExpandedTableId] = useState<string | null>(null);
 
   useEffect(() => {
-    loadCompletedTables();
-  }, []);
+    if (user) {
+      loadCompletedTables();
+    }
+  }, [user]);
 
   const loadCompletedTables = async () => {
-    if (!auth.currentUser) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
       const q = query(
         collection(db, 'assignedTables'),
-        where('userId', '==', auth.currentUser.uid),
+        where('userId', '==', user.uid),
         where('status', '==', 'COMPLETADA')
       );
       
@@ -179,26 +195,36 @@ const TablesHistory: React.FC<TablesHistoryProps> = ({ onBack }) => {
                 <table className="exercises-table">
                   <thead>
                     <tr>
-                      <th>Máquina</th>
+                      <th>Categoría / Ejercicio</th>
                       <th className="col-compact">S</th>
                       <th className="col-compact">R</th>
                       <th className="col-compact">P</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {table.exercises.map((exercise: AssignedExercise, index: number) => (
+                    {table.exercises.map((exercise: AssignedExercise, index: number) => {
+                      // Determinar qué nombre mostrar (nuevo formato o antiguo)
+                      const displayName = exercise.categoryName || exercise.machineName || 'Sin categoría';
+                      const photoUrl = exercise.exercisePhotoUrl || exercise.machinePhotoUrl;
+                      
+                      return (
                       <tr key={index}>
                         <td>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            {exercise.machinePhotoUrl && (
+                            {photoUrl && (
                               <img 
-                                src={exercise.machinePhotoUrl} 
-                                alt={exercise.machineName}
+                                src={photoUrl} 
+                                alt={displayName}
                                 style={{ width: '35px', height: '35px', objectFit: 'cover', borderRadius: '4px' }}
                               />
                             )}
                             <div>
-                              <strong>{exercise.machineName}</strong>
+                              <strong>{displayName}</strong>
+                              {exercise.exerciseName && (
+                                <div style={{ fontSize: '11px', color: '#667eea', marginTop: '2px' }}>
+                                  💪 {exercise.exerciseName}
+                                </div>
+                              )}
                               {exercise.notes && (
                                 <div style={{ fontSize: '11px', color: '#999', marginTop: '2px' }}>
                                   💡 {exercise.notes}
@@ -213,7 +239,7 @@ const TablesHistory: React.FC<TablesHistoryProps> = ({ onBack }) => {
                           {(exercise as any).weight || '-'}
                         </td>
                       </tr>
-                    ))}
+                    )})}
                   </tbody>
                 </table>
               </div>

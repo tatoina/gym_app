@@ -100,6 +100,15 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
     
+    // Colección de categorías de ejercicios
+    match /exerciseCategories/{categoryId} {
+      // Todos los usuarios autenticados pueden leer categorías de ejercicios
+      allow read: if isAuthenticated();
+      
+      // Solo el admin puede crear, actualizar y eliminar categorías de ejercicios
+      allow create, update, delete: if isAdmin();
+    }
+    
     // Colección de configuración
     match /config/{configId} {
       // Solo el admin puede leer y escribir configuración

@@ -7,7 +7,6 @@ import Auth from './components/Auth';
 import WorkoutLogger from './components/WorkoutLogger';
 import History from './components/History';
 import AssignedTable from './components/AssignedTable';
-import MachinesManager from './components/MachinesManager';
 import AdminPanel from './components/AdminPanel';
 import AppTour from './components/AppTour';
 // PUSH NOTIFICATIONS DESACTIVADAS - No funcionan en Safari iOS
@@ -17,7 +16,7 @@ import AppTour from './components/AppTour';
 import './App.css';
 import './theme-light.css';
 
-type View = 'home' | 'workout' | 'history' | 'assigned' | 'machines' | 'social' | 'admin';
+type View = 'home' | 'workout' | 'history' | 'assigned' | 'social' | 'admin';
 
 const ADMIN_EMAIL = 'max@max.es';
 const APP_VERSION = '2.0.0'; // Incrementar con cada deploy importante
@@ -89,49 +88,6 @@ function App() {
     const setupNewUser = async () => {
       if (user && !isAdmin) {
         const hasSeenTour = localStorage.getItem(`tour_seen_${user.uid}`);
-        
-        // Verificar si ya tiene tabla asignada
-        const tablesQuery = query(
-          collection(db, 'assignedTables'),
-          where('userId', '==', user.uid)
-        );
-        const tablesSnapshot = await getDocs(tablesQuery);
-        
-        // Si no tiene tablas, asignarle una de ejemplo
-        if (tablesSnapshot.empty) {
-          try {
-            // Obtener máquinas disponibles
-            const machinesSnapshot = await getDocs(collection(db, 'machines'));
-            
-            if (!machinesSnapshot.empty) {
-              // Tomar las primeras 5 máquinas como ejemplo
-              const exampleExercises = machinesSnapshot.docs.slice(0, 5).map(doc => ({
-                machineId: doc.id,
-                machineName: doc.data().name,
-                machinePhotoUrl: doc.data().photoUrl || undefined,
-                series: 3,
-                reps: 12,
-                weight: 10,
-                notes: 'Tabla de ejemplo - Puedes solicitar cambios a Max'
-              }));
-
-              // Crear tabla de ejemplo
-              await addDoc(collection(db, 'assignedTables'), {
-                userId: user.uid,
-                exercises: exampleExercises,
-                assignedBy: 'system',
-                assignedByName: 'MAXGYM',
-                createdAt: serverTimestamp(),
-                updatedAt: serverTimestamp(),
-                status: 'ACTIVA'
-              });
-
-              console.log('✅ Tabla de ejemplo asignada');
-            }
-          } catch (error) {
-            console.error('Error creating example table:', error);
-          }
-        }
         
         // Mostrar tour si es primera vez
         if (!hasSeenTour) {
@@ -434,13 +390,6 @@ function App() {
             </button>
             <button
               className="main-nav-btn"
-              onClick={() => setCurrentView('machines')}
-              data-tour="nav-maquinas"
-            >
-              🏷️ Máquinas
-            </button>
-            <button
-              className="main-nav-btn"
               onClick={() => setCurrentView('assigned')}
               data-tour="nav-tablas"
             >
@@ -452,7 +401,7 @@ function App() {
       )}
       <main>
         {isAdmin ? (
-          <AdminPanel />
+          <AdminPanel user={user} />
         ) : (
           <>
             {currentView === 'home' && (
@@ -466,7 +415,7 @@ function App() {
                 <button onClick={() => setCurrentView('home')} className="back-btn-top-right">
                   ←
                 </button>
-                <WorkoutLogger onNavigateToHistory={() => setCurrentView('history')} />
+                <WorkoutLogger onNavigateToHistory={() => setCurrentView('history')} user={user} />
               </>
             )}
             {currentView === 'history' && (
@@ -474,15 +423,7 @@ function App() {
                 <button onClick={() => setCurrentView('home')} className="back-btn-top-right">
                   ←
                 </button>
-                <History onBack={() => setCurrentView('home')} lightTheme={lightTheme} />
-              </>
-            )}
-            {currentView === 'machines' && (
-              <>
-                <button onClick={() => setCurrentView('home')} className="back-btn-top-right">
-                  ←
-                </button>
-                <MachinesManager />
+                <History onBack={() => setCurrentView('home')} lightTheme={lightTheme} user={user} />
               </>
             )}
             {currentView === 'assigned' && (
@@ -490,7 +431,7 @@ function App() {
                 <button onClick={() => setCurrentView('home')} className="back-btn-top-right">
                   ←
                 </button>
-                <AssignedTable />
+                <AssignedTable user={user} />
               </>
             )}
             {/* FUNCIONALIDAD SOCIAL DESACTIVADA TEMPORALMENTE - FUTURO */}

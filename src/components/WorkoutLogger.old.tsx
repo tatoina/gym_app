@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { collection, addDoc, getDocs, query, where, orderBy, serverTimestamp, doc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { User } from 'firebase/auth';
 import { auth, db, storage } from '../services/firebase';
 import './WorkoutLogger.css';
 
@@ -58,10 +57,9 @@ interface Workout {
 
 interface WorkoutLoggerProps {
   onNavigateToHistory?: () => void;
-  user: User | null;
 }
 
-const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory, user }) => {
+const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory }) => {
   const [currentWorkout, setCurrentWorkout] = useState<Workout>({
     date: new Date().toISOString().split('T')[0],
     exercises: [],
@@ -128,10 +126,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory, user
   const [postPhotoPreview, setPostPhotoPreview] = useState<string>('');
 
   const loadMachines = async () => {
-    if (!user) {
-      setLoadingMachines(false);
-      return;
-    }
+    if (!auth.currentUser) return;
 
     try {
       setLoadingMachines(true);
@@ -150,7 +145,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory, user
       // Cargar máquinas personales del usuario (incluye las antiguas sin isGlobal)
       const personalMachinesQuery = query(
         collection(db, 'machines'),
-        where('userId', '==', user.uid)
+        where('userId', '==', auth.currentUser.uid)
       );
       const personalSnapshot = await getDocs(personalMachinesQuery);
       const personalMachines: Machine[] = personalSnapshot.docs
@@ -172,11 +167,9 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory, user
   };
 
   useEffect(() => {
-    if (user) {
-      loadMachines();
-      loadCategories();
-    }
-  }, [user]);
+    loadMachines();
+    loadCategories();
+  }, []);
 
   useEffect(() => {
     if (!showAddForm || !machines.length) {
@@ -212,16 +205,13 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory, user
   }, [machinePreview]);
 
   const loadTodayExercisesCount = async () => {
-    if (!user) {
-      setTodayExercisesCount(0);
-      return;
-    }
+    if (!auth.currentUser) return;
     
     try {
       const workoutsRef = collection(db, 'workouts');
       const q = query(
         workoutsRef,
-        where('userId', '==', user.uid),
+        where('userId', '==', auth.currentUser.uid),
         where('date', '==', currentWorkout.date)
       );
       const snapshot = await getDocs(q);
@@ -341,7 +331,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory, user
 
   const handleMachineSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!user) return;
+    if (!auth.currentUser) return;
 
     const trimmedName = machineForm.name.trim();
     const trimmedDescription = machineForm.description.trim();
@@ -359,18 +349,18 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory, user
 
       if (machineForm.photoFile) {
         const file = machineForm.photoFile;
-        const fileRef = ref(storage, `machines/${user.uid}/${Date.now()}-${file.name}`);
+        const fileRef = ref(storage, `machines/${auth.currentUser.uid}/${Date.now()}-${file.name}`);
         await uploadBytes(fileRef, file);
         uploadedPhotoUrl = await getDownloadURL(fileRef);
       }
 
       // Subir archivos de ejercicios y obtener URLs
-      if (!user) throw new Error('No user');
+      if (!auth.currentUser) throw new Error('No user');
       const exercisesWithUrls = await Promise.all((machineForm.exercises || []).map(async (ex, idx) => {
         let mediaUrl = '';
         if (ex.mediaFile) {
           const ext = ex.mediaFile.name.split('.').pop();
-          const fileRef = ref(storage, `machines/${user.uid}/exercises/${Date.now()}-${idx}.${ext}`);
+          const fileRef = ref(storage, `machines/${auth.currentUser!.uid}/exercises/${Date.now()}-${idx}.${ext}`);
           await uploadBytes(fileRef, ex.mediaFile);
           mediaUrl = await getDownloadURL(fileRef);
         }
@@ -394,7 +384,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory, user
       } else {
         // Crear nueva máquina
         const docRef = await addDoc(collection(db, 'machines'), {
-          userId: user.uid,
+          userId: auth.currentUser.uid,
           isGlobal: false,
           name: trimmedName,
           description: trimmedDescription,
@@ -462,14 +452,14 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory, user
     const reps = typeof newExercise.reps === 'number' ? newExercise.reps : parseInt(newExercise.reps as any) || 1;
     const weight = typeof newExercise.weight === 'number' ? newExercise.weight : parseFloat(newExercise.weight as any) || 0;
 
-    if (!user) return;
+    if (!auth.currentUser) return;
 
     try {
       const machine = machines.find((item) => item.id === newExercise.machineId);
       
       // Guardar directamente en Firestore
       await addDoc(collection(db, 'workouts'), {
-        userId: user.uid,
+        userId: auth.currentUser.uid,
         date: currentWorkout.date,
         name: newExercise.name.trim(),
         sets: sets,

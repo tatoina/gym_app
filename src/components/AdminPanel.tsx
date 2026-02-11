@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { collection, getDocs, query, where, doc, setDoc, addDoc, serverTimestamp, writeBatch, deleteDoc, updateDoc } from 'firebase/firestore';
+import { User as FirebaseUser } from 'firebase/auth';
 import { auth, db, storage, functions } from '../services/firebase';
 import { ref, uploadBytes, getDownloadURL, deleteObject, uploadBytesResumable } from 'firebase/storage';
 import { httpsCallable } from 'firebase/functions';
@@ -31,8 +32,8 @@ interface Category {
 interface Exercise {
   id: string;
   name: string;
-  machineId: string;
-  machineName: string;
+  category: string;
+  categoryName?: string;
   description?: string;
   photoUrl?: string;
   mediaType?: 'image' | 'video';
@@ -40,12 +41,12 @@ interface Exercise {
 }
 
 interface AssignedExercise {
-  machineId: string;
-  machineName: string;
-  machinePhotoUrl?: string;
+  categoryId: string;
+  categoryName: string;
   exerciseId?: string;
   exerciseName?: string;
   exercisePhotoUrl?: string;
+  mediaType?: 'image' | 'video';
   series: number;
   reps: number;
   weight?: number;
@@ -55,7 +56,15 @@ interface AssignedExercise {
 interface AssignedTableData {
   id?: string;
   userId: string;
-  exercises: AssignedExercise[];
+  exercises: {
+    day1: AssignedExercise[];
+    day2: AssignedExercise[];
+    day3: AssignedExercise[];
+    day4: AssignedExercise[];
+    day5: AssignedExercise[];
+    day6: AssignedExercise[];
+    day7: AssignedExercise[];
+  };
   assignedBy: string;
   assignedByName: string;
   createdAt: any;
@@ -75,13 +84,34 @@ interface Notification {
   read: boolean;
 }
 
-const AdminPanel: React.FC = () => {
+interface AdminPanelProps {
+  user: FirebaseUser | null;
+}
+
+const AdminPanel: React.FC<AdminPanelProps> = ({ user }) => {
   const [users, setUsers] = useState<User[]>([]);
   const [machines, setMachines] = useState<Machine[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [allExercises, setAllExercises] = useState<Exercise[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string>('');
-  const [exercises, setExercises] = useState<AssignedExercise[]>([]);
+  const [exercises, setExercises] = useState<{
+    day1: AssignedExercise[];
+    day2: AssignedExercise[];
+    day3: AssignedExercise[];
+    day4: AssignedExercise[];
+    day5: AssignedExercise[];
+    day6: AssignedExercise[];
+    day7: AssignedExercise[];
+  }>({
+    day1: [],
+    day2: [],
+    day3: [],
+    day4: [],
+    day5: [],
+    day6: [],
+    day7: []
+  });
+  const [selectedDay, setSelectedDay] = useState<'day1' | 'day2' | 'day3' | 'day4' | 'day5' | 'day6' | 'day7'>('day1');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -91,12 +121,12 @@ const AdminPanel: React.FC = () => {
 
   // Formulario para nuevo ejercicio
   const [newExercise, setNewExercise] = useState<AssignedExercise>({
-    machineId: '',
-    machineName: '',
-    machinePhotoUrl: '',
+    categoryId: '',
+    categoryName: '',
     exerciseId: '',
     exerciseName: '',
     exercisePhotoUrl: '',
+    mediaType: 'image',
     series: 3,
     reps: 10,
     weight: 0,
@@ -129,10 +159,8 @@ const AdminPanel: React.FC = () => {
   const [categoryFilter, setCategoryFilter] = useState<string>('Todas');
   const [showMachinesSection, setShowMachinesSection] = useState(false);
   const [showCategoryManagement, setShowCategoryManagement] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<{id: string, name: string} | null>(null);
-  const [editCategoryName, setEditCategoryName] = useState('');
   const [currentTableDate, setCurrentTableDate] = useState<Date | null>(null);
-  const [activeTab, setActiveTab] = useState<'maquinas' | 'tablas' | 'ejercicios' | 'usuarios' | 'reproductor' | null>(null);
+  const [activeTab, setActiveTab] = useState<'tablas' | 'ejercicios' | 'usuarios' | 'reproductor' | null>(null);
   
   // Estados para gestión de usuarios
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -163,8 +191,7 @@ const AdminPanel: React.FC = () => {
   const [exerciseForm, setExerciseForm] = useState({
     id: '',
     name: '',
-    machineId: '',
-    machineName: '',
+    category: '',
     description: '',
     photoFile: null as File | null,
     photoPreview: '',
@@ -175,9 +202,11 @@ const AdminPanel: React.FC = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
   const [exerciseToDelete, setExerciseToDelete] = useState<Exercise | null>(null);
-  const [machineFilterExercises, setMachineFilterExercises] = useState<string>('Todas');
-  const [categoryFilterExerciseForm, setCategoryFilterExerciseForm] = useState<string>('Todas');
-  const [categoryFilterTableAssignment, setCategoryFilterTableAssignment] = useState<string>('Todas');
+  const [categoryFilterExercises, setCategoryFilterExercises] = useState<string>('Todas');
+  const [tableCategoryFilter, setTableCategoryFilter] = useState<string>('Todas');
+  const [showCategoryForm, setShowCategoryForm] = useState(false);
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [categoryFormName, setCategoryFormName] = useState('');
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showEmailConfigModal, setShowEmailConfigModal] = useState(false);
   const [emailConfig, setEmailConfig] = useState({
@@ -187,19 +216,35 @@ const AdminPanel: React.FC = () => {
   const [updatingEmailConfig, setUpdatingEmailConfig] = useState(false);
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (user) {
+      loadData();
+    }
+  }, [user]);
 
   useEffect(() => {
     if (selectedUserId) {
       loadUserTable(selectedUserId);
     } else {
-      setExercises([]);
+      setExercises({
+        day1: [],
+        day2: [],
+        day3: [],
+        day4: [],
+        day5: [],
+        day6: [],
+        day7: []
+      });
+      setSelectedDay('day1');
       setCurrentTableDate(null);
     }
   }, [selectedUserId]);
 
   const loadData = async () => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -235,38 +280,25 @@ const AdminPanel: React.FC = () => {
       
       setMachines(machinesData);
 
-      // Cargar categorías desde Firebase
-      console.log('🔄 Cargando categorías desde Firebase...');
-      const categoriesSnapshot = await getDocs(collection(db, 'categories'));
-      console.log('📦 Snapshot de categories:', categoriesSnapshot.size, 'documentos');
+      // Cargar categorías de ejercicios
+      console.log('🔄 Cargando categorías de ejercicios...');
+      const categoriesSnapshot = await getDocs(collection(db, 'exerciseCategories'));
+      console.log('📦 Snapshot de categorías:', categoriesSnapshot.size, 'documentos');
       
-      let categoriesData: Category[] = categoriesSnapshot.docs.map((doc) => ({
+      const categoriesData: Category[] = categoriesSnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data()
       } as Category));
-
-      // Si no hay categorías en Firebase, usar las de las máquinas existentes
-      if (categoriesData.length === 0) {
-        console.log('⚠️ No hay categorías en Firebase, usando categorías de máquinas existentes');
-        const uniqueCategories = Array.from(new Set(machinesData.map(m => m.category).filter(Boolean)));
-        categoriesData = uniqueCategories.map((name, index) => ({
-          id: `temp-${index}`,
-          name: name as string
-        }));
-        console.log('📋 Categorías extraídas de máquinas:', categoriesData);
-      }
       
-      console.log('✅ Total categorías:', categoriesData.length);
       setCategories(categoriesData.sort((a, b) => a.name.localeCompare(b.name)));
 
       // Cargar ejercicios
-      console.log('🔄 Cargando ejercicios desde Firebase...');
       const exercisesSnapshot = await getDocs(collection(db, 'exercises'));
       const exercisesData: Exercise[] = exercisesSnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data()
       } as Exercise));
-      console.log('✅ Total ejercicios:', exercisesData.length);
+      
       setAllExercises(exercisesData.sort((a, b) => a.name.localeCompare(b.name)));
 
       // Cargar notificaciones no leídas
@@ -299,7 +331,28 @@ const AdminPanel: React.FC = () => {
       
       if (!snapshot.empty) {
         const data = snapshot.docs[0].data() as AssignedTableData;
-        setExercises(data.exercises || []);
+        // Si la tabla tiene el formato antiguo (array), convertirla al nuevo formato
+        if (Array.isArray((data.exercises as any))) {
+          setExercises({
+            day1: data.exercises as any || [],
+            day2: [],
+            day3: [],
+            day4: [],
+            day5: [],
+            day6: [],
+            day7: []
+          });
+        } else {
+          setExercises(data.exercises || {
+            day1: [],
+            day2: [],
+            day3: [],
+            day4: [],
+            day5: [],
+            day6: [],
+            day7: []
+          });
+        }
         
         // Guardar fecha de modificación
         if (data.updatedAt) {
@@ -310,7 +363,15 @@ const AdminPanel: React.FC = () => {
           setCurrentTableDate(date);
         }
       } else {
-        setExercises([]);
+        setExercises({
+          day1: [],
+          day2: [],
+          day3: [],
+          day4: [],
+          day5: [],
+          day6: [],
+          day7: []
+        });
         setCurrentTableDate(null);
       }
     } catch (error) {
@@ -351,7 +412,15 @@ const AdminPanel: React.FC = () => {
       });
 
       setMessage({ type: 'success', text: 'Tabla marcada como completada' });
-      setExercises([]);
+      setExercises({
+        day1: [],
+        day2: [],
+        day3: [],
+        day4: [],
+        day5: [],
+        day6: [],
+        day7: []
+      });
       setCurrentTableDate(null);
     } catch (error) {
       console.error('Error completing table:', error);
@@ -362,28 +431,26 @@ const AdminPanel: React.FC = () => {
   };
 
   const addExercise = () => {
-    if (!newExercise.machineId) {
-      setMessage({ type: 'error', text: 'Selecciona una máquina' });
+    if (!newExercise.categoryId) {
+      setMessage({ type: 'error', text: 'Selecciona una categoría' });
       return;
     }
 
-    const selectedMachine = machines.find(m => m.id === newExercise.machineId);
-    if (!selectedMachine) return;
-
     const exercise: AssignedExercise = {
-      ...newExercise,
-      machineName: selectedMachine.name,
-      machinePhotoUrl: selectedMachine.photoUrl
+      ...newExercise
     };
 
-    setExercises([...exercises, exercise]);
+    setExercises({
+      ...exercises,
+      [selectedDay]: [...exercises[selectedDay], exercise]
+    });
     setNewExercise({
-      machineId: '',
-      machineName: '',
-      machinePhotoUrl: '',
+      categoryId: '',
+      categoryName: '',
       exerciseId: '',
       exerciseName: '',
       exercisePhotoUrl: '',
+      mediaType: 'image',
       series: 3,
       reps: 10,
       weight: 0,
@@ -393,7 +460,27 @@ const AdminPanel: React.FC = () => {
   };
 
   const removeExercise = (index: number) => {
-    setExercises(exercises.filter((_, i) => i !== index));
+    setExercises({
+      ...exercises,
+      [selectedDay]: exercises[selectedDay].filter((_, i) => i !== index)
+    });
+  };
+
+  const clearAllExercises = () => {
+    if (!window.confirm('¿Estás seguro de que deseas vaciar toda la tabla? Se eliminarán todos los ejercicios de todos los días.')) {
+      return;
+    }
+    
+    setExercises({
+      day1: [],
+      day2: [],
+      day3: [],
+      day4: [],
+      day5: [],
+      day6: [],
+      day7: []
+    });
+    setMessage({ type: 'success', text: 'Tabla vaciada correctamente' });
   };
 
   const saveTable = async () => {
@@ -402,8 +489,11 @@ const AdminPanel: React.FC = () => {
       return;
     }
 
-    if (exercises.length === 0) {
-      setMessage({ type: 'error', text: 'Agrega al menos un ejercicio' });
+    // Calcular total de ejercicios en todos los días
+    const totalExercises = Object.values(exercises).reduce((sum, dayExercises) => sum + dayExercises.length, 0);
+
+    if (totalExercises === 0) {
+      setMessage({ type: 'error', text: 'Agrega al menos un ejercicio a la tabla' });
       return;
     }
 
@@ -420,20 +510,10 @@ const AdminPanel: React.FC = () => {
         userId: selectedUserId,
         userName: `${selectedUser?.firstName} ${selectedUser?.lastName}`,
         email: selectedUser?.email,
-        ejercicios: exercises.length
+        totalEjercicios: totalExercises
       });
 
-      const tableData: AssignedTableData = {
-        userId: selectedUserId,
-        exercises: exercises,
-        assignedBy: auth.currentUser.uid,
-        assignedByName: currentUserData ? `${currentUserData.firstName} ${currentUserData.lastName}` : 'Monitor',
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        status: 'ACTIVA'
-      };
-
-      // Buscar tablas activas existentes para este usuario
+      // Buscar tabla activa existente para este usuario
       const q = query(
         collection(db, 'assignedTables'),
         where('userId', '==', selectedUserId),
@@ -441,25 +521,51 @@ const AdminPanel: React.FC = () => {
       );
       const snapshot = await getDocs(q);
 
-      // Marcar todas las tablas activas como completadas
-      const batch = writeBatch(db);
-      snapshot.docs.forEach((docSnapshot) => {
-        const docRef = doc(db, 'assignedTables', docSnapshot.id);
-        batch.update(docRef, {
-          status: 'COMPLETADA',
-          updatedAt: serverTimestamp()
+      let tableRef;
+
+      if (!snapshot.empty) {
+        // Actualizar la tabla activa existente
+        tableRef = doc(db, 'assignedTables', snapshot.docs[0].id);
+        await updateDoc(tableRef, {
+          exercises: exercises,
+          assignedBy: auth.currentUser.uid,
+          assignedByName: currentUserData ? `${currentUserData.firstName} ${currentUserData.lastName}` : 'Monitor',
+          updatedAt: serverTimestamp(),
+          status: 'ACTIVA'
         });
-      });
+      } else {
+        // Crear una nueva tabla activa
+        tableRef = doc(collection(db, 'assignedTables'));
+        await setDoc(tableRef, {
+          userId: selectedUserId,
+          exercises: exercises,
+          assignedBy: auth.currentUser.uid,
+          assignedByName: currentUserData ? `${currentUserData.firstName} ${currentUserData.lastName}` : 'Monitor',
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          status: 'ACTIVA'
+        });
+      }
 
-      // Crear la nueva tabla activa
-      const newTableRef = doc(collection(db, 'assignedTables'));
-      batch.set(newTableRef, tableData);
+      // Enviar email al usuario notificando la tabla (nueva o actualizada)
+      try {
+        const sendTableEmail = httpsCallable(functions, 'sendTableAssignedEmail');
+        await sendTableEmail({
+          userEmail: selectedUser?.email,
+          userName: `${selectedUser?.firstName} ${selectedUser?.lastName}`,
+          coachName: currentUserData ? `${currentUserData.firstName} ${currentUserData.lastName}` : 'Tu coach',
+          totalExercises: totalExercises
+        });
+        console.log('📧 Email de tabla asignada/en actualizada enviado correctamente');
+      } catch (emailError) {
+        console.warn('⚠️ Tabla guardada pero error al enviar email:', emailError);
+        // No bloqueamos el flujo si falla el email
+      }
 
-      await batch.commit();
-
+      const actionLabel = snapshot.empty ? 'asignada' : 'actualizada';
       setMessage({ 
         type: 'success', 
-        text: `Tabla asignada correctamente a ${selectedUser?.firstName} ${selectedUser?.lastName}` 
+        text: `✅ Tabla ${actionLabel} a ${selectedUser?.firstName} ${selectedUser?.lastName} (${totalExercises} ejercicios) - Email enviado` 
       });
     } catch (error) {
       console.error('Error saving table:', error);
@@ -569,140 +675,13 @@ const AdminPanel: React.FC = () => {
     }
   };
 
-  const startEditCategory = (category: Category) => {
-    setEditingCategory({ id: category.id, name: category.name });
-    setEditCategoryName(category.name);
-  };
-
-  const cancelEditCategory = () => {
-    setEditingCategory(null);
-    setEditCategoryName('');
-  };
-
-  const saveEditCategory = async () => {
-    if (!editingCategory) return;
-    
-    const newName = editCategoryName.trim();
-    if (!newName) {
-      setMessage({ type: 'error', text: 'El nombre no puede estar vacío' });
-      return;
-    }
-
-    // Verificar si ya existe otra categoría con ese nombre
-    if (categories.some(cat => cat.id !== editingCategory.id && cat.name.toLowerCase() === newName.toLowerCase())) {
-      setMessage({ type: 'error', text: 'Ya existe una categoría con ese nombre' });
-      return;
-    }
-
-    try {
-      setSaving(true);
-
-      const oldName = editingCategory.name;
-      
-      // Si es una categoría temporal (no está en Firestore), crearla primero
-      let categoryId = editingCategory.id;
-      if (categoryId.startsWith('temp-')) {
-        const categoryRef = await addDoc(collection(db, 'categories'), {
-          name: newName,
-          createdAt: serverTimestamp()
-        });
-        categoryId = categoryRef.id;
-      } else {
-        // Actualizar en Firestore
-        await updateDoc(doc(db, 'categories', categoryId), {
-          name: newName
-        });
-      }
-
-      // Actualizar todas las máquinas que usan esta categoría
-      const machinesToUpdate = machines.filter(m => m.category === oldName);
-      for (const machine of machinesToUpdate) {
-        await updateDoc(doc(db, 'machines', machine.id), {
-          category: newName
-        });
-      }
-
-      // Actualizar estado local
-      const updatedCategories = categories.map(cat => 
-        cat.id === editingCategory.id ? { ...cat, id: categoryId, name: newName } : cat
-      ).sort((a, b) => a.name.localeCompare(b.name));
-      
-      setCategories(updatedCategories);
-      
-      const updatedMachines = machines.map(m => 
-        m.category === oldName ? { ...m, category: newName } : m
-      );
-      setMachines(updatedMachines);
-
-      setEditingCategory(null);
-      setEditCategoryName('');
-      
-      setMessage({ type: 'success', text: `Categoría actualizada (${machinesToUpdate.length} máquina(s) afectada(s))` });
-    } catch (error) {
-      console.error('Error updating category:', error);
-      setMessage({ type: 'error', text: 'Error al actualizar la categoría' });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const deleteCategory = async (category: Category) => {
-    const machinesWithCategory = machines.filter(m => m.category === category.name);
-    
-    if (machinesWithCategory.length > 0) {
-      if (!window.confirm(`Esta categoría está siendo usada por ${machinesWithCategory.length} máquina(s). ¿Eliminarla de todas formas? Las máquinas quedarán sin categoría.`)) {
-        return;
-      }
-    } else {
-      if (!window.confirm(`¿Eliminar la categoría "${category.name}"?`)) {
-        return;
-      }
-    }
-
-    try {
-      setSaving(true);
-
-      // Si no es temporal, eliminar de Firestore
-      if (!category.id.startsWith('temp-')) {
-        await deleteDoc(doc(db, 'categories', category.id));
-      }
-
-      // Actualizar máquinas que usan esta categoría
-      for (const machine of machinesWithCategory) {
-        await updateDoc(doc(db, 'machines', machine.id), {
-          category: ''
-        });
-      }
-
-      // Actualizar estado local
-      setCategories(categories.filter(cat => cat.id !== category.id));
-      
-      const updatedMachines = machines.map(m => 
-        m.category === category.name ? { ...m, category: '' } : m
-      );
-      setMachines(updatedMachines);
-
-      setMessage({ type: 'success', text: 'Categoría eliminada' });
-    } catch (error) {
-      console.error('Error deleting category:', error);
-      setMessage({ type: 'error', text: 'Error al eliminar la categoría' });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const getCategoryMachineCount = (categoryName: string): number => {
-    return machines.filter(m => m.category === categoryName).length;
-  };
-
   // ==================== GESTIÓN DE EJERCICIOS ====================
   
   const openNewExerciseForm = () => {
     setExerciseForm({
       id: '',
       name: '',
-      machineId: '',
-      machineName: '',
+      category: '',
       description: '',
       photoFile: null,
       photoPreview: '',
@@ -710,7 +689,6 @@ const AdminPanel: React.FC = () => {
       mediaType: 'image'
     });
     setEditingExercise(null);
-    setCategoryFilterExerciseForm('Todas');
     setShowExerciseForm(true);
   };
 
@@ -718,8 +696,7 @@ const AdminPanel: React.FC = () => {
     setExerciseForm({
       id: '',
       name: '',
-      machineId: '',
-      machineName: '',
+      category: '',
       description: '',
       photoFile: null,
       photoPreview: '',
@@ -751,8 +728,8 @@ const AdminPanel: React.FC = () => {
       return;
     }
 
-    if (!exerciseForm.machineId) {
-      setMessage({ type: 'error', text: 'Debes seleccionar una máquina' });
+    if (!exerciseForm.category) {
+      setMessage({ type: 'error', text: 'Debes seleccionar una categoría' });
       return;
     }
 
@@ -766,7 +743,7 @@ const AdminPanel: React.FC = () => {
       if (exerciseForm.photoFile) {
         const timestamp = Date.now();
         const fileExtension = exerciseForm.photoFile.name.split('.').pop();
-        const fileName = `exercises/${exerciseForm.machineId}_${exerciseForm.name.replace(/\s+/g, '_')}_${timestamp}.${fileExtension}`;
+        const fileName = `exercises/${exerciseForm.category}_${exerciseForm.name.replace(/\s+/g, '_')}_${timestamp}.${fileExtension}`;
         const storageRef = ref(storage, fileName);
         
         // Usar uploadBytesResumable para seguimiento de progreso
@@ -803,8 +780,7 @@ const AdminPanel: React.FC = () => {
 
       const exerciseData = {
         name: exerciseForm.name.trim(),
-        machineId: exerciseForm.machineId,
-        machineName: exerciseForm.machineName,
+        category: exerciseForm.category,
         description: exerciseForm.description.trim(),
         photoUrl: photoUrl || '',
         mediaType: exerciseForm.mediaType,
@@ -852,8 +828,7 @@ const AdminPanel: React.FC = () => {
     setExerciseForm({
       id: exercise.id,
       name: exercise.name,
-      machineId: exercise.machineId,
-      machineName: exercise.machineName,
+      category: exercise.category,
       description: exercise.description || '',
       photoFile: null,
       photoPreview: exercise.photoUrl || '',
@@ -872,7 +847,15 @@ const AdminPanel: React.FC = () => {
       
       for (const tableDoc of tablesSnapshot.docs) {
         const tableData = tableDoc.data() as AssignedTableData;
-        if (tableData.exercises?.some(ex => ex.exerciseId === exercise.id)) {
+
+        // Compatibilidad: tablas antiguas con exercises como array
+        const hasExerciseInTable = Array.isArray((tableData.exercises as any))
+          ? ((tableData.exercises as any) as AssignedExercise[]).some((ex) => ex.exerciseId === exercise.id)
+          : Object.values(tableData.exercises || {}).some((dayExercises) =>
+              (dayExercises as AssignedExercise[]).some((ex) => ex.exerciseId === exercise.id)
+            );
+
+        if (hasExerciseInTable) {
           affectedTables++;
         }
       }
@@ -904,12 +887,41 @@ const AdminPanel: React.FC = () => {
 
       for (const tableDoc of tablesSnapshot.docs) {
         const tableData = tableDoc.data() as AssignedTableData;
-        if (tableData.exercises?.some(ex => ex.exerciseId === exercise.id)) {
-          const updatedExercises = tableData.exercises.filter(ex => ex.exerciseId !== exercise.id);
-          batch.update(tableDoc.ref, { 
-            exercises: updatedExercises,
-            updatedAt: serverTimestamp()
-          });
+
+        // Compatibilidad: si exercises es un array (formato antiguo)
+        if (Array.isArray((tableData.exercises as any))) {
+          const updatedExercisesArray = ((tableData.exercises as any) as AssignedExercise[]).filter(
+            (ex) => ex.exerciseId !== exercise.id
+          );
+
+          if (updatedExercisesArray.length !== (tableData.exercises as any).length) {
+            batch.update(tableDoc.ref, {
+              exercises: updatedExercisesArray,
+              updatedAt: serverTimestamp()
+            });
+          }
+        } else if (tableData.exercises) {
+          // Nuevo formato por días
+          const updatedPerDay: AssignedTableData['exercises'] = {
+            day1: (tableData.exercises.day1 || []).filter((ex) => ex.exerciseId !== exercise.id),
+            day2: (tableData.exercises.day2 || []).filter((ex) => ex.exerciseId !== exercise.id),
+            day3: (tableData.exercises.day3 || []).filter((ex) => ex.exerciseId !== exercise.id),
+            day4: (tableData.exercises.day4 || []).filter((ex) => ex.exerciseId !== exercise.id),
+            day5: (tableData.exercises.day5 || []).filter((ex) => ex.exerciseId !== exercise.id),
+            day6: (tableData.exercises.day6 || []).filter((ex) => ex.exerciseId !== exercise.id),
+            day7: (tableData.exercises.day7 || []).filter((ex) => ex.exerciseId !== exercise.id)
+          };
+
+          const hadExercise = Object.values(tableData.exercises).some((dayList) =>
+            (dayList as AssignedExercise[]).some((ex) => ex.exerciseId === exercise.id)
+          );
+
+          if (hadExercise) {
+            batch.update(tableDoc.ref, {
+              exercises: updatedPerDay,
+              updatedAt: serverTimestamp()
+            });
+          }
         }
       }
 
@@ -929,9 +941,118 @@ const AdminPanel: React.FC = () => {
     }
   };
 
-  const getExercisesByMachine = (machineId: string): Exercise[] => {
-    return allExercises.filter(ex => ex.machineId === machineId);
+  const getExercisesByCategory = (categoryId: string): Exercise[] => {
+    return allExercises.filter(ex => ex.category === categoryId);
   };
+
+  // ==================== GESTIÓN DE CATEGORÍAS ====================
+  
+  const openNewCategoryForm = () => {
+    setCategoryFormName('');
+    setEditingCategoryId(null);
+    setShowCategoryForm(true);
+  };
+
+  const startEditCategory = (category: Category) => {
+    setCategoryFormName(category.name);
+    setEditingCategoryId(category.id);
+    setShowCategoryForm(true);
+  };
+
+  const handleCategorySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!categoryFormName.trim()) {
+      setMessage({ type: 'error', text: 'El nombre de la categoría es obligatorio' });
+      return;
+    }
+
+    // Verificar que no exista otra categoría con el mismo nombre
+    const duplicate = categories.find(c => 
+      c.name.toLowerCase() === categoryFormName.trim().toLowerCase() && c.id !== editingCategoryId
+    );
+    if (duplicate) {
+      setMessage({ type: 'error', text: 'Ya existe una categoría con ese nombre' });
+      return;
+    }
+
+    try {
+      setSaving(true);
+
+      if (editingCategoryId) {
+        // Actualizar categoría existente
+        await updateDoc(doc(db, 'exerciseCategories', editingCategoryId), {
+          name: categoryFormName.trim(),
+          updatedAt: serverTimestamp()
+        });
+        
+        setCategories(categories.map(c => 
+          c.id === editingCategoryId 
+            ? { ...c, name: categoryFormName.trim() } 
+            : c
+        ).sort((a, b) => a.name.localeCompare(b.name)));
+        
+        setMessage({ type: 'success', text: '✅ Categoría actualizada correctamente' });
+      } else {
+        // Crear nueva categoría
+        const docRef = await addDoc(collection(db, 'exerciseCategories'), {
+          name: categoryFormName.trim(),
+          createdAt: serverTimestamp()
+        });
+        
+        const newCategory: Category = {
+          id: docRef.id,
+          name: categoryFormName.trim()
+        };
+        
+        setCategories([...categories, newCategory].sort((a, b) => a.name.localeCompare(b.name)));
+        setMessage({ type: 'success', text: '✅ Categoría creada correctamente' });
+      }
+
+      setShowCategoryForm(false);
+      setCategoryFormName('');
+      setEditingCategoryId(null);
+    } catch (error) {
+      console.error('Error saving category:', error);
+      setMessage({ type: 'error', text: 'Error al guardar la categoría' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteCategory = async (category: Category) => {
+    // Verificar si la categoría está siendo usada por ejercicios
+    const exercisesInCategory = allExercises.filter(ex => ex.category === category.id);
+    
+    if (exercisesInCategory.length > 0) {
+      setMessage({ 
+        type: 'error', 
+        text: `No se puede eliminar la categoría "${category.name}" porque tiene ${exercisesInCategory.length} ejercicio(s) asignado(s)` 
+      });
+      return;
+    }
+
+    if (!window.confirm(`¿Eliminar la categoría "${category.name}"?`)) {
+      return;
+    }
+
+    try {
+      setSaving(true);
+      await deleteDoc(doc(db, 'exerciseCategories', category.id));
+      setCategories(categories.filter(c => c.id !== category.id));
+      setMessage({ type: 'success', text: '✅ Categoría eliminada correctamente' });
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      setMessage({ type: 'error', text: 'Error al eliminar la categoría' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const getCategoryExerciseCount = (categoryName: string): number => {
+    return allExercises.filter(ex => ex.category === categoryName).length;
+  };
+
 
   const importDefaultMachines = async () => {
     if (!window.confirm('¿Importar 20 máquinas de ejemplo? Esta acción añadirá máquinas globales a la base de datos.')) {
@@ -1230,6 +1351,10 @@ const AdminPanel: React.FC = () => {
   }
 
   const selectedUser = users.find(u => u.id === selectedUserId);
+  const totalAssignedExercises = Object.values(exercises).reduce(
+    (sum, dayExercises) => sum + dayExercises.length,
+    0
+  );
 
   return (
     <div className="admin-panel-container">
@@ -1237,7 +1362,7 @@ const AdminPanel: React.FC = () => {
       <div className="admin-header">
         <div className="admin-title-section">
           <h1>Panel de Administración</h1>
-          <p>Bienvenido, Max - Gestión de máquinas y tablas de entrenamiento</p>
+          <p>Bienvenido, Max - Gestión de tablas de entrenamiento y ejercicios</p>
         </div>
         <div className="admin-user-info">
           <div className="admin-date-info" style={{ 
@@ -1278,12 +1403,6 @@ const AdminPanel: React.FC = () => {
             onClick={() => setActiveTab('usuarios')}
           >
             👥 Gestión de Usuarios
-          </button>
-          <button 
-            className="nav-tab"
-            onClick={() => setActiveTab('maquinas')}
-          >
-            🏋️ Gestión de Máquinas
           </button>
           <button 
             className="nav-tab"
@@ -1534,13 +1653,32 @@ const AdminPanel: React.FC = () => {
             </p>
           )}
 
-          {/* Lista de usuarios */}
-          <div className="users-list" style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-            gap: '20px',
+          {/* Tabla de usuarios */}
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.05)',
+            borderRadius: '12px',
+            overflow: 'hidden',
+            border: '2px solid rgba(255, 255, 255, 0.1)',
             marginBottom: '40px'
           }}>
+            {/* Encabezado de la tabla */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr 250px',
+              gap: '15px',
+              padding: '15px 20px',
+              background: 'rgba(102, 126, 234, 0.15)',
+              borderBottom: '2px solid rgba(102, 126, 234, 0.3)',
+              fontWeight: 'bold',
+              fontSize: '14px',
+              color: '#667eea'
+            }}>
+              <div>NOMBRE</div>
+              <div>EMAIL</div>
+              <div style={{ textAlign: 'center' }}>ACCIONES</div>
+            </div>
+
+            {/* Filas de usuarios */}
             {users
               .filter(user => {
                 if (!userSearchQuery) return true;
@@ -1551,108 +1689,130 @@ const AdminPanel: React.FC = () => {
                   user.email.toLowerCase().includes(query)
                 );
               })
-              .map((user) => (
-              <div key={user.id} style={{
-                background: 'linear-gradient(145deg, #2d2d2d 0%, #1f1f1f 100%)',
-                border: '2px solid rgba(255, 255, 255, 0.1)',
-                borderRadius: '12px',
-                padding: '20px',
-                transition: 'all 0.3s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(102, 126, 234, 0.5)';
-                e.currentTarget.style.transform = 'translateY(-5px)';
-                e.currentTarget.style.boxShadow = '0 8px 20px rgba(102, 126, 234, 0.3)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = 'none';
-              }}>
-                <div style={{ marginBottom: '15px' }}>
+              .map((user, index, filteredArray) => (
+                <div
+                  key={user.id}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr 250px',
+                    gap: '15px',
+                    padding: '12px 20px',
+                    borderBottom: index < filteredArray.length - 1 ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
+                    alignItems: 'center',
+                    transition: 'background 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                  }}
+                >
+                  {/* Nombre con avatar */}
                   <div style={{
-                    width: '60px',
-                    height: '60px',
-                    borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '28px',
-                    fontWeight: 'bold',
-                    color: 'white',
-                    marginBottom: '10px'
+                    gap: '12px'
                   }}>
-                    {user.firstName.charAt(0).toUpperCase()}
+                    <div style={{
+                      width: '45px',
+                      height: '45px',
+                      borderRadius: '50%',
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '18px',
+                      fontWeight: 'bold',
+                      color: 'white',
+                      flexShrink: 0
+                    }}>
+                      {user.firstName.charAt(0).toUpperCase()}
+                    </div>
+                    <div style={{
+                      color: '#e0e0e0',
+                      fontSize: '14px',
+                      fontWeight: 'bold',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {user.firstName} {user.lastName}
+                    </div>
                   </div>
-                  <h3 style={{ margin: '0 0 5px 0', color: '#e0e0e0', fontSize: '20px' }}>
-                    {user.firstName} {user.lastName}
-                  </h3>
-                  <p style={{ margin: '0', color: '#999', fontSize: '14px' }}>
-                    📧 {user.email}
-                  </p>
-                </div>
 
-                <div style={{ display: 'flex', gap: '10px', flexDirection: 'column' }}>
-                  <button
-                    onClick={() => {
-                      setEditingUser(user);
-                      setUserForm({
-                        firstName: user.firstName,
-                        lastName: user.lastName,
-                        email: user.email,
-                        password: ''
-                      });
-                    }}
-                    style={{
-                      padding: '10px 15px',
-                      background: 'rgba(33, 150, 243, 0.2)',
-                      border: '1px solid rgba(33, 150, 243, 0.3)',
-                      borderRadius: '8px',
-                      color: '#2196F3',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = 'rgba(33, 150, 243, 0.3)';
-                      e.currentTarget.style.transform = 'scale(1.05)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'rgba(33, 150, 243, 0.2)';
-                      e.currentTarget.style.transform = 'scale(1)';
-                    }}
-                  >
-                    ✏️ Editar Información
-                  </button>
-                  <button
-                    onClick={() => setResetPasswordUserId(user.id)}
-                    style={{
-                      padding: '10px 15px',
-                      background: 'rgba(255, 152, 0, 0.2)',
-                      border: '1px solid rgba(255, 152, 0, 0.3)',
-                      borderRadius: '8px',
-                      color: '#ff9800',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = 'rgba(255, 152, 0, 0.3)';
-                      e.currentTarget.style.transform = 'scale(1.05)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'rgba(255, 152, 0, 0.2)';
-                      e.currentTarget.style.transform = 'scale(1)';
-                    }}
-                  >
-                    🔑 Restablecer Contraseña
-                  </button>
+                  {/* Email */}
+                  <div style={{
+                    color: '#b0b0b0',
+                    fontSize: '13px',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    {user.email}
+                  </div>
+
+                  {/* Acciones */}
+                  <div style={{ 
+                    display: 'flex', 
+                    gap: '8px',
+                    justifyContent: 'center'
+                  }}>
+                    <button
+                      onClick={() => {
+                        setEditingUser(user);
+                        setUserForm({
+                          firstName: user.firstName,
+                          lastName: user.lastName,
+                          email: user.email,
+                          password: ''
+                        });
+                      }}
+                      style={{
+                        padding: '6px 12px',
+                        background: 'rgba(102, 126, 234, 0.2)',
+                        border: '1px solid #667eea',
+                        borderRadius: '6px',
+                        color: '#667eea',
+                        fontSize: '12px',
+                        cursor: 'pointer',
+                        fontWeight: 'bold',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'rgba(102, 126, 234, 0.3)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'rgba(102, 126, 234, 0.2)';
+                      }}
+                    >
+                      ✏️ Editar
+                    </button>
+                    <button
+                      onClick={() => setResetPasswordUserId(user.id)}
+                      style={{
+                        padding: '6px 12px',
+                        background: 'rgba(255, 152, 0, 0.2)',
+                        border: '1px solid #ff9800',
+                        borderRadius: '6px',
+                        color: '#ff9800',
+                        fontSize: '12px',
+                        cursor: 'pointer',
+                        fontWeight: 'bold',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'rgba(255, 152, 0, 0.3)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'rgba(255, 152, 0, 0.2)';
+                      }}
+                    >
+                      🔑 Contraseña
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
           </div>
 
           {/* Modal de crear usuario */}
@@ -2044,1020 +2204,676 @@ const AdminPanel: React.FC = () => {
         </>
         )}
 
-        {/* Sección de Máquinas Globales (mostrar solo si activeTab === 'maquinas') */}
-        {activeTab === 'maquinas' && (
-        <>
-          {/* Título de la página */}
-          <div style={{ 
-            marginBottom: '30px',
-            padding: '20px',
-            background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)',
-            borderRadius: '15px',
-            border: '2px solid rgba(102, 126, 234, 0.3)'
-          }}>
-            <h2 style={{ 
-              margin: '0',
-              color: '#667eea',
-              fontSize: '28px',
-              fontWeight: 'bold',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px'
-            }}>
-              🏋️ Gestión de Máquinas
-            </h2>
-            <p style={{ 
-              margin: '8px 0 0 0',
-              color: '#b0b0b0',
-              fontSize: '14px'
-            }}>
-              Administra las máquinas del gimnasio, organízalas por categorías y asígnalas a los usuarios
-            </p>
-          </div>
+        {/* Sección de Gestión de Ejercicios */}
+        {activeTab === 'ejercicios' && (
+          <>
+          {showCategoryManagement ? (
+            /* ========== VISTA DE GESTIÓN DE CATEGORÍAS ========== */
+            <>
+              {/* Título de la página de categorías */}
+              <div style={{ 
+                marginBottom: '30px',
+                padding: '20px',
+                background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)',
+                borderRadius: '15px',
+                border: '2px solid rgba(102, 126, 234, 0.3)'
+              }}>
+                <h2 style={{ 
+                  margin: '0',
+                  color: '#667eea',
+                  fontSize: '28px',
+                  fontWeight: 'bold',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px'
+                }}>
+                  🏷️ Gestión de Categorías
+                </h2>
+                <p style={{ 
+                  margin: '8px 0 0 0',
+                  color: '#b0b0b0',
+                  fontSize: '14px'
+                }}>
+                  Crea y gestiona las categorías de ejercicios
+                </p>
+              </div>
 
-          <div className="global-machines-section" style={{ marginBottom: '40px' }}>
-            <div className="section-header">
-              <h3>🏋️ Máquinas del Gimnasio ({machines.length})</h3>
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-              {machines.length === 0 && (
-                <button 
-                  onClick={importDefaultMachines}
-                  disabled={importing}
-                  className="import-machines-btn"
-                  style={{ 
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    border: 'none',
-                    color: 'white',
-                    padding: '10px 20px',
-                    borderRadius: '8px',
-                    cursor: importing ? 'not-allowed' : 'pointer',
-                    fontWeight: 'bold'
+              {/* Botón de volver y crear categoría */}
+              <div style={{ marginBottom: '25px', display: 'flex', gap: '15px', flexWrap: 'wrap', alignItems: 'center' }}>
+                <button
+                  onClick={() => setShowCategoryManagement(false)}
+                  style={{
+                    padding: '12px 24px',
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    border: '2px solid rgba(255, 255, 255, 0.2)',
+                    borderRadius: '10px',
+                    color: '#e0e0e0',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+                    e.currentTarget.style.transform = 'translateX(-5px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                    e.currentTarget.style.transform = 'translateX(0)';
                   }}
                 >
-                  {importing ? '⏳ Importando...' : '📥 Importar 20 Máquinas'}
+                  ← Volver a Ejercicios
                 </button>
-              )}
-              <button 
-                onClick={() => showMachineForm ? setShowMachineForm(false) : openNewMachineForm()}
-                className="toggle-machine-form-btn"
-              >
-                {showMachineForm ? '✖ Cancelar' : '➕ Nueva Máquina'}
-              </button>
-            </div>
-          </div>
-
-          {showMachineForm && (
-            <form onSubmit={handleMachineSubmit} className="machine-form">
-              <div className="form-group">
-                <label>Nombre de la máquina *</label>
-                <input
-                  type="text"
-                  value={machineForm.name}
-                  onChange={(e) => setMachineForm({ ...machineForm, name: e.target.value })}
-                  placeholder="Ej: Press de banca"
-                  required
-                />
+                <button
+                  onClick={openNewCategoryForm}
+                  style={{
+                    padding: '12px 24px',
+                    background: 'linear-gradient(135deg, #51cf66 0%, #40c057 100%)',
+                    border: 'none',
+                    borderRadius: '10px',
+                    color: 'white',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    boxShadow: '0 4px 12px rgba(81, 207, 102, 0.3)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(81, 207, 102, 0.4)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(81, 207, 102, 0.3)';
+                  }}
+                >
+                  ➕ Crear Categoría
+                </button>
               </div>
 
-              <div className="form-group">
-                <label>Número de máquina *</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={machineForm.number}
-                  onChange={(e) => setMachineForm({ ...machineForm, number: e.target.value })}
-                  placeholder="Ej: 1, 2, 3..."
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Categoría</label>
-                {!showNewCategoryInput ? (
-                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <select
-                      value={machineForm.category || ''}
-                      onChange={(e) => {
-                        if (e.target.value === '__new__') {
-                          setShowNewCategoryInput(true);
-                          setMachineForm({ ...machineForm, category: '' });
-                        } else {
-                          setMachineForm({ ...machineForm, category: e.target.value });
-                        }
-                      }}
-                      style={{ flex: 1, minWidth: '200px' }}
-                    >
-                      <option value="">-- Selecciona una categoría --</option>
-                      {categories.map((cat) => (
-                        <option key={cat.id} value={cat.name}>
-                          {cat.name}
-                        </option>
-                      ))}
-                      <option value="__new__" style={{ fontWeight: 'bold', color: '#667eea' }}>
-                        ➕ Crear nueva categoría
-                      </option>
-                    </select>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <input
-                      type="text"
-                      value={newCategoryName}
-                      onChange={(e) => setNewCategoryName(e.target.value)}
-                      placeholder="Nombre de la nueva categoría..."
-                      style={{ flex: 1, minWidth: '200px' }}
-                      autoFocus
-                    />
+              {/* Formulario de crear/editar categoría */}
+              {showCategoryForm && (
+              <form onSubmit={handleCategorySubmit} style={{ marginBottom: '25px' }}>
+                <div style={{
+                  background: 'rgba(102, 126, 234, 0.08)',
+                  padding: '20px',
+                  borderRadius: '10px',
+                  border: '2px solid rgba(102, 126, 234, 0.25)'
+                }}>
+                  <h3 style={{ margin: '0 0 15px 0', color: '#e0e0e0' }}>
+                    {editingCategoryId ? '✏️ Editar Categoría' : '➕ Nueva Categoría'}
+                  </h3>
+                  <input
+                    type="text"
+                    value={categoryFormName}
+                    onChange={(e) => setCategoryFormName(e.target.value)}
+                    placeholder="Nombre de la categoría"
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      background: '#2d2d2d',
+                      border: '2px solid #3d3d3d',
+                      borderRadius: '8px',
+                      color: '#e0e0e0',
+                      fontSize: '14px',
+                      marginBottom: '15px',
+                      boxSizing: 'border-box'
+                    }}
+                    autoFocus
+                  />
+                  <div style={{ display: 'flex', gap: '10px' }}>
                     <button
-                      type="button"
-                      onClick={handleCreateCategory}
+                      type="submit"
+                      disabled={saving || !categoryFormName.trim()}
                       style={{
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        flex: 1,
+                        padding: '12px',
+                        background: saving || !categoryFormName.trim() 
+                          ? '#555' 
+                          : 'linear-gradient(135deg, #51cf66 0%, #40c057 100%)',
                         border: 'none',
+                        borderRadius: '8px',
                         color: 'white',
-                        padding: '8px 16px',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
+                        fontSize: '14px',
                         fontWeight: 'bold',
-                        fontSize: '14px'
+                        cursor: saving || !categoryFormName.trim() ? 'not-allowed' : 'pointer'
                       }}
                     >
-                      ✓ Crear
+                      {saving ? 'Guardando...' : (editingCategoryId ? 'Actualizar' : 'Crear')}
                     </button>
                     <button
                       type="button"
                       onClick={() => {
-                        setShowNewCategoryInput(false);
-                        setNewCategoryName('');
+                        setShowCategoryForm(false);
+                        setCategoryFormName('');
+                        setEditingCategoryId(null);
                       }}
                       style={{
-                        background: 'rgba(245, 87, 108, 0.2)',
-                        border: '1px solid rgba(245, 87, 108, 0.5)',
-                        color: '#f5576c',
-                        padding: '8px 16px',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        fontWeight: 'bold',
-                        fontSize: '14px'
-                      }}
-                    >
-                      ✖ Cancelar
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <div className="form-group">
-                <label>Descripción (opcional)</label>
-                <textarea
-                  value={machineForm.description}
-                  onChange={(e) => setMachineForm({ ...machineForm, description: e.target.value })}
-                  placeholder="Descripción de la máquina..."
-                  rows={3}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Foto o Video (opcional)</label>
-                <input
-                  type="file"
-                  accept="image/*,video/*"
-                  onChange={handleMachinePhotoChange}
-                />
-                {machineForm.photoPreview && (
-                  <div style={{ position: 'relative', display: 'inline-block', marginTop: '10px' }}>
-                    {machineForm.mediaType === 'video' ? (
-                      <video 
-                        src={machineForm.photoPreview} 
-                        className="photo-preview"
-                        controls
-                        onClick={() => openMediaModal(machineForm.photoPreview, 'video', machineForm.name || 'Vista previa')}
-                        style={{ cursor: 'pointer' }}
-                        title="Click para ampliar"
-                      />
-                    ) : (
-                      <img 
-                        src={machineForm.photoPreview} 
-                        alt="Preview" 
-                        className="photo-preview"
-                        onClick={() => openMediaModal(machineForm.photoPreview, 'image', machineForm.name || 'Vista previa')}
-                        style={{ cursor: 'pointer' }}
-                        title="Click para ampliar"
-                      />
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => setMachineForm({ 
-                        ...machineForm, 
-                        photoFile: null, 
-                        photoPreview: '', 
-                        existingPhotoUrl: '',
-                        mediaType: 'image'
-                      })}
-                      style={{
-                        position: 'absolute',
-                        top: '5px',
-                        right: '5px',
-                        background: 'rgba(245, 87, 108, 0.9)',
+                        flex: 1,
+                        padding: '12px',
+                        background: '#555',
                         border: 'none',
+                        borderRadius: '8px',
                         color: 'white',
-                        borderRadius: '50%',
-                        width: '30px',
-                        height: '30px',
-                        cursor: 'pointer',
-                        fontSize: '16px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: 'bold'
+                        fontSize: '14px',
+                        fontWeight: 'bold',
+                        cursor: 'pointer'
                       }}
-                      title="Eliminar medio"
                     >
-                      ✖
+                      Cancelar
                     </button>
                   </div>
-                )}
-              </div>
-
-              <button type="submit" disabled={machineFormLoading} className="submit-machine-btn">
-                {machineFormLoading ? (editingMachine ? 'Actualizando...' : 'Creando...') : (editingMachine ? '💾 Actualizar Máquina' : '💾 Crear Máquina Global')}
-              </button>
-              {editingMachine && (
-                <button type="button" onClick={resetMachineForm} className="cancel-edit-btn">
-                  ✖ Cancelar Edición
-                </button>
+                </div>
+              </form>
               )}
-            </form>
-          )}
 
-          {/* Sección de Gestión de Categorías */}
-          <div className="category-management-section" style={{ 
-            marginBottom: '30px',
-            background: 'rgba(102, 126, 234, 0.1)',
-            border: '1px solid rgba(102, 126, 234, 0.3)',
-            borderRadius: '12px',
-            overflow: 'hidden'
-          }}>
-            <button
-              onClick={() => setShowCategoryManagement(!showCategoryManagement)}
-              style={{
-                width: '100%',
-                padding: '15px 20px',
-                background: 'transparent',
-                border: 'none',
-                color: '#667eea',
-                fontSize: '16px',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                transition: 'background 0.2s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(102, 126, 234, 0.15)'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-            >
-              <span>🏷️ Gestionar Categorías ({categories.length})</span>
-              <span>{showCategoryManagement ? '▲' : '▼'}</span>
-            </button>
+              {/* Tabla de categorías */}
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.05)',
+                borderRadius: '12px',
+                overflow: 'hidden',
+                border: '2px solid rgba(255, 255, 255, 0.1)'
+              }}>
+                {/* Encabezado de la tabla */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 200px 200px',
+                  gap: '15px',
+                  padding: '15px 20px',
+                  background: 'rgba(102, 126, 234, 0.15)',
+                  borderBottom: '2px solid rgba(102, 126, 234, 0.3)',
+                  fontWeight: 'bold',
+                  fontSize: '14px',
+                  color: '#667eea'
+                }}>
+                  <div>NOMBRE</div>
+                  <div>EJERCICIOS</div>
+                  <div style={{ textAlign: 'center' }}>ACCIONES</div>
+                </div>
 
-            {showCategoryManagement && (
-              <div style={{ padding: '20px', borderTop: '1px solid rgba(102, 126, 234, 0.2)' }}>
-                
-                {/* Botón para migrar categorías */}
-                {categories.some(c => c.id.startsWith('temp-')) && (
-                  <div style={{ 
-                    marginBottom: '20px', 
-                    padding: '15px',
-                    background: 'rgba(245, 158, 11, 0.1)',
-                    border: '1px solid rgba(245, 158, 11, 0.3)',
-                    borderRadius: '8px'
+                {/* Filas de categorías */}
+                {categories.length === 0 ? (
+                  <div style={{
+                    padding: '40px',
+                    textAlign: 'center',
+                    color: '#999'
                   }}>
-                    <p style={{ margin: '0 0 10px 0', color: '#fbbf24', fontSize: '14px' }}>
-                      ⚠️ Hay categorías que solo existen en las máquinas. Se recomienda migrarlas a Firestore.
-                    </p>
-                    <button
-                      onClick={migrateCategoriesFromMachines}
-                      disabled={saving}
-                      style={{
-                        padding: '8px 16px',
-                        background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                        border: 'none',
-                        color: 'white',
-                        borderRadius: '6px',
-                        cursor: saving ? 'not-allowed' : 'pointer',
-                        fontWeight: 'bold',
-                        fontSize: '14px'
-                      }}
-                    >
-                      {saving ? '⏳ Migrando...' : '📤 Migrar Categorías a Firestore'}
-                    </button>
+                    No hay categorías creadas
                   </div>
-                )}
+                ) : (
+                  categories.map((category, index) => {
+                    const exerciseCount = allExercises.filter(ex => ex.category === category.id).length;
+                    return (
+                      <div
+                        key={category.id}
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: '1fr 200px 200px',
+                          gap: '15px',
+                          padding: '12px 20px',
+                          borderBottom: index < categories.length - 1 ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
+                          alignItems: 'center',
+                          transition: 'background 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'transparent';
+                        }}
+                      >
+                        {/* Nombre */}
+                        <div style={{
+                          color: '#e0e0e0',
+                          fontSize: '14px',
+                          fontWeight: 'bold'
+                        }}>
+                          {category.name}
+                        </div>
 
-                {/* Lista de categorías */}
-                <div className="categories-list">
-                  {categories.length === 0 ? (
-                    <p style={{ color: '#999', textAlign: 'center', padding: '20px' }}>
-                      No hay categorías. Crea una máquina con categoría para comenzar.
-                    </p>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      {categories.map((category) => {
-                        const machineCount = getCategoryMachineCount(category.name);
-                        const isEditing = editingCategory?.id === category.id;
-                        const isTemporary = category.id.startsWith('temp-');
+                        {/* Contador de ejercicios */}
+                        <div style={{
+                          color: '#b0b0b0',
+                          fontSize: '13px'
+                        }}>
+                          {exerciseCount} ejercicio{exerciseCount !== 1 ? 's' : ''}
+                        </div>
 
-                        return (
-                          <div 
-                            key={category.id} 
+                        {/* Acciones */}
+                        <div style={{ 
+                          display: 'flex', 
+                          gap: '8px',
+                          justifyContent: 'center'
+                        }}>
+                          <button
+                            onClick={() => startEditCategory(category)}
                             style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              padding: '12px 15px',
-                              background: isTemporary 
-                                ? 'rgba(245, 158, 11, 0.1)' 
-                                : 'rgba(255, 255, 255, 0.05)',
-                              border: isTemporary
-                                ? '1px solid rgba(245, 158, 11, 0.3)'
-                                : '1px solid rgba(255, 255, 255, 0.1)',
-                              borderRadius: '8px',
-                              gap: '10px',
-                              flexWrap: 'wrap'
+                              padding: '6px 12px',
+                              background: 'rgba(102, 126, 234, 0.2)',
+                              border: '1px solid #667eea',
+                              borderRadius: '6px',
+                              color: '#667eea',
+                              fontSize: '12px',
+                              cursor: 'pointer',
+                              fontWeight: 'bold',
+                              transition: 'all 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = 'rgba(102, 126, 234, 0.3)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = 'rgba(102, 126, 234, 0.2)';
                             }}
                           >
-                            {isEditing ? (
-                              <>
-                                <input
-                                  type="text"
-                                  value={editCategoryName}
-                                  onChange={(e) => setEditCategoryName(e.target.value)}
-                                  style={{
-                                    flex: 1,
-                                    minWidth: '200px',
-                                    padding: '8px',
-                                    borderRadius: '6px',
-                                    border: '1px solid #444',
-                                    background: '#2a2a2a',
-                                    color: '#e0e0e0'
-                                  }}
-                                  autoFocus
-                                />
-                                <div style={{ display: 'flex', gap: '8px' }}>
-                                  <button
-                                    onClick={saveEditCategory}
-                                    disabled={saving}
-                                    style={{
-                                      padding: '8px 16px',
-                                      background: 'linear-gradient(135deg, #48bb78 0%, #38a169 100%)',
-                                      border: 'none',
-                                      color: 'white',
-                                      borderRadius: '6px',
-                                      cursor: saving ? 'not-allowed' : 'pointer',
-                                      fontWeight: 'bold',
-                                      fontSize: '14px'
-                                    }}
-                                  >
-                                    {saving ? '⏳' : '✓ Guardar'}
-                                  </button>
-                                  <button
-                                    onClick={cancelEditCategory}
-                                    style={{
-                                      padding: '8px 16px',
-                                      background: '#444',
-                                      border: 'none',
-                                      color: 'white',
-                                      borderRadius: '6px',
-                                      cursor: 'pointer',
-                                      fontWeight: 'bold',
-                                      fontSize: '14px'
-                                    }}
-                                  >
-                                    ✖ Cancelar
-                                  </button>
-                                </div>
-                              </>
-                            ) : (
-                              <>
-                                <div style={{ flex: 1, minWidth: '200px' }}>
-                                  <div style={{ 
-                                    display: 'flex', 
-                                    alignItems: 'center', 
-                                    gap: '8px',
-                                    flexWrap: 'wrap'
-                                  }}>
-                                    <span style={{ 
-                                      color: '#e0e0e0', 
-                                      fontWeight: 'bold',
-                                      fontSize: '15px'
-                                    }}>
-                                      {category.name}
-                                    </span>
-                                    <span style={{ 
-                                      color: '#999', 
-                                      fontSize: '13px',
-                                      background: 'rgba(255, 255, 255, 0.05)',
-                                      padding: '2px 8px',
-                                      borderRadius: '10px'
-                                    }}>
-                                      {machineCount} máquina{machineCount !== 1 ? 's' : ''}
-                                    </span>
-                                    {isTemporary && (
-                                      <span style={{ 
-                                        color: '#fbbf24', 
-                                        fontSize: '12px',
-                                        background: 'rgba(245, 158, 11, 0.2)',
-                                        padding: '2px 8px',
-                                        borderRadius: '10px'
-                                      }}>
-                                        ⚠️ No migrada
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                                <div style={{ display: 'flex', gap: '8px' }}>
-                                  <button
-                                    onClick={() => startEditCategory(category)}
-                                    style={{
-                                      padding: '6px 12px',
-                                      background: 'rgba(102, 126, 234, 0.2)',
-                                      border: '1px solid rgba(102, 126, 234, 0.4)',
-                                      color: '#667eea',
-                                      borderRadius: '6px',
-                                      cursor: 'pointer',
-                                      fontSize: '14px',
-                                      fontWeight: 'bold'
-                                    }}
-                                    title="Editar categoría"
-                                  >
-                                    ✏️ Editar
-                                  </button>
-                                  <button
-                                    onClick={() => deleteCategory(category)}
-                                    style={{
-                                      padding: '6px 12px',
-                                      background: 'rgba(245, 87, 108, 0.2)',
-                                      border: '1px solid rgba(245, 87, 108, 0.4)',
-                                      color: '#f5576c',
-                                      borderRadius: '6px',
-                                      cursor: 'pointer',
-                                      fontSize: '14px',
-                                      fontWeight: 'bold'
-                                    }}
-                                    title="Eliminar categoría"
-                                  >
-                                    🗑️ Eliminar
-                                  </button>
-                                </div>
-                              </>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
+                            ✏️ Editar
+                          </button>
+                          <button
+                            onClick={() => deleteCategory(category)}
+                            disabled={exerciseCount > 0}
+                            style={{
+                              padding: '6px 12px',
+                              background: exerciseCount > 0 ? '#555' : 'rgba(245, 87, 108, 0.2)',
+                              border: `1px solid ${exerciseCount > 0 ? '#666' : '#f5576c'}`,
+                              borderRadius: '6px',
+                              color: exerciseCount > 0 ? '#999' : '#f5576c',
+                              fontSize: '12px',
+                              cursor: exerciseCount > 0 ? 'not-allowed' : 'pointer',
+                              fontWeight: 'bold',
+                              transition: 'all 0.2s ease',
+                              opacity: exerciseCount > 0 ? 0.5 : 1
+                            }}
+                            onMouseEnter={(e) => {
+                              if (exerciseCount === 0) {
+                                e.currentTarget.style.background = 'rgba(245, 87, 108, 0.3)';
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (exerciseCount === 0) {
+                                e.currentTarget.style.background = 'rgba(245, 87, 108, 0.2)';
+                              }
+                            }}
+                            title={exerciseCount > 0 ? 'No se puede eliminar porque tiene ejercicios asignados' : ''}
+                          >
+                            🗑️ Borrar
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </div>
-            )}
-          </div>
+            </>
+          ) : (
+            /* ========== VISTA PRINCIPAL DE EJERCICIOS ========== */
+            <>
+            {/* Título de la página */}
+            <div style={{ 
+              marginBottom: '30px',
+              padding: '20px',
+              background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)',
+              borderRadius: '15px',
+              border: '2px solid rgba(102, 126, 234, 0.3)'
+            }}>
+              <h2 style={{ 
+                margin: '0',
+                color: '#667eea',
+                fontSize: '28px',
+                fontWeight: 'bold',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px'
+              }}>
+                💪 Gestión de Ejercicios
+              </h2>
+              <p style={{ 
+                margin: '8px 0 0 0',
+                color: '#b0b0b0',
+                fontSize: '14px'
+              }}>
+                Crea y gestiona ejercicios para asignar en las tablas de entrenamiento
+              </p>
+            </div>
 
-          {machines.length > 0 && (
-            <div className="category-filter" style={{ marginBottom: '20px' }}>
-              <label htmlFor="admin-category-filter" style={{ marginRight: '10px', color: '#e0e0e0' }}>
-                🏷️ Filtrar por categoría:
-              </label>
+            {/* Botones de acción */}
+            <div style={{ marginBottom: '25px', display: 'flex', gap: '15px', flexWrap: 'wrap', alignItems: 'center' }}>
+              {/* Filtro por categoría */}
               <select
-                id="admin-category-filter"
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
+                value={categoryFilterExercises}
+                onChange={(e) => setCategoryFilterExercises(e.target.value)}
                 style={{
-                  padding: '8px 12px',
-                  borderRadius: '8px',
-                  border: '1px solid #444',
-                  background: '#2a2a2a',
+                  padding: '12px 20px',
+                  background: '#2d2d2d',
+                  border: '2px solid #3d3d3d',
+                  borderRadius: '10px',
                   color: '#e0e0e0',
                   fontSize: '14px',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  minWidth: '200px',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(102, 126, 234, 0.5)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = '#3d3d3d';
                 }}
               >
-                <option value="Todas">📋 Todas ({machines.length})</option>
-                {Array.from(new Set(machines.map(m => m.category).filter(Boolean))).sort().map(cat => {
-                  const count = machines.filter(m => m.category === cat).length;
-                  return <option key={cat} value={cat}>🏷️ {cat} ({count})</option>;
-                })}
-              </select>
-            </div>
-          )}
-
-          <div className="machines-list">
-            {machines
-              .filter(machine => categoryFilter === 'Todas' || machine.category === categoryFilter)
-              .map((machine) => (
-              <div key={machine.id} className="machine-card">
-                <div className="machine-info">
-                  {machine.photoUrl && (
-                    <img 
-                      src={machine.photoUrl} 
-                      alt={machine.name} 
-                      className="machine-photo"
-                      onClick={() => openMediaModal(machine.photoUrl || '', 'image', machine.name)}
-                      style={{ cursor: 'pointer' }}
-                      title="Click para ampliar"
-                    />
-                  )}
-                  <div className="machine-details">
-                    <span className="machine-name">
-                      {machine.number ? `#${machine.number} - ` : ''}{machine.name}
-                    </span>
-                    {machine.category && (
-                      <span className="machine-category">🏷️ {machine.category}</span>
-                    )}
-                    {machine.description && (
-                      <span className="machine-description">{machine.description}</span>
-                    )}
-                    <span className="machine-type">{machine.isGlobal ? '🌐 Global' : '👤 Personal'}</span>
-                  </div>
-                </div>
-                
-                {machine.isGlobal && (
-                  <div className="machine-actions">
-                    <button 
-                      onClick={() => startEditMachine(machine)}
-                      className="edit-machine-btn"
-                      title="Editar máquina"
-                    >
-                      ✏️
-                    </button>
-                    <button 
-                      onClick={() => setMachineToDelete(machine)}
-                      className="delete-machine-btn"
-                      title="Eliminar máquina"
-                    >
-                      🗑️
-                    </button>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {/* Modal de confirmación para eliminar */}
-          {machineToDelete && (
-          <div className="modal-overlay">
-            <div className="modal-content delete-modal">
-              <h3>⚠️ Confirmar Eliminación</h3>
-              
-              {(machineToDelete as any).needsConfirmation && (
-                <div className="delete-warning">
-                  <div className="warning-content">
-                    <p><strong>Esta máquina está siendo usada en {(machineToDelete as any).affectedTables} tabla(s) de usuarios.</strong></p>
-                    <p>Si procedes con la eliminación:</p>
-                    <ul>
-                      <li>La máquina <strong>"{machineToDelete.name}"</strong> será eliminada permanentemente</li>
-                      <li>Los ejercicios con esta máquina serán removidos de todas las tablas de usuarios</li>
-                      <li>Los usuarios afectados perderán esos ejercicios de sus rutinas actuales</li>
-                    </ul>
-                    <p>¿Estás seguro de que quieres continuar?</p>
-                  </div>
-                </div>
-              )}
-              
-              {!(machineToDelete as any).needsConfirmation && (
-                <>
-                  <p>¿Estás seguro de que quieres eliminar la máquina <strong>"{machineToDelete.name}"</strong>?</p>
-                  <p className="warning-text">Esta acción no se puede deshacer.</p>
-                </>
-              )}
-              
-              <div className="modal-actions">
-                <button 
-                  onClick={() => setMachineToDelete(null)}
-                  className="cancel-btn"
-                >
-                  Cancelar
-                </button>
-                <button 
-                  onClick={() => deleteMachine(machineToDelete, true)}
-                  className="confirm-delete-btn"
-                >
-                  {(machineToDelete as any).needsConfirmation ? '⚠️ Confirmar Eliminación' : '🗑️ Eliminar'}
-                </button>
-              </div>
-            </div>
-          </div>
-          )}
-        </div>
-        </>
-        )}
-
-        {/* Sección de Gestión de Ejercicios */}
-        {activeTab === 'ejercicios' && (
-        <>
-          {/* Título de la página */}
-          <div style={{ 
-            marginBottom: '30px',
-            padding: '20px',
-            background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)',
-            borderRadius: '15px',
-            border: '2px solid rgba(102, 126, 234, 0.3)'
-          }}>
-            <h2 style={{ 
-              margin: '0',
-              color: '#667eea',
-              fontSize: '28px',
-              fontWeight: 'bold',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px'
-            }}>
-              💪 Gestión de Ejercicios
-            </h2>
-            <p style={{ 
-              margin: '8px 0 0 0',
-              color: '#b0b0b0',
-              fontSize: '14px'
-            }}>
-              Crea y gestiona ejercicios específicos para cada máquina del gimnasio
-            </p>
-          </div>
-          
-          <div className="machines-section">
-          <div className="machines-header">
-            <h2 style={{ display: 'none' }}>💪 Gestión de Ejercicios</h2>
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-              <button 
-                onClick={() => showExerciseForm ? setShowExerciseForm(false) : openNewExerciseForm()}
-                className="toggle-machine-form-btn"
-              >
-                {showExerciseForm ? '✖ Cancelar' : '➕ Nuevo Ejercicio'}
-              </button>
-            </div>
-          </div>
-
-          {showExerciseForm && (
-            <form onSubmit={handleExerciseSubmit} className="machine-form">
-              <div className="form-group">
-                <label>Nombre del ejercicio *</label>
-                <input
-                  type="text"
-                  value={exerciseForm.name}
-                  onChange={(e) => setExerciseForm({ ...exerciseForm, name: e.target.value })}
-                  placeholder="Ej: Press de banca con barra"
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Filtrar máquinas por categoría</label>
-                <select
-                  value={categoryFilterExerciseForm}
-                  onChange={(e) => {
-                    setCategoryFilterExerciseForm(e.target.value);
-                    // Limpiar la máquina seleccionada si no está en la nueva categoría
-                    if (e.target.value !== 'Todas' && exerciseForm.machineId) {
-                      const selectedMachine = machines.find(m => m.id === exerciseForm.machineId);
-                      if (selectedMachine && selectedMachine.category !== e.target.value) {
-                        setExerciseForm({ ...exerciseForm, machineId: '', machineName: '' });
-                      }
-                    }
-                  }}
-                  style={{
-                    padding: '10px',
-                    borderRadius: '8px',
-                    border: '1px solid #444',
-                    background: '#2a2a2a',
-                    color: '#e0e0e0',
-                    fontSize: '14px'
-                  }}
-                >
-                  <option value="Todas">📋 Todas las categorías</option>
-                  {Array.from(new Set(machines.map(m => m.category).filter(Boolean))).sort().map(cat => (
-                    <option key={cat} value={cat}>
-                      🏷️ {cat}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label>Máquina *</label>
-                <select
-                  value={exerciseForm.machineId}
-                  onChange={(e) => {
-                    const machine = machines.find(m => m.id === e.target.value);
-                    setExerciseForm({ 
-                      ...exerciseForm, 
-                      machineId: e.target.value,
-                      machineName: machine?.name || ''
-                    });
-                  }}
-                  required
-                >
-                  <option value="">-- Selecciona una máquina --</option>
-                  {machines
-                    .filter(machine => 
-                      categoryFilterExerciseForm === 'Todas' || machine.category === categoryFilterExerciseForm
-                    )
-                    .map((machine) => (
-                      <option key={machine.id} value={machine.id}>
-                        {machine.number ? `#${machine.number} - ` : ''}{machine.name}
-                        {machine.category ? ` (${machine.category})` : ''}
-                      </option>
-                    ))}
-                </select>
-                {categoryFilterExerciseForm !== 'Todas' && (
-                  <small style={{ color: '#999', display: 'block', marginTop: '5px' }}>
-                    Mostrando solo máquinas de la categoría: <strong>{categoryFilterExerciseForm}</strong>
-                  </small>
-                )}
-              </div>
-
-              <div className="form-group">
-                <label>Descripción</label>
-                <textarea
-                  value={exerciseForm.description}
-                  onChange={(e) => setExerciseForm({ ...exerciseForm, description: e.target.value })}
-                  placeholder="Descripción del ejercicio, técnica, músculos trabajados..."
-                  rows={3}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    borderRadius: '8px',
-                    border: '1px solid #444',
-                    background: '#2a2a2a',
-                    color: '#e0e0e0',
-                    fontSize: '14px',
-                    fontFamily: 'inherit',
-                    resize: 'vertical'
-                  }}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Foto o Video del ejercicio</label>
-                <input
-                  type="file"
-                  accept="image/*,video/*"
-                  onChange={handleExercisePhotoChange}
-                />
-                {exerciseForm.photoPreview && (
-                  <div style={{ position: 'relative', display: 'inline-block', marginTop: '10px' }}>
-                    {exerciseForm.mediaType === 'video' ? (
-                      <video 
-                        src={exerciseForm.photoPreview} 
-                        className="photo-preview"
-                        controls
-                        onClick={() => openMediaModal(exerciseForm.photoPreview, 'video', exerciseForm.name || 'Vista previa')}
-                        style={{ cursor: 'pointer' }}
-                        title="Click para ampliar"
-                      />
-                    ) : (
-                      <img 
-                        src={exerciseForm.photoPreview} 
-                        alt="Preview" 
-                        className="photo-preview"
-                        onClick={() => openMediaModal(exerciseForm.photoPreview, 'image', exerciseForm.name || 'Vista previa')}
-                        style={{ cursor: 'pointer' }}
-                        title="Click para ampliar"
-                      />
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => setExerciseForm({ 
-                        ...exerciseForm, 
-                        photoFile: null, 
-                        photoPreview: '', 
-                        existingPhotoUrl: '',
-                        mediaType: 'image'
-                      })}
-                      style={{
-                        position: 'absolute',
-                        top: '5px',
-                        right: '5px',
-                        background: 'rgba(245, 87, 108, 0.9)',
-                        border: 'none',
-                        color: 'white',
-                        borderRadius: '50%',
-                        width: '30px',
-                        height: '30px',
-                        cursor: 'pointer',
-                        fontSize: '16px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: 'bold'
-                      }}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Barra de progreso de subida */}
-              {exerciseFormLoading && uploadProgress > 0 && (
-                <div style={{
-                  marginTop: '15px',
-                  marginBottom: '15px',
-                  padding: '15px',
-                  background: 'rgba(102, 126, 234, 0.1)',
-                  borderRadius: '8px',
-                  border: '1px solid rgba(102, 126, 234, 0.3)'
-                }}>
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    marginBottom: '8px',
-                    color: '#667eea',
-                    fontSize: '14px',
-                    fontWeight: 'bold'
-                  }}>
-                    <span>📤 Cargando fichero...</span>
-                    <span>{uploadProgress}%</span>
-                  </div>
-                  <div style={{
-                    width: '100%',
-                    height: '8px',
-                    background: 'rgba(255, 255, 255, 0.1)',
-                    borderRadius: '4px',
-                    overflow: 'hidden'
-                  }}>
-                    <div style={{
-                      width: `${uploadProgress}%`,
-                      height: '100%',
-                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                      transition: 'width 0.3s ease',
-                      borderRadius: '4px'
-                    }} />
-                  </div>
-                </div>
-              )}
-
-              <button type="submit" disabled={exerciseFormLoading} className="submit-machine-btn">
-                {exerciseFormLoading ? (editingExercise ? 'Actualizando...' : 'Creando...') : (editingExercise ? '💾 Actualizar Ejercicio' : '💾 Crear Ejercicio')}
-              </button>
-              {editingExercise && (
-                <button type="button" onClick={resetExerciseForm} className="cancel-edit-btn">
-                  ✖ Cancelar Edición
-                </button>
-              )}
-            </form>
-          )}
-
-          {/* Filtro por máquina */}
-          {allExercises.length > 0 && (
-            <div className="category-filter" style={{ marginBottom: '20px' }}>
-              <label htmlFor="machine-filter-exercises" style={{ marginRight: '10px', color: '#e0e0e0' }}>
-                🏋️ Filtrar por máquina:
-              </label>
-              <select
-                id="machine-filter-exercises"
-                value={machineFilterExercises}
-                onChange={(e) => setMachineFilterExercises(e.target.value)}
-                style={{
-                  padding: '8px 12px',
-                  borderRadius: '8px',
-                  border: '1px solid #444',
-                  background: '#2a2a2a',
-                  color: '#e0e0e0',
-                  fontSize: '14px',
-                  cursor: 'pointer'
-                }}
-              >
-                <option value="Todas">📋 Todas las máquinas ({allExercises.length} ejercicios)</option>
-                {machines.map(machine => {
-                  const count = getExercisesByMachine(machine.id).length;
-                  if (count === 0) return null;
+                <option value="Todas">🔍 Todas las categorías</option>
+                {categories.map((cat) => {
+                  const count = allExercises.filter(e => e.category === cat.id).length;
                   return (
-                    <option key={machine.id} value={machine.id}>
-                      {machine.number ? `#${machine.number} - ` : ''}{machine.name} ({count} ejercicio{count !== 1 ? 's' : ''})
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name} ({count})
                     </option>
                   );
                 })}
               </select>
-            </div>
-          )}
 
-          {/* Lista de ejercicios */}
-          <div className="machines-list">
+              <button
+                onClick={openNewExerciseForm}
+                style={{
+                  padding: '12px 24px',
+                  background: 'linear-gradient(135deg, #51cf66 0%, #40c057 100%)',
+                  border: 'none',
+                  borderRadius: '10px',
+                  color: 'white',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  boxShadow: '0 4px 12px rgba(81, 207, 102, 0.3)'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 6px 20px rgba(81, 207, 102, 0.4)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(81, 207, 102, 0.3)';
+                }}
+              >
+                ➕ Crear Ejercicio
+              </button>
+              <button
+                onClick={() => setShowCategoryManagement(true)}
+                style={{
+                  padding: '12px 24px',
+                  background: 'rgba(102, 126, 234, 0.2)',
+                  border: '2px solid #667eea',
+                  borderRadius: '10px',
+                  color: 'white',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  boxShadow: '0 2px 8px rgba(102, 126, 234, 0.2)'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.5)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(102, 126, 234, 0.2)';
+                }}
+              >
+                🏷️ Gestionar Categorías
+              </button>
+            </div>
+
+            {/* Tabla de ejercicios */}
             {allExercises.length === 0 ? (
-              <div style={{ 
-                gridColumn: '1 / -1', 
-                textAlign: 'center', 
-                padding: '40px', 
-                color: '#999' 
+              <div style={{
+                padding: '40px',
+                textAlign: 'center',
+                background: 'rgba(255, 255, 255, 0.05)',
+                borderRadius: '12px',
+                border: '2px dashed rgba(255, 255, 255, 0.2)'
               }}>
-                <p>No hay ejercicios creados aún.</p>
-                <p>Crea el primer ejercicio para comenzar.</p>
+                <p style={{ color: '#999', fontSize: '16px', marginBottom: '20px' }}>
+                  No hay ejercicios creados
+                </p>
+                <button
+                  onClick={openNewExerciseForm}
+                  style={{
+                    padding: '12px 24px',
+                    background: '#667eea',
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: 'white',
+                    fontSize: '14px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Crear primer ejercicio
+                </button>
               </div>
             ) : (
-              allExercises
-                .filter(exercise => 
-                  machineFilterExercises === 'Todas' || exercise.machineId === machineFilterExercises
-                )
-                .map((exercise) => (
-                  <div key={exercise.id} className="machine-card">
-                    <div className="machine-info">
-                      {exercise.photoUrl && (
-                        exercise.mediaType === 'video' ? (
-                          <video
-                            src={exercise.photoUrl}
-                            className="machine-photo"
-                            onClick={() => openMediaModal(exercise.photoUrl || '', 'video', exercise.name)}
-                            style={{ cursor: 'pointer' }}
-                            title="Click para ampliar"
-                          />
-                        ) : (
-                          <img 
-                            src={exercise.photoUrl} 
-                            alt={exercise.name} 
-                            className="machine-photo"
-                            onClick={() => openMediaModal(exercise.photoUrl || '', 'image', exercise.name)}
-                            style={{ cursor: 'pointer' }}
-                            title="Click para ampliar"
-                          />
-                        )
-                      )}
-                      <div className="machine-details">
-                        <span className="machine-name">{exercise.name}</span>
-                        <span className="machine-category">
-                          🏋️ {exercise.machineName}
-                        </span>
-                        {exercise.description && (
-                          <span className="machine-description">{exercise.description}</span>
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.05)',
+                borderRadius: '12px',
+                overflow: 'hidden',
+                border: '2px solid rgba(255, 255, 255, 0.1)'
+              }}>
+                {/* Encabezado de la tabla */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 200px 220px',
+                  gap: '15px',
+                  padding: '15px 20px',
+                  background: 'rgba(102, 126, 234, 0.15)',
+                  borderBottom: '2px solid rgba(102, 126, 234, 0.3)',
+                  fontWeight: 'bold',
+                  fontSize: '14px',
+                  color: '#667eea'
+                }}>
+                  <div>NOMBRE</div>
+                  <div>CATEGORÍA</div>
+                  <div style={{ textAlign: 'center' }}>ACCIONES</div>
+                </div>
+
+                {/* Filas de ejercicios */}
+                {allExercises
+                  .filter(exercise => 
+                    categoryFilterExercises === 'Todas' || exercise.category === categoryFilterExercises
+                  )
+                  .map((exercise, index, filteredArray) => (
+                    <div
+                      key={exercise.id}
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: '1fr 200px 220px',
+                        gap: '15px',
+                        padding: '12px 20px',
+                        borderBottom: index < filteredArray.length - 1 ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
+                        alignItems: 'center',
+                        transition: 'background 0.2s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'transparent';
+                      }}
+                    >
+                      {/* Nombre del ejercicio */}
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px'
+                      }}>
+                        {/* Miniatura */}
+                        <div
+                          style={{
+                            width: '50px',
+                            height: '50px',
+                            background: 'rgba(0, 0, 0, 0.5)',
+                            borderRadius: '6px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            overflow: 'hidden',
+                            cursor: exercise.photoUrl ? 'pointer' : 'default',
+                            flexShrink: 0
+                          }}
+                          onClick={() => {
+                            if (exercise.photoUrl) {
+                              setMediaModal({
+                                show: true,
+                                url: exercise.photoUrl!,
+                                type: exercise.mediaType || 'image',
+                                title: exercise.name
+                              });
+                            }
+                          }}
+                        >
+                          {exercise.photoUrl ? (
+                            exercise.mediaType === 'video' ? (
+                              <video
+                                src={exercise.photoUrl}
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                muted
+                              />
+                            ) : (
+                              <img
+                                src={exercise.photoUrl}
+                                alt={exercise.name}
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                              />
+                            )
+                          ) : (
+                            <span style={{ fontSize: '24px' }}>💪</span>
+                          )}
+                        </div>
+
+                        {/* Nombre y descripción */}
+                        <div style={{ overflow: 'hidden' }}>
+                          <div style={{
+                            color: '#e0e0e0',
+                            fontSize: '14px',
+                            fontWeight: 'bold',
+                            marginBottom: '2px',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis'
+                          }}>
+                            {exercise.name}
+                          </div>
+                          {exercise.description && (
+                            <div style={{
+                              color: '#999',
+                              fontSize: '12px',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis'
+                            }}>
+                              {exercise.description}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Categoría */}
+                      <div style={{
+                        color: '#b0b0b0',
+                        fontSize: '13px'
+                      }}>
+                        {exercise.categoryName || categories.find(c => c.id === exercise.category)?.name || 'Sin categoría'}
+                      </div>
+
+                      {/* Acciones */}
+                      <div style={{ 
+                        display: 'flex', 
+                        gap: '8px',
+                        justifyContent: 'center'
+                      }}>
+                        {exercise.photoUrl && (
+                          <button
+                            onClick={() => {
+                              setMediaModal({
+                                show: true,
+                                url: exercise.photoUrl!,
+                                type: exercise.mediaType || 'image',
+                                title: exercise.name
+                              });
+                            }}
+                            style={{
+                              padding: '6px 12px',
+                              background: 'rgba(51, 194, 255, 0.2)',
+                              border: '1px solid #33c2ff',
+                              borderRadius: '6px',
+                              color: '#33c2ff',
+                              fontSize: '12px',
+                              cursor: 'pointer',
+                              fontWeight: 'bold',
+                              transition: 'all 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = 'rgba(51, 194, 255, 0.3)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = 'rgba(51, 194, 255, 0.2)';
+                            }}
+                          >
+                            👁️
+                          </button>
                         )}
+                        <button
+                          onClick={() => startEditExercise(exercise)}
+                          style={{
+                            padding: '6px 12px',
+                            background: 'rgba(102, 126, 234, 0.2)',
+                            border: '1px solid #667eea',
+                            borderRadius: '6px',
+                            color: '#667eea',
+                            fontSize: '12px',
+                            cursor: 'pointer',
+                            fontWeight: 'bold',
+                            transition: 'all 0.2s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'rgba(102, 126, 234, 0.3)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'rgba(102, 126, 234, 0.2)';
+                          }}
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          onClick={() => deleteExercise(exercise)}
+                          style={{
+                            padding: '6px 12px',
+                            background: 'rgba(245, 87, 108, 0.2)',
+                            border: '1px solid #f5576c',
+                            borderRadius: '6px',
+                            color: '#f5576c',
+                            fontSize: '12px',
+                            cursor: 'pointer',
+                            fontWeight: 'bold',
+                            transition: 'all 0.2s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'rgba(245, 87, 108, 0.3)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'rgba(245, 87, 108, 0.2)';
+                          }}
+                        >
+                          🗑️
+                        </button>
                       </div>
                     </div>
-                    
-                    <div className="machine-actions">
-                      <button 
-                        onClick={() => startEditExercise(exercise)}
-                        className="edit-machine-btn"
-                        title="Editar ejercicio"
-                      >
-                        ✏️
-                      </button>
-                      <button 
-                        onClick={() => setExerciseToDelete(exercise)}
-                        className="delete-machine-btn"
-                        title="Eliminar ejercicio"
-                      >
-                        🗑️
-                      </button>
-                    </div>
-                  </div>
-                ))
-            )}
-          </div>
-
-          {/* Modal de confirmación para eliminar ejercicio */}
-          {exerciseToDelete && (
-          <div className="modal-overlay">
-            <div className="modal-content delete-modal">
-              <h3>⚠️ Confirmar Eliminación</h3>
-              
-              {(exerciseToDelete as any).needsConfirmation && (
-                <div className="delete-warning">
-                  <div className="warning-content">
-                    <p><strong>Este ejercicio está siendo usado en {(exerciseToDelete as any).affectedTables} tabla(s) de usuarios.</strong></p>
-                    <p>Si procedes con la eliminación:</p>
-                    <ul>
-                      <li>El ejercicio <strong>"{exerciseToDelete.name}"</strong> será eliminado permanentemente</li>
-                      <li>Será removido de todas las tablas de usuarios</li>
-                      <li>Los usuarios afectados perderán este ejercicio de sus rutinas actuales</li>
-                    </ul>
-                    <p>¿Estás seguro de que quieres continuar?</p>
-                  </div>
-                </div>
-              )}
-              
-              {!(exerciseToDelete as any).needsConfirmation && (
-                <>
-                  <p>¿Estás seguro de que quieres eliminar el ejercicio <strong>"{exerciseToDelete.name}"</strong>?</p>
-                  <p className="warning-text">Esta acción no se puede deshacer.</p>
-                </>
-              )}
-              
-              <div className="modal-actions">
-                <button 
-                  onClick={() => setExerciseToDelete(null)}
-                  className="cancel-btn"
-                >
-                  Cancelar
-                </button>
-                <button 
-                  onClick={() => deleteExercise(exerciseToDelete, true)}
-                  className="confirm-delete-btn"
-                >
-                  {(exerciseToDelete as any).needsConfirmation ? '⚠️ Confirmar Eliminación' : '🗑️ Eliminar'}
-                </button>
+                  ))}
               </div>
-            </div>
-          </div>
+            )}
+            </>
           )}
-        </div>
-        </>
+          </>
         )}
 
         {/* Sección de asignación de tablas (mostrar solo si activeTab === 'tablas') */}
@@ -3091,24 +2907,90 @@ const AdminPanel: React.FC = () => {
             </p>
           </div>
 
-          <div className="user-selector-section">
-            <h3>Seleccionar Usuario</h3>
-            <select
-              value={selectedUserId}
-              onChange={(e) => setSelectedUserId(e.target.value)}
-              className="user-select"
-            >
-              <option value="">-- Selecciona un usuario --</option>
-              {users.map((user) => (
-                <option key={user.id} value={user.id}>
-                  {user.firstName} {user.lastName}
-                </option>
-              ))}
-            </select>
+          <div className="user-selector-section" style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '20px',
+            flexWrap: 'wrap',
+            padding: '15px 20px',
+            background: 'rgba(255, 255, 255, 0.03)',
+            borderRadius: '12px',
+            border: '1px solid rgba(255, 255, 255, 0.08)'
+          }}>
+            <div style={{ minWidth: '260px' }}>
+              <h3 style={{ margin: '0 0 8px 0' }}>Asignar a:</h3>
+              <select
+                value={selectedUserId}
+                onChange={(e) => setSelectedUserId(e.target.value)}
+                className="user-select"
+              >
+                <option value="">-- Selecciona un usuario --</option>
+                {users.map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {user.firstName} {user.lastName}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {selectedUserId && (
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <button 
+                  onClick={saveTable} 
+                  disabled={saving || totalAssignedExercises === 0}
+                  style={{
+                    padding: '10px 20px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #38b2ac 0%, #3182ce 100%)',
+                    color: 'white',
+                    fontWeight: 'bold',
+                    cursor: saving || totalAssignedExercises === 0 ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  <span>📤</span>
+                  <span>{saving ? 'Asignando...' : 'Asignar Tabla'}</span>
+                </button>
+                <button
+                  onClick={clearAllExercises}
+                  disabled={saving || totalAssignedExercises === 0}
+                  style={{
+                    padding: '10px 20px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #f56565 0%, #e53e3e 100%)',
+                    color: 'white',
+                    fontWeight: 'bold',
+                    cursor: saving || totalAssignedExercises === 0 ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  <span>🧹</span>
+                  <span>Limpiar Tabla</span>
+                </button>
+              </div>
+            )}
           </div>
 
           {selectedUserId && (
           <>
+            <div style={{
+              marginTop: '20px',
+              padding: '12px 20px',
+              background: 'rgba(237, 255, 233, 0.06)',
+              borderRadius: '10px',
+              border: '1px solid rgba(72, 187, 120, 0.25)'
+            }}>
+              <span style={{ color: '#a0aec0', fontSize: '14px' }}>Total de ejercicios asignados:</span>{' '}
+              <span style={{ color: '#48bb78', fontWeight: 'bold', fontSize: '16px' }}>{totalAssignedExercises}</span>
+            </div>
+
             <div className="exercises-builder-section">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                 <h3>Tabla de {selectedUser?.firstName} {selectedUser?.lastName}</h3>
@@ -3131,255 +3013,297 @@ const AdminPanel: React.FC = () => {
                       })}
                     </div>
                   )}
-                  {exercises.length > 0 && (
-                    <button
-                      onClick={completeUserTable}
-                      disabled={saving}
-                      style={{
-                        padding: '8px 16px',
-                        background: 'linear-gradient(135deg, #48bb78 0%, #38a169 100%)',
-                        border: 'none',
-                        color: 'white',
-                        borderRadius: '6px',
-                        cursor: saving ? 'not-allowed' : 'pointer',
-                        fontSize: '14px',
-                        fontWeight: 'bold',
-                        whiteSpace: 'nowrap'
-                      }}
-                    >
-                      ✓ Marcar Completada
-                    </button>
-                  )}
                 </div>
               </div>
-
-              <div className="current-exercises-table">
-                {exercises.length === 0 ? (
-                  <p className="no-exercises">No hay ejercicios asignados. Agrega ejercicios abajo.</p>
-                ) : (
-                  <table className="exercises-table">
-                    <thead>
-                      <tr>
-                        <th className="col-machine">Máquina</th>
-                        <th className="col-compact">S</th>
-                        <th className="col-compact">R</th>
-                        <th className="col-compact">P</th>
-                        <th className="col-delete"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {exercises.map((exercise, index) => (
-                        <tr key={index}>
-                          <td className="col-machine">
-                            <div className="machine-cell">
-                              {(exercise.exercisePhotoUrl || exercise.machinePhotoUrl) && (
-                                <img 
-                                  src={exercise.exercisePhotoUrl || exercise.machinePhotoUrl} 
-                                  alt={exercise.exerciseName || exercise.machineName} 
-                                  className="machine-thumb"
-                                />
-                              )}
-                              <div className="machine-info">
-                                <strong>{exercise.machineName}</strong>
-                                {exercise.exerciseName && (
-                                  <div style={{ color: '#667eea', fontSize: '13px', marginTop: '2px' }}>
-                                    💪 {exercise.exerciseName}
-                                  </div>
-                                )}
-                                {exercise.notes && <div className="exercise-note">"{exercise.notes}"</div>}
-                              </div>
-                            </div>
-                          </td>
-                          <td className="col-compact">{exercise.series}</td>
-                          <td className="col-compact">{exercise.reps}</td>
-                          <td className="col-compact" style={{ color: exercise.weight ? '#fff' : '#888' }}>
-                            {exercise.weight || '-'}
-                          </td>
-                          <td className="col-delete">
-                            <button 
-                              onClick={() => removeExercise(index)} 
-                              className="remove-exercise-btn"
-                            >
-                              ❌
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
-
-              <div className="add-exercise-section">
-                <h4>Agregar Ejercicio</h4>
-                
-                <div className="form-group">
-                  <label>🏷️ Filtrar por Categoría</label>
-                  <select
-                    value={categoryFilterTableAssignment}
-                    onChange={(e) => {
-                      setCategoryFilterTableAssignment(e.target.value);
-                      // Reset machine selection when category changes
-                      setNewExercise({ 
-                        ...newExercise, 
-                        machineId: '',
-                        machineName: '',
-                        machinePhotoUrl: '',
-                        exerciseId: '',
-                        exerciseName: '',
-                        exercisePhotoUrl: ''
-                      });
-                    }}
-                    style={{
-                      background: 'rgba(102, 126, 234, 0.1)',
-                      borderColor: 'rgba(102, 126, 234, 0.3)',
-                      color: '#667eea',
-                      fontWeight: 'bold'
-                    }}
-                  >
-                    <option value="Todas">📋 Todas las categorías</option>
-                    {categories.map((cat) => (
-                      <option key={cat.id} value={cat.name}>
-                        {cat.name} ({machines.filter(m => m.category === cat.name).length})
-                      </option>
-                    ))}
-                  </select>
-                  {categoryFilterTableAssignment !== 'Todas' && (
-                    <small style={{ color: '#667eea', display: 'block', marginTop: '5px' }}>
-                      ✓ Mostrando solo máquinas de: <strong>{categoryFilterTableAssignment}</strong>
-                    </small>
-                  )}
-                </div>
-                
-                <div className="form-group">
-                  <label>Máquina</label>
-                  <select
-                    value={newExercise.machineId}
-                    onChange={(e) => {
-                      const machine = machines.find(m => m.id === e.target.value);
-                      setNewExercise({ 
-                        ...newExercise, 
-                        machineId: e.target.value,
-                        machineName: machine?.name || '',
-                        machinePhotoUrl: machine?.photoUrl || '',
-                        exerciseId: '',
-                        exerciseName: '',
-                        exercisePhotoUrl: ''
-                      });
-                    }}
-                  >
-                    <option value="">-- Selecciona una máquina --</option>
-                    {machines
-                      .filter(machine => 
-                        categoryFilterTableAssignment === 'Todas' || 
-                        machine.category === categoryFilterTableAssignment
-                      )
-                      .sort((a, b) => (a.number || 999) - (b.number || 999))
-                      .map((machine) => (
-                        <option key={machine.id} value={machine.id}>
-                          {machine.number ? `#${machine.number} - ` : ''}{machine.name}
-                          {machine.category ? ` (${machine.category})` : ''}
-                        </option>
-                      ))}
-                  </select>
-                  {categoryFilterTableAssignment !== 'Todas' && 
-                   machines.filter(m => categoryFilterTableAssignment === 'Todas' || m.category === categoryFilterTableAssignment).length === 0 && (
-                    <small style={{ color: '#ff9800', display: 'block', marginTop: '5px' }}>
-                      ⚠️ No hay máquinas en esta categoría
-                    </small>
-                  )}
-                </div>
-
-                {newExercise.machineId && (
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: window.innerWidth < 960 ? '1fr' : '1.1fr 1.4fr',
+                  gap: '20px',
+                  alignItems: 'flex-start'
+                }}
+              >
+                {/* Panel izquierdo: selección de ejercicio y parámetros */}
+                <div className="add-exercise-section" style={{
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  border: '1px solid rgba(255, 255, 255, 0.08)'
+                }}>
+                  <h4 style={{ marginTop: 0 }}>📋 Ejercicios disponibles</h4>
+                  
                   <div className="form-group">
-                    <label>Ejercicio (opcional)</label>
+                    <label>🏷️ Filtro Categorías</label>
                     <select
-                      value={newExercise.exerciseId || ''}
+                      value={tableCategoryFilter}
                       onChange={(e) => {
-                        const exercise = allExercises.find(ex => ex.id === e.target.value);
-                        setNewExercise({ 
-                          ...newExercise, 
-                          exerciseId: e.target.value,
-                          exerciseName: exercise?.name || '',
-                          exercisePhotoUrl: exercise?.photoUrl || ''
-                        });
+                        const value = e.target.value;
+                        setTableCategoryFilter(value);
+
+                        if (value === 'Todas') {
+                          setNewExercise({
+                            ...newExercise,
+                            categoryId: '',
+                            categoryName: '',
+                            exerciseId: '',
+                            exerciseName: '',
+                            exercisePhotoUrl: '',
+                            mediaType: 'image'
+                          });
+                        } else {
+                          const category = categories.find(c => c.id === value);
+                          setNewExercise({
+                            ...newExercise,
+                            categoryId: value,
+                            categoryName: category?.name || '',
+                            exerciseId: '',
+                            exerciseName: '',
+                            exercisePhotoUrl: '',
+                            mediaType: 'image'
+                          });
+                        }
                       }}
                     >
-                      <option value="">-- Ejercicio general de la máquina --</option>
-                      {getExercisesByMachine(newExercise.machineId).map((exercise) => (
-                        <option key={exercise.id} value={exercise.id}>
-                          {exercise.name}
+                      <option value="Todas">Todas las categorías</option>
+                      {categories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.name} ({allExercises.filter(e => e.category === cat.id).length} ejercicios)
                         </option>
                       ))}
                     </select>
-                    {getExercisesByMachine(newExercise.machineId).length === 0 && (
-                      <small style={{ color: '#999', display: 'block', marginTop: '5px' }}>
-                        💡 No hay ejercicios específicos para esta máquina. 
-                        Puedes crearlos en la sección "Gestión de Ejercicios".
-                      </small>
-                    )}
                   </div>
-                )}
 
-                <div className="metrics-row">
+                  {(tableCategoryFilter === 'Todas' || newExercise.categoryId) && (
+                    <div className="form-group">
+                      <label>Ejercicio</label>
+                      <select
+                        value={newExercise.exerciseId || ''}
+                        onChange={(e) => {
+                          const exercise = allExercises.find(ex => ex.id === e.target.value);
+                          if (!exercise) {
+                            setNewExercise({
+                              ...newExercise,
+                              exerciseId: '',
+                              exerciseName: '',
+                              exercisePhotoUrl: '',
+                              mediaType: 'image'
+                            });
+                            return;
+                          }
+
+                          const category = categories.find(c => c.id === exercise.category);
+
+                          setNewExercise({
+                            ...newExercise,
+                            categoryId: exercise.category,
+                            categoryName: category?.name || '',
+                            exerciseId: exercise.id,
+                            exerciseName: exercise.name,
+                            exercisePhotoUrl: exercise.photoUrl || '',
+                            mediaType: exercise.mediaType || 'image'
+                          });
+                        }}
+                      >
+                        <option value="">-- Selecciona un ejercicio --</option>
+                        {(tableCategoryFilter === 'Todas'
+                          ? allExercises
+                          : getExercisesByCategory(tableCategoryFilter)
+                        ).map((exercise) => (
+                          <option key={exercise.id} value={exercise.id}>
+                            {exercise.name}
+                          </option>
+                        ))}
+                      </select>
+                      {tableCategoryFilter !== 'Todas' && getExercisesByCategory(tableCategoryFilter).length === 0 && (
+                        <small style={{ color: '#999', display: 'block', marginTop: '5px' }}>
+                          💡 No hay ejercicios específicos para esta categoría.
+                        </small>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="metrics-row">
+                    <div className="form-group">
+                      <label>Series</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={newExercise.series}
+                        onChange={(e) => setNewExercise({ ...newExercise, series: parseInt(e.target.value) || 1 })}
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>Repeticiones</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={newExercise.reps}
+                        onChange={(e) => setNewExercise({ ...newExercise, reps: parseInt(e.target.value) || 1 })}
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>Peso (kg)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.5"
+                        placeholder="0"
+                        value={newExercise.weight || ''}
+                        onChange={(e) => setNewExercise({ ...newExercise, weight: e.target.value ? parseFloat(e.target.value) : undefined })}
+                      />
+                    </div>
+                  </div>
+
                   <div className="form-group">
-                    <label>Series</label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={newExercise.series}
-                      onChange={(e) => setNewExercise({ ...newExercise, series: parseInt(e.target.value) || 1 })}
+                    <label>Notas (opcional)</label>
+                    <textarea
+                      value={newExercise.notes}
+                      onChange={(e) => setNewExercise({ ...newExercise, notes: e.target.value })}
+                      placeholder="Ej: Mantener la espalda recta, controlar el movimiento..."
+                      rows={3}
                     />
                   </div>
 
-                  <div className="form-group">
-                    <label>Repeticiones</label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={newExercise.reps}
-                      onChange={(e) => setNewExercise({ ...newExercise, reps: parseInt(e.target.value) || 1 })}
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label>Peso (kg)</label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.5"
-                      placeholder="0"
-                      value={newExercise.weight || ''}
-                      onChange={(e) => setNewExercise({ ...newExercise, weight: e.target.value ? parseFloat(e.target.value) : undefined })}
-                    />
-                  </div>
+                  <button onClick={addExercise} className="add-exercise-btn">
+                    ➕ Agregar al Día {selectedDay.replace('day', '')}
+                  </button>
                 </div>
 
-                <div className="form-group">
-                  <label>Notas (opcional)</label>
-                  <textarea
-                    value={newExercise.notes}
-                    onChange={(e) => setNewExercise({ ...newExercise, notes: e.target.value })}
-                    placeholder="Ej: Mantener la espalda recta, controlar el movimiento..."
-                    rows={3}
-                  />
-                </div>
+                {/* Panel derecho: ejercicios asignados al día activo */}
+                <div className="current-exercises-table" style={{
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  border: '1px solid rgba(255, 255, 255, 0.08)'
+                }}>
+                  {/* Selector de día (1-7) */}
+                  <div style={{
+                    display: 'flex',
+                    gap: '8px',
+                    margin: '4px 0 16px',
+                    flexWrap: 'nowrap',
+                    justifyContent: 'space-between'
+                  }}>
+                    {[
+                      { key: 'day1', label: 'Día 1' },
+                      { key: 'day2', label: 'Día 2' },
+                      { key: 'day3', label: 'Día 3' },
+                      { key: 'day4', label: 'Día 4' },
+                      { key: 'day5', label: 'Día 5' },
+                      { key: 'day6', label: 'Día 6' },
+                      { key: 'day7', label: 'Día 7' }
+                    ].map((day) => {
+                      const key = day.key as 'day1' | 'day2' | 'day3' | 'day4' | 'day5' | 'day6' | 'day7';
+                      const count = exercises[key].length;
+                      const isSelected = selectedDay === key;
+                      return (
+                        <button
+                          key={day.key}
+                          type="button"
+                          onClick={() => setSelectedDay(key)}
+                          style={{
+                            flex: 1,
+                            minWidth: 0,
+                            padding: '10px 12px',
+                            borderRadius: '10px',
+                            border: '2px solid',
+                            borderColor: isSelected ? '#38b2ac' : '#e2e8f0',
+                            background: isSelected ? '#ebf8ff' : '#ffffff',
+                            color: isSelected ? '#2b6cb0' : '#2d3748',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            fontSize: '13px',
+                            fontWeight: 600,
+                            boxShadow: isSelected ? '0 0 0 2px rgba(129, 230, 217, 0.8)' : 'none'
+                          }}
+                        >
+                          {day.label}
+                        </button>
+                      );
+                    })}
+                  </div>
 
-                <button onClick={addExercise} className="add-exercise-btn">
-                  ➕ Agregar a la tabla
-                </button>
+                  {exercises[selectedDay].length === 0 ? (
+                    <p className="no-exercises">No hay ejercicios asignados en este día. Agrega ejercicios usando el panel izquierdo.</p>
+                  ) : (
+                    <>
+                      <h4 style={{
+                        margin: '0 0 10px 0',
+                        color: '#2d3748',
+                        background: '#f7fafc',
+                        padding: '10px 12px',
+                        borderRadius: '10px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        fontSize: '14px'
+                      }}>
+                        <span>
+                          Día {selectedDay.replace('day', '')} ({exercises[selectedDay].length} ejercicios)
+                        </span>
+                      </h4>
+
+                      <table className="exercises-table">
+                        <thead>
+                          <tr>
+                            <th className="col-machine">Categoría / Ejercicio</th>
+                            <th className="col-compact">S</th>
+                            <th className="col-compact">R</th>
+                            <th className="col-compact">P</th>
+                            <th className="col-delete"></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {exercises[selectedDay].map((exercise, index) => (
+                            <tr key={index}>
+                              <td className="col-machine">
+                                <div className="machine-cell">
+                                  {exercise.exercisePhotoUrl && (
+                                    <img 
+                                      src={exercise.exercisePhotoUrl} 
+                                      alt={exercise.exerciseName || exercise.categoryName} 
+                                      className="machine-thumb"
+                                    />
+                                  )}
+                                  <div className="machine-info">
+                                    <strong>{exercise.categoryName}</strong>
+                                    {exercise.exerciseName && (
+                                      <div style={{ color: '#667eea', fontSize: '13px', marginTop: '2px' }}>
+                                        💪 {exercise.exerciseName}
+                                      </div>
+                                    )}
+                                    {exercise.notes && <div className="exercise-note">"{exercise.notes}"</div>}
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="col-compact">{exercise.series}</td>
+                              <td className="col-compact">{exercise.reps}</td>
+                              <td className="col-compact" style={{ color: exercise.weight ? '#fff' : '#888' }}>
+                                {exercise.weight || '-'}
+                              </td>
+                              <td className="col-delete">
+                                <button 
+                                  onClick={() => removeExercise(index)} 
+                                  className="remove-exercise-btn"
+                                >
+                                  🗑️
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
 
-            <div className="save-section">
-              <button 
-                onClick={saveTable} 
-                disabled={saving || exercises.length === 0}
-                className="save-table-btn"
-              >
-                {saving ? '⏳ Guardando...' : '💾 Guardar Tabla'}
-              </button>
-            </div>
+            {/* Botones principales se han movido al header de asignación */}
           </>
           )}
         </>
@@ -3499,7 +3423,7 @@ const AdminPanel: React.FC = () => {
                   color: '#999',
                   fontSize: '16px'
                 }}>
-                  {playlist[currentExerciseIndex].machineName}
+                  {playlist[currentExerciseIndex].categoryName || categories.find(c => c.id === playlist[currentExerciseIndex].category)?.name}
                 </p>
               </div>
 
@@ -3731,7 +3655,7 @@ const AdminPanel: React.FC = () => {
                           {exercise.name}
                         </div>
                         <div style={{ color: '#999', fontSize: '12px' }}>
-                          {exercise.machineName}
+                          {exercise.categoryName || categories.find(c => c.id === exercise.category)?.name}
                         </div>
                       </div>
                       <button
@@ -4006,7 +3930,7 @@ const AdminPanel: React.FC = () => {
                 {allExercises
                   .filter(ex => 
                     ex.name.toLowerCase().includes(exerciseSearchQuery.toLowerCase()) ||
-                    ex.machineName.toLowerCase().includes(exerciseSearchQuery.toLowerCase())
+                    (ex.categoryName && ex.categoryName.toLowerCase().includes(exerciseSearchQuery.toLowerCase()))
                   )
                   .map((exercise) => (
                     <div
@@ -4090,13 +4014,242 @@ const AdminPanel: React.FC = () => {
                           overflow: 'hidden',
                           textOverflow: 'ellipsis'
                         }}>
-                          {exercise.machineName}
+                          {exercise.categoryName || categories.find(c => c.id === exercise.category)?.name}
                         </div>
                       </div>
                     </div>
                   ))}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de crear/editar ejercicio */}
+      {showExerciseForm && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.8)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '20px',
+          overflow: 'auto'
+        }}>
+          <div style={{
+            background: '#1e1e1e',
+            borderRadius: '15px',
+            padding: '30px',
+            maxWidth: '600px',
+            width: '100%',
+            maxHeight: '90vh',
+            overflow: 'auto',
+            border: '2px solid rgba(102, 126, 234, 0.3)'
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '25px'
+            }}>
+              <h2 style={{ margin: 0, color: '#667eea', fontSize: '24px' }}>
+                {editingExercise ? '✏️ Editar Ejercicio' : '➕ Crear Nuevo Ejercicio'}
+              </h2>
+              <button
+                onClick={resetExerciseForm}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#999',
+                  fontSize: '24px',
+                  cursor: 'pointer',
+                  padding: '5px 10px'
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleExerciseSubmit}>
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', marginBottom: '8px', color: '#e0e0e0', fontSize: '14px', fontWeight: 'bold' }}>
+                  Nombre del ejercicio *
+                </label>
+                <input
+                  type="text"
+                  value={exerciseForm.name}
+                  onChange={(e) => setExerciseForm({ ...exerciseForm, name: e.target.value })}
+                  placeholder="Ej: Press de banca"
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    background: '#2d2d2d',
+                    border: '2px solid #3d3d3d',
+                    borderRadius: '8px',
+                    color: '#e0e0e0',
+                    fontSize: '14px',
+                    boxSizing: 'border-box'
+                  }}
+                  required
+                />
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', marginBottom: '8px', color: '#e0e0e0', fontSize: '14px', fontWeight: 'bold' }}>
+                  Categoría *
+                </label>
+                <select
+                  value={exerciseForm.category}
+                  onChange={(e) => setExerciseForm({ ...exerciseForm, category: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    background: '#2d2d2d',
+                    border: '2px solid #3d3d3d',
+                    borderRadius: '8px',
+                    color: '#e0e0e0',
+                    fontSize: '14px',
+                    boxSizing: 'border-box',
+                    cursor: 'pointer'
+                  }}
+                  required
+                >
+                  <option value="">Selecciona una categoría</option>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', marginBottom: '8px', color: '#e0e0e0', fontSize: '14px', fontWeight: 'bold' }}>
+                  Descripción (opcional)
+                </label>
+                <textarea
+                  value={exerciseForm.description}
+                  onChange={(e) => setExerciseForm({ ...exerciseForm, description: e.target.value })}
+                  placeholder="Descripción del ejercicio..."
+                  rows={3}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    background: '#2d2d2d',
+                    border: '2px solid #3d3d3d',
+                    borderRadius: '8px',
+                    color: '#e0e0e0',
+                    fontSize: '14px',
+                    boxSizing: 'border-box',
+                    resize: 'vertical'
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', marginBottom: '8px', color: '#e0e0e0', fontSize: '14px', fontWeight: 'bold' }}>
+                  Imagen o Video (opcional)
+                </label>
+                <input
+                  type="file"
+                  accept="image/*,video/*"
+                  onChange={handleExercisePhotoChange}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    background: '#2d2d2d',
+                    border: '2px solid #3d3d3d',
+                    borderRadius: '8px',
+                    color: '#e0e0e0',
+                    fontSize: '14px',
+                    boxSizing: 'border-box',
+                    cursor: 'pointer'
+                  }}
+                />
+                {(exerciseForm.photoPreview || exerciseForm.existingPhotoUrl) && (
+                  <div style={{ marginTop: '10px', textAlign: 'center' }}>
+                    {exerciseForm.mediaType === 'video' ? (
+                      <video
+                        src={exerciseForm.photoPreview || exerciseForm.existingPhotoUrl}
+                        style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '8px' }}
+                        controls
+                      />
+                    ) : (
+                      <img
+                        src={exerciseForm.photoPreview || exerciseForm.existingPhotoUrl}
+                        alt="Preview"
+                        style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '8px' }}
+                      />
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {uploadProgress > 0 && uploadProgress < 100 && (
+                <div style={{ marginBottom: '20px' }}>
+                  <div style={{ 
+                    width: '100%', 
+                    height: '8px', 
+                    background: '#2d2d2d', 
+                    borderRadius: '4px',
+                    overflow: 'hidden'
+                  }}>
+                    <div style={{ 
+                      width: `${uploadProgress}%`, 
+                      height: '100%', 
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      transition: 'width 0.3s ease'
+                    }} />
+                  </div>
+                  <p style={{ color: '#999', fontSize: '12px', marginTop: '5px', textAlign: 'center' }}>
+                    Subiendo... {uploadProgress}%
+                  </p>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  type="submit"
+                  disabled={exerciseFormLoading}
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    background: exerciseFormLoading 
+                      ? '#555' 
+                      : 'linear-gradient(135deg, #51cf66 0%, #40c057 100%)',
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: 'white',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    cursor: exerciseFormLoading ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {exerciseFormLoading ? 'Guardando...' : (editingExercise ? 'Actualizar' : 'Crear')}
+                </button>
+                <button
+                  type="button"
+                  onClick={resetExerciseForm}
+                  disabled={exerciseFormLoading}
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    background: '#555',
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: 'white',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    cursor: exerciseFormLoading ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

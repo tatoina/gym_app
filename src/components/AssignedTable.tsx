@@ -1,13 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { collection, query, where, getDocs, doc, updateDoc, serverTimestamp, addDoc, orderBy } from 'firebase/firestore';
+import { User } from 'firebase/auth';
 import { auth, db } from '../services/firebase';
 import TablesHistory from './TablesHistory';
 import './AssignedTable.css';
 
 interface AssignedExercise {
-  machineId: string;
-  machineName: string;
+  // Nuevo formato con categorías
+  categoryId?: string;
+  categoryName?: string;
+  // Formato antiguo con máquinas (para compatibilidad)
+  machineId?: string;
+  machineName?: string;
   machinePhotoUrl?: string;
+  // Campos del ejercicio específico
+  exerciseId?: string;
+  exerciseName?: string;
+  exercisePhotoUrl?: string;
+  mediaType?: 'image' | 'video';
+  // Métricas
   series: number;
   reps: number;
   weight?: number;
@@ -17,7 +28,15 @@ interface AssignedExercise {
 interface AssignedTableData {
   id: string;
   userId: string;
-  exercises: AssignedExercise[];
+  exercises: {
+    day1: AssignedExercise[];
+    day2: AssignedExercise[];
+    day3: AssignedExercise[];
+    day4: AssignedExercise[];
+    day5: AssignedExercise[];
+    day6: AssignedExercise[];
+    day7: AssignedExercise[];
+  };
   assignedBy: string;
   assignedByName: string;
   createdAt: any;
@@ -27,34 +46,41 @@ interface AssignedTableData {
   tableNumber?: number;
 }
 
-const AssignedTable: React.FC = () => {
+interface AssignedTableProps {
+  user: User | null;
+}
+
+const AssignedTable: React.FC<AssignedTableProps> = ({ user }) => {
   const [assignedTables, setAssignedTables] = useState<AssignedTableData[]>([]);
   const [loading, setLoading] = useState(true);
   const [showHistory, setShowHistory] = useState(false);
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [requestComment, setRequestComment] = useState('');
   const [sendingRequest, setSendingRequest] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<{url: string, name: string} | null>(null);
+  const [selectedMedia, setSelectedMedia] = useState<{url: string; name: string; type: 'image' | 'video'} | null>(null);
 
   useEffect(() => {
-    loadAssignedTable();
-  }, []);
+    if (user) {
+      loadAssignedTable();
+    }
+  }, [user]);
 
   const loadAssignedTable = async () => {
-    if (!auth.currentUser) {
+    if (!user) {
       console.log('❌ No hay usuario autenticado');
+      setLoading(false);
       return;
     }
 
     try {
       setLoading(true);
-      console.log('🔍 Buscando tablas para usuario:', auth.currentUser.uid);
-      console.log('📧 Email del usuario:', auth.currentUser.email);
+      console.log('🔍 Buscando tablas para usuario:', user.uid);
+      console.log('📧 Email del usuario:', user.email);
       
       // Cargar todas las tablas (activas y completadas) para numerarlas correctamente
       const allTablesQuery = query(
         collection(db, 'assignedTables'),
-        where('userId', '==', auth.currentUser.uid)
+        where('userId', '==', user.uid)
       );
       const allSnapshot = await getDocs(allTablesQuery);
       console.log('📊 Total de tablas encontradas (todas):', allSnapshot.docs.length);
@@ -75,7 +101,7 @@ const AssignedTable: React.FC = () => {
       // Cargar solo las tablas activas
       const activeQuery = query(
         collection(db, 'assignedTables'),
-        where('userId', '==', auth.currentUser.uid),
+        where('userId', '==', user.uid),
         where('status', '==', 'ACTIVA')
       );
       
@@ -83,18 +109,50 @@ const AssignedTable: React.FC = () => {
       console.log('✅ Tablas activas encontradas:', activeSnapshot.docs.length);
       
       const tables: AssignedTableData[] = [];
-      activeSnapshot.forEach((doc) => {
-        const tableData = doc.data();
+      activeSnapshot.forEach((docSnap) => {
+        const tableData: any = docSnap.data();
+
+        // Normalizar ejercicios a formato por días (day1..day7)
+        let normalizedExercises: AssignedTableData['exercises'];
+        if (Array.isArray(tableData.exercises)) {
+          normalizedExercises = {
+            day1: tableData.exercises || [],
+            day2: [],
+            day3: [],
+            day4: [],
+            day5: [],
+            day6: [],
+            day7: []
+          };
+        } else {
+          normalizedExercises = {
+            day1: tableData.exercises?.day1 || [],
+            day2: tableData.exercises?.day2 || [],
+            day3: tableData.exercises?.day3 || [],
+            day4: tableData.exercises?.day4 || [],
+            day5: tableData.exercises?.day5 || [],
+            day6: tableData.exercises?.day6 || [],
+            day7: tableData.exercises?.day7 || []
+          };
+        }
+
+        const totalExercises = Object.values(normalizedExercises).reduce(
+          (sum, dayExercises) => sum + dayExercises.length,
+          0
+        );
+
         console.log('📋 Tabla encontrada:', {
-          id: doc.id,
+          id: docSnap.id,
           userId: tableData.userId,
-          ejercicios: tableData.exercises?.length || 0,
+          ejercicios: totalExercises,
           status: tableData.status
         });
+
         tables.push({
-          id: doc.id,
-          tableNumber: tableNumbers[doc.id],
-          ...(doc.data() as Omit<AssignedTableData, 'id' | 'tableNumber'>)
+          id: docSnap.id,
+          tableNumber: tableNumbers[docSnap.id],
+          ...(tableData as Omit<AssignedTableData, 'id' | 'tableNumber' | 'exercises'>),
+          exercises: normalizedExercises
         });
       });
       
@@ -124,7 +182,7 @@ const AssignedTable: React.FC = () => {
   };
 
   const sendChangeRequest = async () => {
-    if (!auth.currentUser || !requestComment.trim()) {
+    if (!user || !requestComment.trim()) {
       alert('Por favor escribe un comentario');
       return;
     }
@@ -135,7 +193,7 @@ const AssignedTable: React.FC = () => {
       // Obtener datos del usuario actual
       const userDoc = await getDocs(query(
         collection(db, 'users'),
-        where('uid', '==', auth.currentUser.uid)
+        where('uid', '==', user.uid)
       ));
 
       let userName = 'Usuario';
@@ -147,9 +205,9 @@ const AssignedTable: React.FC = () => {
       // Crear notificación para Max
       await addDoc(collection(db, 'notifications'), {
         type: 'TABLE_CHANGE_REQUEST',
-        userId: auth.currentUser.uid,
+        userId: user.uid,
         userName: userName,
-        userEmail: auth.currentUser.email,
+        userEmail: user.email,
         comment: requestComment.trim(),
         createdAt: serverTimestamp(),
         read: false
@@ -167,7 +225,7 @@ const AssignedTable: React.FC = () => {
   };
 
   if (showHistory) {
-    return <TablesHistory onBack={() => setShowHistory(false)} />;
+    return <TablesHistory onBack={() => setShowHistory(false)} user={user} />;
   }
 
   if (loading) {
@@ -251,66 +309,127 @@ const AssignedTable: React.FC = () => {
           </div>
 
           <div className="exercises-table-container">
-            <table className="exercises-table">
-              <thead>
-                <tr>
-                  <th>Máquina</th>
-                  <th>Series</th>
-                  <th>Repeticiones</th>
-                  <th>Peso</th>
-                  <th>Foto</th>
-                </tr>
-              </thead>
-              <tbody>
-                {table.exercises.map((exercise: AssignedExercise, index: number) => (
-                  <tr key={index}>
-                    <td>
-                      <div style={{ textAlign: 'left' }}>
-                        {exercise.machinePhotoUrl ? (
-                          <strong 
-                            onClick={() => setSelectedImage({ url: exercise.machinePhotoUrl!, name: exercise.machineName })}
-                            style={{ 
-                              cursor: 'pointer', 
-                              color: '#667eea',
-                              textDecoration: 'underline',
-                              textDecorationStyle: 'dotted'
-                            }}
-                            title="Clic para ver foto de la máquina"
-                          >
-                            {exercise.machineName}
-                          </strong>
-                        ) : (
-                          <strong>{exercise.machineName}</strong>
-                        )}
-                        {exercise.notes && (
-                          <div style={{ fontSize: '12px', color: '#999', marginTop: '4px' }}>
-                            💡 {exercise.notes}
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td style={{ textAlign: 'center' }}>{exercise.series}</td>
-                    <td style={{ textAlign: 'center' }}>{exercise.reps}</td>
-                    <td style={{ textAlign: 'center', color: exercise.weight ? '#fff' : '#888' }}>
-                      {exercise.weight ? `${exercise.weight} kg` : '-'}
-                    </td>
-                    <td style={{ textAlign: 'center' }}>
-                      {exercise.machinePhotoUrl ? (
-                        <button
-                          onClick={() => setSelectedImage({ url: exercise.machinePhotoUrl!, name: exercise.machineName })}
-                          className="view-photo-btn"
-                          title="Ver foto de la máquina"
-                        >
-                          🔍
-                        </button>
-                      ) : (
-                        <span style={{ color: '#666' }}>-</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            {/* Mostrar solo los días que tienen ejercicios */}
+            {(() => {
+              const days = [
+                { key: 'day1', label: 'Día 1' },
+                { key: 'day2', label: 'Día 2' },
+                { key: 'day3', label: 'Día 3' },
+                { key: 'day4', label: 'Día 4' },
+                { key: 'day5', label: 'Día 5' },
+                { key: 'day6', label: 'Día 6' },
+                { key: 'day7', label: 'Día 7' }
+              ] as const;
+
+              const daysWithExercises = days.filter((d) => {
+                const list = (table.exercises as any)[d.key] as AssignedExercise[];
+                return list && list.length > 0;
+              });
+
+              if (daysWithExercises.length === 0) {
+                return (
+                  <p className="no-exercises">
+                    No hay ejercicios en esta tabla todavía.
+                  </p>
+                );
+              }
+
+              return daysWithExercises.map((d) => {
+                const dayExercises = (table.exercises as any)[d.key] as AssignedExercise[];
+                return (
+                  <div key={d.key} style={{ marginBottom: '20px' }}>
+                    <h3 style={{
+                      margin: '0 0 10px 0',
+                      color: '#51cf66',
+                      fontSize: '16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      <span>{d.label}</span>
+                      <span style={{
+                        fontSize: '12px',
+                        color: '#b0b0b0'
+                      }}>
+                        ({dayExercises.length} ejercicios)
+                      </span>
+                    </h3>
+
+                    <table className="exercises-table">
+                      <thead>
+                        <tr>
+                          <th>Categoría / Ejercicio</th>
+                          <th>Series</th>
+                          <th>Repeticiones</th>
+                          <th>Peso</th>
+                          <th>Foto</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {dayExercises.map((exercise: AssignedExercise, index: number) => {
+                          const displayName = exercise.categoryName || exercise.machineName || 'Sin categoría';
+                          const photoUrl = exercise.exercisePhotoUrl || exercise.machinePhotoUrl;
+                          const mediaType: 'image' | 'video' = exercise.mediaType || 'image';
+
+                          return (
+                            <tr key={index}>
+                              <td>
+                                <div style={{ textAlign: 'left' }}>
+                                  {photoUrl ? (
+                                    <strong
+                                      onClick={() => setSelectedMedia({ url: photoUrl!, name: displayName, type: mediaType })}
+                                      style={{
+                                        cursor: 'pointer',
+                                        color: '#667eea',
+                                        textDecoration: 'underline',
+                                        textDecorationStyle: 'dotted'
+                                      }}
+                                      title="Clic para ver foto"
+                                    >
+                                      {displayName}
+                                    </strong>
+                                  ) : (
+                                    <strong>{displayName}</strong>
+                                  )}
+                                  {exercise.exerciseName && (
+                                    <div style={{ fontSize: '13px', color: '#667eea', marginTop: '2px' }}>
+                                      💪 {exercise.exerciseName}
+                                    </div>
+                                  )}
+                                  {exercise.notes && (
+                                    <div style={{ fontSize: '12px', color: '#999', marginTop: '4px' }}>
+                                      💡 {exercise.notes}
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+                              <td style={{ textAlign: 'center' }}>{exercise.series}</td>
+                              <td style={{ textAlign: 'center' }}>{exercise.reps}</td>
+                              <td style={{ textAlign: 'center', color: exercise.weight ? '#fff' : '#888' }}>
+                                {exercise.weight ? `${exercise.weight} kg` : '-'}
+                              </td>
+                              <td style={{ textAlign: 'center' }}>
+                                {photoUrl ? (
+                                  <button
+                                    onClick={() => setSelectedMedia({ url: photoUrl!, name: displayName, type: mediaType })}
+                                    className="view-photo-btn"
+                                    title={mediaType === 'video' ? 'Ver vídeo' : 'Ver foto'}
+                                  >
+                                    {mediaType === 'video' ? '🎥' : '🔍'}
+                                  </button>
+                                ) : (
+                                  <span style={{ color: '#666' }}>-</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              });
+            })()}
           </div>
         </div>
       ))}
@@ -383,23 +502,35 @@ const AssignedTable: React.FC = () => {
         </div>
       )}
 
-      {/* Modal para ver foto maximizada */}
-      {selectedImage && (
-        <div className="modal-overlay" onClick={() => setSelectedImage(null)}>
+      {/* Modal para ver foto/vídeo maximizado */}
+      {selectedMedia && (
+        <div className="modal-overlay" onClick={() => setSelectedMedia(null)}>
           <div className="modal-content image-modal" onClick={(e) => e.stopPropagation()}>
-            <h3>{selectedImage.name}</h3>
-            <img 
-              src={selectedImage.url} 
-              alt={selectedImage.name}
-              style={{
-                maxWidth: '100%',
-                maxHeight: '70vh',
-                objectFit: 'contain',
-                borderRadius: '8px'
-              }}
-            />
+            <h3>{selectedMedia.name}</h3>
+            {selectedMedia.type === 'video' ? (
+              <video
+                src={selectedMedia.url}
+                controls
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: '70vh',
+                  borderRadius: '8px'
+                }}
+              />
+            ) : (
+              <img 
+                src={selectedMedia.url} 
+                alt={selectedMedia.name}
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: '70vh',
+                  objectFit: 'contain',
+                  borderRadius: '8px'
+                }}
+              />
+            )}
             <button
-              onClick={() => setSelectedImage(null)}
+              onClick={() => setSelectedMedia(null)}
               style={{
                 marginTop: '20px',
                 padding: '12px 24px',
