@@ -135,37 +135,26 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory, user
 
     try {
       setLoadingMachines(true);
-      
-      // Cargar máquinas globales (del admin, isGlobal = true)
-      const globalMachinesQuery = query(
-        collection(db, 'machines'),
-        where('isGlobal', '==', true)
-      );
-      const globalSnapshot = await getDocs(globalMachinesQuery);
-      const globalMachines: Machine[] = globalSnapshot.docs.map((docSnap) => ({
-        id: docSnap.id,
-        ...(docSnap.data() as Omit<Machine, 'id'>)
-      }));
 
-      // Cargar máquinas personales del usuario (incluye las antiguas sin isGlobal)
-      const personalMachinesQuery = query(
-        collection(db, 'machines'),
-        where('userId', '==', user.uid)
-      );
-      const personalSnapshot = await getDocs(personalMachinesQuery);
-      const personalMachines: Machine[] = personalSnapshot.docs
-        .map((docSnap) => ({
+      // Cargar ejercicios globales definidos por el admin
+      const exercisesSnapshot = await getDocs(collection(db, 'exercises'));
+      const fromExercises: Machine[] = exercisesSnapshot.docs.map((docSnap) => {
+        const data: any = docSnap.data();
+        return {
           id: docSnap.id,
-          ...(docSnap.data() as Omit<Machine, 'id'>)
-        }))
-        .filter((machine) => machine.isGlobal !== true); // Excluir solo las que sean explícitamente globales
+          name: data.name || 'Ejercicio sin nombre',
+          categoryId: data.categoryId,
+          categoryName: data.categoryName,
+          description: data.description,
+          photoUrl: data.photoUrl || '',
+          isGlobal: true,
+        };
+      });
 
-      // Combinar ambas listas y ordenar
-      const allMachines = [...globalMachines, ...personalMachines];
-      allMachines.sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
-      setMachines(allMachines);
+      fromExercises.sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
+      setMachines(fromExercises);
     } catch (error) {
-      console.error('Error loading machines:', error);
+      console.error('Error loading exercises for workout logger:', error);
     } finally {
       setLoadingMachines(false);
     }
@@ -585,7 +574,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory, user
     if (loadingMachines) return;
 
     if (!machines.length) {
-      openMachineModalForNew();
+      setExerciseError('Tu coach todavía no ha creado ejercicios en la base de datos. Pídele que te asigne una tabla o que registre ejercicios.');
       return;
     }
 
@@ -728,7 +717,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory, user
 
             
             {currentWorkout.exercises.map((exercise, index) => {
-              const machineLabel = exercise.machineName || 'Máquina no especificada';
+              const machineLabel = exercise.machineName || 'Ejercicio no especificado';
               const displayName = exercise.name || machineLabel;
               const isCoreExercise = exercise.machineName === 'CORE';
 
@@ -743,8 +732,10 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory, user
                       />
                     )}
                     <div>
-                      <p className="exercise-machine-name">{machineLabel}</p>
-                      <p className="exercise-name">{displayName}</p>
+                      <p className="exercise-machine-name">{displayName}</p>
+                      {displayName !== machineLabel && (
+                        <p className="exercise-name">{machineLabel}</p>
+                      )}
                       {isCoreExercise && exercise.additionalNotes && (
                         <p className="exercise-additional-notes" style={{ fontSize: '12px', color: '#999', marginTop: '4px' }}>
                           ➕ {exercise.additionalNotes}
@@ -775,20 +766,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory, user
                 {machines.length > 0 ? (
                   <>
                     <div className="form-group">
-                      <label htmlFor="owner-filter">Filtrar por Origen</label>
-                      <select
-                        id="owner-filter"
-                        value={ownerFilter}
-                        onChange={(e) => setOwnerFilter(e.target.value)}
-                        style={{ marginBottom: '15px' }}
-                      >
-                        <option value="Todas">🏋️ Todas las máquinas</option>
-                        <option value="MAXGYM">🏋️ MAXGYM</option>
-                        <option value="Personal">👤 Mis máquinas</option>
-                      </select>
-                    </div>
-
-                    <div className="form-group">
                       <label htmlFor="category-filter">Filtrar por Categoría</label>
                       <select
                         id="category-filter"
@@ -799,11 +776,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory, user
                         <option value="Todas">📋 Todas las categorías</option>
                         {Array.from(new Set(
                           machines
-                            .filter(machine => {
-                              if (ownerFilter === 'MAXGYM' && !machine.isGlobal) return false;
-                              if (ownerFilter === 'Personal' && machine.isGlobal) return false;
-                              return true;
-                            })
                             .map(m => m.categoryName)
                             .filter(Boolean)
                         )).sort().map(cat => (
@@ -813,18 +785,15 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory, user
                     </div>
 
                     <div className="form-group">
-                      <label htmlFor="machine-select">Máquina</label>
+                      <label htmlFor="machine-select">Ejercicio</label>
                       <select
                         id="machine-select"
                         value={newExercise.machineId}
                         onChange={(e) => handleSelectMachine(e.target.value)}
                       >
-                        <option value="">Selecciona una máquina</option>
+                        <option value="">Selecciona un ejercicio</option>
                         {machines
                           .filter(machine => {
-                            // Filtro por origen
-                            if (ownerFilter === 'MAXGYM' && !machine.isGlobal) return false;
-                            if (ownerFilter === 'Personal' && machine.isGlobal) return false;
                             // Filtro por categoría
                             if (categoryFilter !== 'Todas' && machine.categoryName !== categoryFilter) return false;
                             return true;

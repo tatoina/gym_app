@@ -1,11 +1,11 @@
 .workout-logger {
   width: 100%;
-  padding: 1rem 0.5rem 3rem;
+  padding: 0.75rem 0.5rem 2.5rem;
 }
 
 .current-workout {
   background: linear-gradient(145deg, #2d2d2d 0%, #1f1f1f 100%);
-  padding: 1rem;
+  padding: 0.85rem;
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
   margin-bottom: 1.5rem;
@@ -107,14 +107,14 @@
   margin-bottom: 0.4rem;
   font-weight: 500;
   color: #b0b0b0;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 
 .workout-form input,
 .workout-form textarea,
 .workout-form select {
   width: 100%;
-  padding: 0.65rem;
+  padding: 0.55rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   font-size: 0.95rem;
@@ -166,6 +166,33 @@
   padding: 0.75rem 1rem;
   margin-bottom: 1rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+@media (max-width: 768px) {
+  .current-workout {
+    padding: 0.75rem;
+  }
+
+  .machines-toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .machine-item {
+    grid-template-columns: 1fr;
+    align-items: flex-start;
+  }
+
+  .machine-item-photo {
+    width: 42px;
+    height: 42px;
+  }
+
+  .workout-form input,
+  .workout-form textarea,
+  .workout-form select {
+    font-size: 0.85rem;
+  }
 }
 
 .machines-toolbar-buttons {
@@ -307,23 +334,15 @@
 }
 
 .exercise-item {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.85rem 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.5rem;
+  padding: 0.75rem 0.9rem;
   background: rgba(255, 255, 255, 0.05);
   border-radius: 10px;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.65rem;
   border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-@media (max-width: 768px) {
-  .exercise-item {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: stretch !important;
-  }
 }
 
 .exercise-info {
@@ -357,21 +376,22 @@
 
 .exercise-machine-name {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 600;
   color: #e0e0e0;
 }
 
 .exercise-name {
   margin: 0.2rem 0 0;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: #b0b0b0;
 }
 
 .exercise-meta {
   font-weight: 600;
   color: #e0e0e0;
-  font-size: 0.95rem;
+  font-size: 0.85rem;
+  line-height: 1.4;
 }
 
 .remove-btn {

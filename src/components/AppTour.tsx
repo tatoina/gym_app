@@ -63,22 +63,8 @@ const AppTour: React.FC<AppTourProps> = ({ run, onFinish, onChangeView }) => {
       view: 'assigned'
     },
     {
-      title: '☀️ Botón Tema',
-      description: 'Este botón cambia entre tema oscuro y claro según tu preferencia. Tu elección se guarda automáticamente.',
-      target: '[data-tour="theme-toggle"]',
-      placement: 'center',
-      view: 'workout'
-    },
-    {
-      title: '👤 Tu Avatar',
-      description: 'Desde aquí puedes subir tu foto de perfil, volver a ver este tutorial o cerrar sesión.',
-      target: '[data-tour="user-avatar"]',
-      placement: 'center',
-      view: 'workout'
-    },
-    {
       title: '✅ ¡Todo Listo!',
-      description: 'Ya conoces todas las funcionalidades de MAXGYM. Puedes volver a ver este tour desde tu avatar → "Ver Tutorial". ¡A entrenar! 💪',
+      description: 'Ya conoces todas las funcionalidades de MAXGYM. ¡A entrenar! 💪',
       placement: 'center',
       view: 'workout'
     }

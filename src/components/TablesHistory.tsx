@@ -159,15 +159,31 @@ const TablesHistory: React.FC<TablesHistoryProps> = ({ onBack, user }) => {
             <div 
               className="table-header clickable"
               onClick={() => setExpandedTableId(isExpanded ? null : table.id)}
-              style={{ cursor: 'pointer' }}
+              style={{ 
+                cursor: 'pointer',
+                padding: '20px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gap: '15px',
+                flexWrap: 'wrap',
+                minHeight: '70px'
+              }}
             >
-              <div className="table-info">
-                <h2>📋 Tabla del {formatDate(table.createdAt)}</h2>
-                <p className="assigned-by">
-                  Por: <strong>{table.assignedByName}</strong> • {table.exercises.length} ejercicios
+              <div className="table-info" style={{ flex: '1 1 200px' }}>
+                <h2 style={{ 
+                  margin: '0 0 8px 0', 
+                  fontSize: '18px', 
+                  fontWeight: 'bold',
+                  color: '#e0e0e0'
+                }}>
+                  📋 Tabla del {formatDate(table.createdAt)}
+                </h2>
+                <p className="assigned-by" style={{ margin: 0, fontSize: '14px', color: '#b0b0b0' }}>
+                  Por: <strong>{table.assignedByName}</strong> • {table.exercises.length} ejercicio{table.exercises.length > 1 ? 's' : ''}
                 </p>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
                 <button 
                   className="expand-button"
                   onClick={(e) => {
@@ -175,14 +191,17 @@ const TablesHistory: React.FC<TablesHistoryProps> = ({ onBack, user }) => {
                     setExpandedTableId(isExpanded ? null : table.id);
                   }}
                   style={{
-                    padding: '8px 16px',
-                    background: isExpanded ? 'rgba(102, 126, 234, 0.2)' : 'rgba(255, 255, 255, 0.1)',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    padding: '12px 20px',
+                    background: isExpanded ? 'rgba(102, 126, 234, 0.25)' : 'rgba(255, 255, 255, 0.1)',
+                    border: '2px solid rgba(255, 255, 255, 0.2)',
                     color: 'white',
-                    borderRadius: '6px',
+                    borderRadius: '8px',
                     cursor: 'pointer',
-                    fontSize: '14px',
-                    fontWeight: 'bold'
+                    fontSize: '15px',
+                    fontWeight: 'bold',
+                    whiteSpace: 'nowrap',
+                    minWidth: '140px',
+                    transition: 'all 0.3s ease'
                   }}
                 >
                   {isExpanded ? '▲ Ocultar' : '▼ Ver Ejercicios'}

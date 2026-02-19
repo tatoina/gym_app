@@ -14,7 +14,10 @@ module.exports = {
     "no-restricted-globals": ["error", "name", "length"],
     "prefer-arrow-callback": "error",
     "quotes": ["error", "double", {"allowTemplateLiterals": true}],
-    "max-len": ["error", {"code": 200}],
+    // En Windows forzamos a ignorar el estilo de salto de línea
+    // y relajamos la longitud de línea para evitar falsos positivos
+    "linebreak-style": "off",
+    "max-len": ["error", {"code": 220}],
   },
   overrides: [
     {

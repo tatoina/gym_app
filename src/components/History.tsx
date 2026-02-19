@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { collection, query, where, getDocs, orderBy, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { User } from 'firebase/auth';
 import { auth, db } from '../services/firebase';
-import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, LineChart, Line, Area, AreaChart } from 'recharts';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import './History.css';
@@ -44,6 +44,8 @@ const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false, user }) =
   const [showExercisesSection, setShowExercisesSection] = useState(false);
   const [showGraphsSection, setShowGraphsSection] = useState(false);
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<Date | null>(null);
+  const [showEvolutionSection, setShowEvolutionSection] = useState(false);
+  const [selectedExercise, setSelectedExercise] = useState<string>('');
 
   useEffect(() => {
     if (user) {
@@ -187,6 +189,56 @@ const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false, user }) =
   // Mostrar todos los entrenamientos sin filtros
   const filteredWorkouts = workouts;
 
+  // Obtener evolución de un ejercicio específico con más métricas
+  const getExerciseEvolution = (machineId: string) => {
+    if (!machineId) return [];
+    
+    const exerciseWorkouts = workouts
+      .filter(w => w.machineId === machineId)
+      .sort((a, b) => a.date.localeCompare(b.date)); // Ordenar de más antiguo a más reciente
+    
+    return exerciseWorkouts.map(w => ({
+      date: new Date(w.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }),
+      peso: w.weight,
+      series: w.sets,
+      reps: w.reps,
+      volumen: (w.sets * w.reps * w.weight), // Volumen total
+      fullDate: w.date
+    }));
+  };
+
+  // Obtener estadísticas del ejercicio
+  const getExerciseStats = (machineId: string) => {
+    const evolution = getExerciseEvolution(machineId);
+    if (evolution.length === 0) return null;
+
+    const pesos = evolution.map(e => e.peso);
+    const volumenes = evolution.map(e => e.volumen);
+    
+    const pesoMax = Math.max(...pesos);
+    const pesoMin = Math.min(...pesos);
+    const pesoPromedio = pesos.reduce((a, b) => a + b, 0) / pesos.length;
+    const volumenTotal = volumenes.reduce((a, b) => a + b, 0);
+    const volumenPromedio = volumenTotal / volumenes.length;
+    
+    // Calcular progreso (comparar primera y última sesión)
+    const primerPeso = pesos[0];
+    const ultimoPeso = pesos[pesos.length - 1];
+    const progresoPeso = ultimoPeso - primerPeso;
+    const progresoPorc = primerPeso > 0 ? ((progresoPeso / primerPeso) * 100) : 0;
+
+    return {
+      pesoMax,
+      pesoMin,
+      pesoPromedio: Math.round(pesoPromedio * 10) / 10,
+      volumenTotal: Math.round(volumenTotal),
+      volumenPromedio: Math.round(volumenPromedio),
+      progresoPeso: Math.round(progresoPeso * 10) / 10,
+      progresoPorc: Math.round(progresoPorc * 10) / 10,
+      totalSesiones: evolution.length
+    };
+  };
+
   // Calcular peso máximo por máquina
   const getMaxWeightByMachine = () => {
     const maxByMachine = new Map<string, { name: string; weight: number }>();
@@ -302,44 +354,457 @@ const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false, user }) =
         </div>
       </div>
 
-      {/* Sección de Ejercicios por Día */}
+      {/* Sección de Evolución por Ejercicio */}
       <div style={{ marginBottom: '30px' }}>
         <div 
-          className="section-header clickable"
-          onClick={() => setShowExercisesSection(!showExercisesSection)}
+          onClick={() => setShowEvolutionSection(!showEvolutionSection)}
           style={{
+            background: lightTheme ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            padding: '20px',
+            borderRadius: '12px',
+            border: `2px solid ${lightTheme ? '#667eea' : 'rgba(102, 126, 234, 0.5)'}`,
+            marginBottom: showEvolutionSection ? '20px' : '0',
+            boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.4)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.3)';
+          }}
+        >
+          <div>
+            <h3 style={{ margin: 0, color: 'white', fontSize: '20px', fontWeight: 'bold' }}>
+              📈 Análisis por Ejercicio
+            </h3>
+            <p style={{ margin: '5px 0 0 0', fontSize: '14px', color: 'rgba(255, 255, 255, 0.9)' }}>
+              Selecciona un ejercicio para ver su evolución detallada
+            </p>
+          </div>
+          <div style={{ 
+            fontSize: '24px', 
+            color: 'white',
+            transition: 'transform 0.3s ease',
+            transform: showEvolutionSection ? 'rotate(180deg)' : 'rotate(0deg)'
+          }}>
+            ▼
+          </div>
+        </div>
+
+        {showEvolutionSection && (
+        <div style={{
             background: lightTheme ? 'linear-gradient(145deg, #ffffff 0%, #f3f4f6 100%)' : 'linear-gradient(145deg, #2d2d2d 0%, #1f1f1f 100%)',
             padding: '20px',
             borderRadius: '12px',
             border: `1px solid ${lightTheme ? '#e5e7eb' : 'rgba(255, 255, 255, 0.1)'}`,
+            marginTop: '10px'
+          }}>
+            {/* Selector de ejercicio */}
+            <div style={{ marginBottom: '25px' }}>
+              <label style={{ 
+                display: 'block', 
+                marginBottom: '10px', 
+                color: lightTheme ? '#111827' : '#e0e0e0',
+                fontWeight: 700,
+                fontSize: '15px'
+              }}>
+                🏋️ Selecciona un ejercicio:
+              </label>
+              <select
+                value={selectedExercise}
+                onChange={(e) => setSelectedExercise(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '14px 16px',
+                  borderRadius: '10px',
+                  border: `2px solid ${lightTheme ? '#667eea' : 'rgba(102, 126, 234, 0.6)'}`,
+                  background: lightTheme ? '#f8f9ff' : '#1a1a2e',
+                  color: lightTheme ? '#1a1a2e' : '#ffffff',
+                  fontSize: '15px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  boxShadow: lightTheme ? '0 2px 8px rgba(102, 126, 234, 0.15)' : '0 2px 8px rgba(102, 126, 234, 0.3)'
+                }}
+              >
+                <option value="" style={{ background: lightTheme ? '#ffffff' : '#1a1a2e', color: lightTheme ? '#6b7280' : '#999' }}>
+                  -- Selecciona un ejercicio para ver su evolución --
+                </option>
+                {machines
+                  .sort((a, b) => {
+                    const countA = workouts.filter(w => w.machineId === a.id).length;
+                    const countB = workouts.filter(w => w.machineId === b.id).length;
+                    return countB - countA;
+                  })
+                  .map((machine) => {
+                    const count = workouts.filter(w => w.machineId === machine.id).length;
+                    return (
+                      <option 
+                        key={machine.id} 
+                        value={machine.id}
+                        style={{ 
+                          background: lightTheme ? '#ffffff' : '#1a1a2e', 
+                          color: lightTheme ? '#111827' : '#ffffff',
+                          padding: '10px'
+                        }}
+                      >
+                        {machine.name} ({count} sesiones)
+                      </option>
+                    );
+                  })}
+              </select>
+            </div>
+
+            {/* Gráfico de evolución */}
+            {selectedExercise && getExerciseEvolution(selectedExercise).length > 0 ? (
+              <>
+                {/* Estadísticas resumidas */}
+                {(() => {
+                  const stats = getExerciseStats(selectedExercise);
+                  const selectedMachine = machines.find(m => m.id === selectedExercise);
+                  
+                  return stats ? (
+                    <div style={{ 
+                      marginBottom: '25px',
+                      padding: '20px',
+                      background: lightTheme ? '#f0f9ff' : 'rgba(102, 126, 234, 0.1)',
+                      borderRadius: '12px',
+                      border: `2px solid ${lightTheme ? '#3b82f6' : 'rgba(102, 126, 234, 0.3)'}`
+                    }}>
+                      <h4 style={{ 
+                        margin: '0 0 15px 0', 
+                        color: lightTheme ? '#1e40af' : '#667eea',
+                        fontSize: '18px',
+                        fontWeight: 'bold'
+                      }}>
+                        📊 {selectedMachine?.name}
+                      </h4>
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+                        gap: '15px'
+                      }}>
+                        <div style={{
+                          background: lightTheme ? 'white' : 'rgba(0, 0, 0, 0.3)',
+                          padding: '12px',
+                          borderRadius: '8px',
+                          textAlign: 'center'
+                        }}>
+                          <div style={{ fontSize: '24px', fontWeight: 'bold', color: lightTheme ? '#059669' : '#51cf66' }}>
+                            {stats.pesoMax} kg
+                          </div>
+                          <div style={{ fontSize: '12px', color: lightTheme ? '#6b7280' : '#b0b0b0', marginTop: '4px' }}>
+                            Peso Máximo
+                          </div>
+                        </div>
+                        <div style={{
+                          background: lightTheme ? 'white' : 'rgba(0, 0, 0, 0.3)',
+                          padding: '12px',
+                          borderRadius: '8px',
+                          textAlign: 'center'
+                        }}>
+                          <div style={{ fontSize: '24px', fontWeight: 'bold', color: lightTheme ? '#2563eb' : '#667eea' }}>
+                            {stats.pesoPromedio} kg
+                          </div>
+                          <div style={{ fontSize: '12px', color: lightTheme ? '#6b7280' : '#b0b0b0', marginTop: '4px' }}>
+                            Peso Promedio
+                          </div>
+                        </div>
+                        <div style={{
+                          background: lightTheme ? 'white' : 'rgba(0, 0, 0, 0.3)',
+                          padding: '12px',
+                          borderRadius: '8px',
+                          textAlign: 'center'
+                        }}>
+                          <div style={{ 
+                            fontSize: '24px', 
+                            fontWeight: 'bold', 
+                            color: stats.progresoPeso >= 0 
+                              ? (lightTheme ? '#059669' : '#51cf66') 
+                              : (lightTheme ? '#dc2626' : '#ff6b6b')
+                          }}>
+                            {stats.progresoPeso > 0 ? '+' : ''}{stats.progresoPeso} kg
+                          </div>
+                          <div style={{ fontSize: '12px', color: lightTheme ? '#6b7280' : '#b0b0b0', marginTop: '4px' }}>
+                            Progreso ({stats.progresoPorc > 0 ? '+' : ''}{stats.progresoPorc}%)
+                          </div>
+                        </div>
+                        <div style={{
+                          background: lightTheme ? 'white' : 'rgba(0, 0, 0, 0.3)',
+                          padding: '12px',
+                          borderRadius: '8px',
+                          textAlign: 'center'
+                        }}>
+                          <div style={{ fontSize: '24px', fontWeight: 'bold', color: lightTheme ? '#7c3aed' : '#f093fb' }}>
+                            {stats.totalSesiones}
+                          </div>
+                          <div style={{ fontSize: '12px', color: lightTheme ? '#6b7280' : '#b0b0b0', marginTop: '4px' }}>
+                            Sesiones
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null;
+                })()}
+
+                {/* Gráficos de evolución */}
+                <div style={{ marginBottom: '30px' }}>
+                  <h4 style={{ 
+                    margin: '0 0 20px 0', 
+                    color: lightTheme ? '#111827' : '#e0e0e0',
+                    fontSize: '16px',
+                    fontWeight: '600'
+                  }}>
+                    📊 Evolución del Peso
+                  </h4>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={getExerciseEvolution(selectedExercise)}>
+                      <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
+                      <XAxis 
+                        dataKey="date" 
+                        stroke={chartColors.axis}
+                        style={{ fontSize: '12px' }}
+                      />
+                      <YAxis 
+                        stroke={chartColors.axis}
+                        style={{ fontSize: '12px' }}
+                        label={{ value: 'Peso (kg)', angle: -90, position: 'insideLeft', fill: chartColors.axis }}
+                      />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: chartColors.tooltipBg,
+                          border: `1px solid ${chartColors.tooltipBorder}`,
+                          borderRadius: '8px',
+                          color: chartColors.tooltipText
+                        }}
+                        formatter={(value: any, name: string) => {
+                          if (name === 'peso') return [`${value} kg`, 'Peso'];
+                          return [value, name];
+                        }}
+                      />
+                      <Line 
+                        type="monotone" 
+                        dataKey="peso" 
+                        stroke={lightTheme ? '#3b82f6' : '#FFD700'} 
+                        strokeWidth={3}
+                        dot={{ fill: lightTheme ? '#3b82f6' : '#FFD700', r: 5 }}
+                        activeDot={{ r: 8 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Gráfico de Volumen Total */}
+                <div style={{ marginBottom: '30px' }}>
+                  <h4 style={{ 
+                    margin: '0 0 20px 0', 
+                    color: lightTheme ? '#111827' : '#e0e0e0',
+                    fontSize: '16px',
+                    fontWeight: '600'
+                  }}>
+                    💪 Volumen Total (Series × Reps × Peso)
+                  </h4>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <AreaChart data={getExerciseEvolution(selectedExercise)}>
+                      <defs>
+                        <linearGradient id="colorVolumen" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={lightTheme ? '#8b5cf6' : '#f093fb'} stopOpacity={0.8}/>
+                          <stop offset="95%" stopColor={lightTheme ? '#8b5cf6' : '#f093fb'} stopOpacity={0.1}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
+                      <XAxis 
+                        dataKey="date" 
+                        stroke={chartColors.axis}
+                        style={{ fontSize: '12px' }}
+                      />
+                      <YAxis 
+                        stroke={chartColors.axis}
+                        style={{ fontSize: '12px' }}
+                        label={{ value: 'Volumen (kg)', angle: -90, position: 'insideLeft', fill: chartColors.axis }}
+                      />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: chartColors.tooltipBg,
+                          border: `1px solid ${chartColors.tooltipBorder}`,
+                          borderRadius: '8px',
+                          color: chartColors.tooltipText
+                        }}
+                        formatter={(value: any) => [`${value} kg`, 'Volumen Total']}
+                      />
+                      <Area 
+                        type="monotone" 
+                        dataKey="volumen" 
+                        stroke={lightTheme ? '#8b5cf6' : '#f093fb'}
+                        strokeWidth={2}
+                        fillOpacity={1} 
+                        fill="url(#colorVolumen)" 
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Gráfico de Series y Repeticiones */}
+                <div style={{ marginBottom: '30px' }}>
+                  <h4 style={{ 
+                    margin: '0 0 20px 0', 
+                    color: lightTheme ? '#111827' : '#e0e0e0',
+                    fontSize: '16px',
+                    fontWeight: '600'
+                  }}>
+                    🔢 Series y Repeticiones
+                  </h4>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={getExerciseEvolution(selectedExercise)}>
+                      <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
+                      <XAxis 
+                        dataKey="date" 
+                        stroke={chartColors.axis}
+                        style={{ fontSize: '12px' }}
+                      />
+                      <YAxis 
+                        stroke={chartColors.axis}
+                        style={{ fontSize: '12px' }}
+                      />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: chartColors.tooltipBg,
+                          border: `1px solid ${chartColors.tooltipBorder}`,
+                          borderRadius: '8px',
+                          color: chartColors.tooltipText
+                        }}
+                      />
+                      <Legend />
+                      <Line 
+                        type="monotone" 
+                        dataKey="series" 
+                        stroke={lightTheme ? '#10b981' : '#51cf66'} 
+                        strokeWidth={2}
+                        dot={{ fill: lightTheme ? '#10b981' : '#51cf66', r: 4 }}
+                        name="Series"
+                      />
+                      <Line 
+                        type="monotone" 
+                        dataKey="reps" 
+                        stroke={lightTheme ? '#f59e0b' : '#ffa94d'} 
+                        strokeWidth={2}
+                        dot={{ fill: lightTheme ? '#f59e0b' : '#ffa94d', r: 4 }}
+                        name="Repeticiones"
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Tabla de evolución */}
+                <div style={{ marginTop: '30px' }}>
+                  <h4 style={{ 
+                    margin: '0 0 15px 0', 
+                    color: lightTheme ? '#111827' : '#e0e0e0',
+                    fontSize: '16px'
+                  }}>
+                    Historial Detallado
+                  </h4>
+                  <div className="exercises-table-container">
+                    <table className="exercises-table">
+                      <thead>
+                        <tr>
+                          <th>Fecha</th>
+                          <th className="col-compact">S</th>
+                          <th className="col-compact">R</th>
+                          <th className="col-compact">P</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {workouts
+                          .filter(w => w.machineId === selectedExercise)
+                          .sort((a, b) => b.date.localeCompare(a.date))
+                          .map((workout) => (
+                            <tr key={workout.id}>
+                              <td>
+                                {new Date(workout.date).toLocaleDateString('es-ES', {
+                                  weekday: 'short',
+                                  day: '2-digit',
+                                  month: 'short',
+                                  year: 'numeric'
+                                })}
+                              </td>
+                              <td className="col-compact">{workout.sets}</td>
+                              <td className="col-compact">{workout.reps}</td>
+                              <td className="col-compact">{workout.weight}</td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </>
+            ) : selectedExercise ? (
+              <p style={{ 
+                textAlign: 'center', 
+                color: lightTheme ? '#6b7280' : '#b0b0b0',
+                padding: '40px 20px'
+              }}>
+                No hay registros para este ejercicio
+              </p>
+            ) : null}
+          </div>
+        )}
+      </div>
+
+      {/* Sección de Ejercicios por Día */}
+      <div style={{ marginBottom: '30px' }}>
+        <div 
+          onClick={() => setShowExercisesSection(!showExercisesSection)}
+          style={{
+            background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+            padding: '20px',
+            borderRadius: '12px',
+            border: `2px solid ${lightTheme ? '#f5576c' : 'rgba(245, 87, 108, 0.5)'}`,
+            marginBottom: showExercisesSection ? '20px' : '0',
+            boxShadow: '0 4px 15px rgba(245, 87, 108, 0.3)',
             cursor: 'pointer',
+            transition: 'all 0.3s ease',
             display: 'flex',
             justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: showExercisesSection ? '20px' : '0'
+            alignItems: 'center'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = '0 6px 20px rgba(245, 87, 108, 0.4)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 4px 15px rgba(245, 87, 108, 0.3)';
           }}
         >
-          <h3 style={{ margin: 0, color: lightTheme ? '#111827' : '#e0e0e0', fontSize: '18px' }}>
-            📝 Historial de Ejercicios por Día
-          </h3>
-          <button 
-            className="expand-button"
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: lightTheme ? '#667eea' : '#FFD700',
-              fontSize: '20px',
-              cursor: 'pointer',
-              padding: '5px 10px'
-            }}
-          >
-            {showExercisesSection ? '▲' : '▼'}
-          </button>
+          <div>
+            <h3 style={{ margin: 0, color: 'white', fontSize: '20px', fontWeight: 'bold' }}>
+              📝 Historial de Ejercicios por Día
+            </h3>
+            <p style={{ margin: '5px 0 0 0', fontSize: '14px', color: 'rgba(255, 255, 255, 0.9)' }}>
+              Consulta tus entrenamientos organizados por fecha
+            </p>
+          </div>
+          <div style={{ 
+            fontSize: '24px', 
+            color: 'white',
+            transition: 'transform 0.3s ease',
+            transform: showExercisesSection ? 'rotate(180deg)' : 'rotate(0deg)'
+          }}>
+            ▼
+          </div>
         </div>
 
         {showExercisesSection && (
-          <div className="grouped-workouts">
-            {groupedData().map(([key, records]) => {
+        <div className="grouped-workouts">
+          {groupedData().map(([key, records]) => {
               const isExpanded = expandedDate === key;
           const dateFormatted = new Date(key).toLocaleDateString('es-ES', {
             weekday: 'long',
@@ -373,7 +838,7 @@ const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false, user }) =
                     <table className="exercises-table">
                       <thead>
                         <tr>
-                          <th className="col-machine">Máquina</th>
+                          <th className="col-machine">Ejercicio</th>
                           <th className="col-compact">S</th>
                           <th className="col-compact">R</th>
                           <th className="col-compact">P</th>
@@ -476,53 +941,67 @@ const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false, user }) =
             </div>
           );
         })}
-          </div>
+        </div>
         )}
       </div>
 
-      {/* Sección de Gráficos de Evolución */}
+      {/* Sección de Gráficos de Evolución - Vista General */}
       {filteredWorkouts.length > 0 && (
         <div style={{ marginBottom: '30px' }}>
           <div 
-            className="section-header clickable"
             onClick={() => setShowGraphsSection(!showGraphsSection)}
             style={{
-              background: lightTheme ? 'linear-gradient(145deg, #ffffff 0%, #f3f4f6 100%)' : 'linear-gradient(145deg, #2d2d2d 0%, #1f1f1f 100%)',
+              background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
               padding: '20px',
               borderRadius: '12px',
-              border: `1px solid ${lightTheme ? '#e5e7eb' : 'rgba(255, 255, 255, 0.1)'}`,
+              border: `2px solid ${lightTheme ? '#4facfe' : 'rgba(79, 172, 254, 0.5)'}`,
+              marginBottom: showGraphsSection ? '20px' : '0',
+              boxShadow: '0 4px 15px rgba(79, 172, 254, 0.3)',
               cursor: 'pointer',
+              transition: 'all 0.3s ease',
               display: 'flex',
               justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: showGraphsSection ? '20px' : '0'
+              alignItems: 'center'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 6px 20px rgba(79, 172, 254, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 4px 15px rgba(79, 172, 254, 0.3)';
             }}
           >
-            <h3 style={{ margin: 0, color: lightTheme ? '#111827' : '#e0e0e0', fontSize: '18px' }}>
-              📊 Gráficos de Evolución
-            </h3>
-            <button 
-              className="expand-button"
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: lightTheme ? '#667eea' : '#FFD700',
-                fontSize: '20px',
-                cursor: 'pointer',
-                padding: '5px 10px'
-              }}
-            >
-              {showGraphsSection ? '▲' : '▼'}
-            </button>
+            <div>
+              <h3 style={{ margin: 0, color: 'white', fontSize: '20px', fontWeight: 'bold' }}>
+                📊 Vista General de Progreso
+              </h3>
+              <p style={{ margin: '5px 0 0 0', fontSize: '14px', color: 'rgba(255, 255, 255, 0.9)' }}>
+                Resumen rápido de todos tus ejercicios
+              </p>
+            </div>
+            <div style={{ 
+              fontSize: '24px', 
+              color: 'white',
+              transition: 'transform 0.3s ease',
+              transform: showGraphsSection ? 'rotate(180deg)' : 'rotate(0deg)'
+            }}>
+              ▼
+            </div>
           </div>
 
           {showGraphsSection && (
-            <div style={{ padding: '20px 10px' }}>
-              {machines.map((machine) => {
+          <div style={{ padding: '20px 10px' }}>
+            {machines
+              .sort((a, b) => {
+                  const countA = workouts.filter(w => w.machineId === a.id).length;
+                  const countB = workouts.filter(w => w.machineId === b.id).length;
+                  return countB - countA;
+                })
+                .map((machine) => {
                 const machineWorkouts = workouts.filter(w => w.machineId === machine.id);
                 if (machineWorkouts.length === 0) return null;
                 
-                // Obtener peso máximo por fecha para esta máquina
                 const weightsByDate = new Map<string, number>();
                 machineWorkouts.forEach((w) => {
                   const weight = Number(w.weight) || 0;
@@ -541,40 +1020,93 @@ const History: React.FC<HistoryProps> = ({ onBack, lightTheme = false, user }) =
                   }));
                 
                 const maxWeight = Math.max(...chartData.map(d => d.weight), 0);
+                const minWeight = Math.min(...chartData.map(d => d.weight), 0);
+                const avgWeight = chartData.reduce((sum, d) => sum + d.weight, 0) / chartData.length;
+                const progreso = chartData.length > 1 ? chartData[chartData.length - 1].weight - chartData[0].weight : 0;
                 
                 return (
-                  <div key={machine.id} style={{ marginBottom: '30px', background: lightTheme ? '#f9fafb' : 'rgba(255, 255, 255, 0.03)', padding: '15px', borderRadius: '12px', border: `1px solid ${lightTheme ? '#e5e7eb' : 'rgba(255, 255, 255, 0.1)'}` }}>
-                    <h4 style={{ margin: '0 0 15px 0', color: lightTheme ? '#111827' : '#e0e0e0', fontSize: '16px' }}>
-                      🏋️ {machine.name} <span style={{ color: lightTheme ? '#667eea' : '#FFD700', fontWeight: '700' }}>- Máx: {maxWeight} kg</span>
-                    </h4>
-                    <ResponsiveContainer width="100%" height={250}>
-                      <BarChart data={chartData}>
+                  <div 
+                    key={machine.id} 
+                    style={{ 
+                      marginBottom: '30px', 
+                      background: lightTheme ? '#ffffff' : 'rgba(255, 255, 255, 0.03)', 
+                      padding: '20px', 
+                      borderRadius: '12px', 
+                      border: `1px solid ${lightTheme ? '#e5e7eb' : 'rgba(255, 255, 255, 0.1)'}`,
+                      boxShadow: lightTheme ? '0 2px 8px rgba(0,0,0,0.05)' : '0 2px 8px rgba(0,0,0,0.2)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '15px', flexWrap: 'wrap', gap: '10px' }}>
+                      <h4 style={{ margin: 0, color: lightTheme ? '#111827' : '#e0e0e0', fontSize: '18px', fontWeight: 'bold' }}>
+                        🏋️ {machine.name}
+                      </h4>
+                      <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: '11px', color: lightTheme ? '#6b7280' : '#888', marginBottom: '2px' }}>MÁX</div>
+                          <div style={{ fontSize: '16px', fontWeight: 'bold', color: lightTheme ? '#059669' : '#51cf66' }}>{maxWeight} kg</div>
+                        </div>
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: '11px', color: lightTheme ? '#6b7280' : '#888', marginBottom: '2px' }}>PROM</div>
+                          <div style={{ fontSize: '16px', fontWeight: 'bold', color: lightTheme ? '#2563eb' : '#667eea' }}>{Math.round(avgWeight * 10) / 10} kg</div>
+                        </div>
+                        {chartData.length > 1 && (
+                          <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: '11px', color: lightTheme ? '#6b7280' : '#888', marginBottom: '2px' }}>PROGRESO</div>
+                            <div style={{ 
+                              fontSize: '16px', 
+                              fontWeight: 'bold', 
+                              color: progreso >= 0 ? (lightTheme ? '#059669' : '#51cf66') : (lightTheme ? '#dc2626' : '#ff6b6b')
+                            }}>
+                              {progreso > 0 ? '+' : ''}{Math.round(progreso * 10) / 10} kg
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <ResponsiveContainer width="100%" height={200}>
+                      <LineChart data={chartData}>
                         <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
                         <XAxis 
                           dataKey="displayDate" 
                           stroke={chartColors.axis}
-                          tick={{ fill: chartColors.axis, fontSize: 11 }}
+                          tick={{ fill: chartColors.axis, fontSize: 10 }}
                         />
                         <YAxis 
                           stroke={chartColors.axis}
-                          tick={{ fill: chartColors.axis, fontSize: 11 }}
-                          label={{ value: 'Peso (kg)', angle: -90, position: 'insideLeft', style: { fill: chartColors.axis, fontSize: 11 } }}
+                          tick={{ fill: chartColors.axis, fontSize: 10 }}
+                          domain={[Math.max(0, minWeight - 5), maxWeight + 5]}
                         />
                         <Tooltip 
                           contentStyle={{ 
                             backgroundColor: chartColors.tooltipBg, 
                             border: `1px solid ${chartColors.tooltipBorder}`,
                             borderRadius: '8px',
-                            color: chartColors.tooltipText
+                            color: chartColors.tooltipText,
+                            fontSize: '12px'
                           }}
-                          formatter={(value: any) => [`${value} kg`, 'Peso Máximo']}
+                          formatter={(value: any) => [`${value} kg`, 'Peso']}
                           labelFormatter={(label) => `Fecha: ${label}`}
                         />
-                        <Bar dataKey="weight" fill={lightTheme ? '#667eea' : '#FFD700'} radius={[8, 8, 0, 0]} />
-                      </BarChart>
+                        <Line 
+                          type="monotone" 
+                          dataKey="weight" 
+                          stroke={lightTheme ? '#3b82f6' : '#FFD700'} 
+                          strokeWidth={3}
+                          dot={{ fill: lightTheme ? '#3b82f6' : '#FFD700', r: 4 }}
+                          activeDot={{ r: 6 }}
+                        />
+                      </LineChart>
                     </ResponsiveContainer>
-                    <p style={{ fontSize: '13px', color: lightTheme ? '#6b7280' : '#b0b0b0', marginTop: '10px', textAlign: 'center' }}>
-                      {chartData.length} día{chartData.length > 1 ? 's' : ''} registrado{chartData.length > 1 ? 's' : ''}
+                    
+                    <p style={{ 
+                      fontSize: '12px', 
+                      color: lightTheme ? '#6b7280' : '#888', 
+                      marginTop: '10px', 
+                      textAlign: 'center',
+                      fontStyle: 'italic'
+                    }}>
+                      {chartData.length} sesión{chartData.length > 1 ? 'es' : ''} registrada{chartData.length > 1 ? 's' : ''}
                     </p>
                   </div>
                 );

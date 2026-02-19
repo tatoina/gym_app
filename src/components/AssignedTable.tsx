@@ -202,7 +202,7 @@ const AssignedTable: React.FC<AssignedTableProps> = ({ user }) => {
         userName = `${userData.firstName} ${userData.lastName}`;
       }
 
-      // Crear notificación para Max
+      // Crear notificación para el coach
       await addDoc(collection(db, 'notifications'), {
         type: 'TABLE_CHANGE_REQUEST',
         userId: user.uid,
@@ -213,7 +213,7 @@ const AssignedTable: React.FC<AssignedTableProps> = ({ user }) => {
         read: false
       });
 
-      alert('✅ Solicitud enviada correctamente. Max verá tu mensaje.');
+      alert('✅ Solicitud enviada. Tu coach verá tu mensaje.');
       setShowRequestModal(false);
       setRequestComment('');
     } catch (error) {
@@ -415,7 +415,7 @@ const AssignedTable: React.FC<AssignedTableProps> = ({ user }) => {
                                     className="view-photo-btn"
                                     title={mediaType === 'video' ? 'Ver vídeo' : 'Ver foto'}
                                   >
-                                    {mediaType === 'video' ? '🎥' : '🔍'}
+                                    {mediaType === 'video' ? '▶️' : '🔍'}
                                   </button>
                                 ) : (
                                   <span style={{ color: '#666' }}>-</span>
@@ -435,7 +435,7 @@ const AssignedTable: React.FC<AssignedTableProps> = ({ user }) => {
       ))}
 
       <div className="table-footer">
-        <p>💡 <strong>Consejo:</strong> Sigue estas tablas durante tus entrenamientos y registra tu progreso en "Entrenar".</p>
+        <p>� <strong>Consejo:</strong> Sigue tu tabla y registra cada entrenamiento en la sección "Entrenar".</p>
       </div>
 
       {/* Modal para solicitar cambio de tabla */}
@@ -444,13 +444,13 @@ const AssignedTable: React.FC<AssignedTableProps> = ({ user }) => {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h3>💬 Solicitar Cambio de Tabla</h3>
             <p style={{ color: '#b0b0b0', marginBottom: '20px' }}>
-              Envía un mensaje a Max explicando qué cambios necesitas en tu tabla de ejercicios.
+              Envía un mensaje a tu coach explicando qué necesitas modificar en tu tabla.
             </p>
             
             <textarea
               value={requestComment}
               onChange={(e) => setRequestComment(e.target.value)}
-              placeholder="Ejemplo: Me gustaría cambiar el press de banca por press inclinado porque tengo molestias en el hombro..."
+              placeholder="Ej: Me gustaría cambiar el press de banca por press inclinado porque tengo molestias en el hombro..."
               rows={6}
               style={{
                 width: '100%',

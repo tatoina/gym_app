@@ -4,6 +4,25 @@ import { doc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../services/firebase';
 import './Auth.css';
 
+export const APP_VERSION = '1.0';
+
+const forceUpdate = async () => {
+  // Limpiar todos los cachés del service worker
+  if ('caches' in window) {
+    const cacheNames = await caches.keys();
+    await Promise.all(cacheNames.map(name => caches.delete(name)));
+  }
+  // Desregistrar todos los service workers
+  if ('serviceWorker' in navigator) {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(registrations.map(reg => reg.unregister()));
+  }
+  // Limpiar localStorage de versión para forzar recarga
+  localStorage.removeItem('app_version');
+  // Recargar sin caché
+  window.location.reload();
+};
+
 interface AuthProps {
   onAuthSuccess: () => void;
 }
@@ -15,6 +34,7 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [updating, setUpdating] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,10 +90,37 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
       <div className="auth-container">
         <div className="auth-card">
           <div className="auth-logo">
-            <img src="/icons/icon-512.png" alt="MAXGYM Logo" />
+            <div
+              onClick={async () => {
+                if (updating) return;
+                setUpdating(true);
+                await forceUpdate();
+              }}
+              title="Pulsa para actualizar la app"
+              style={{ cursor: 'pointer', display: 'inline-block', position: 'relative' }}
+            >
+              <img
+                src="/icons/icon-512.png"
+                alt="MAXGYM Logo"
+                style={{
+                  opacity: updating ? 0.5 : 1,
+                  transition: 'opacity 0.3s',
+                  animation: updating ? 'spin 1s linear infinite' : 'none'
+                }}
+              />
+              {updating && (
+                <div style={{
+                  position: 'absolute', top: '50%', left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  color: '#667eea', fontSize: '12px', fontWeight: 'bold',
+                  whiteSpace: 'nowrap'
+                }}>
+                  Actualizando...
+                </div>
+              )}
+            </div>
           </div>
           <h2>Recuperar Contraseña</h2>
-          
           <form onSubmit={handleResetPassword}>
             <div className="form-group">
               <label>Email:</label>
@@ -116,7 +163,35 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
     <div className="auth-container">
       <div className="auth-card">
         <div className="auth-logo">
-          <img src="/icons/icon-512.png" alt="MAXGYM Logo" />
+          <div
+            onClick={async () => {
+              if (updating) return;
+              setUpdating(true);
+              await forceUpdate();
+            }}
+            title="Pulsa para actualizar la app"
+            style={{ cursor: 'pointer', display: 'inline-block', position: 'relative' }}
+          >
+            <img
+              src="/icons/icon-512.png"
+              alt="MAXGYM Logo"
+              style={{
+                opacity: updating ? 0.5 : 1,
+                transition: 'opacity 0.3s',
+                animation: updating ? 'spin 1s linear infinite' : 'none'
+              }}
+            />
+            {updating && (
+              <div style={{
+                position: 'absolute', top: '50%', left: '50%',
+                transform: 'translate(-50%, -50%)',
+                color: '#667eea', fontSize: '12px', fontWeight: 'bold',
+                whiteSpace: 'nowrap'
+              }}>
+                Actualizando...
+              </div>
+            )}
+          </div>
         </div>
         <h2>Iniciar Sesión</h2>
         
@@ -160,6 +235,14 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
             ¿Olvidaste tu contraseña?
           </button>
         </p>
+        <div style={{
+          textAlign: 'center',
+          fontSize: '11px',
+          color: '#555',
+          marginTop: '8px'
+        }}>
+          v. {APP_VERSION}
+        </div>
       </div>
     </div>
   );

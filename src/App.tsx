@@ -3,12 +3,11 @@ import { onAuthStateChanged, signOut, User } from 'firebase/auth';
 import { auth, db, storage } from './services/firebase';
 import { doc, getDoc, setDoc, collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import Auth from './components/Auth';
+import Auth, { APP_VERSION } from './components/Auth';
 import WorkoutLogger from './components/WorkoutLogger';
 import History from './components/History';
 import AssignedTable from './components/AssignedTable';
 import AdminPanel from './components/AdminPanel';
-import AppTour from './components/AppTour';
 // PUSH NOTIFICATIONS DESACTIVADAS - No funcionan en Safari iOS
 // import { requestNotificationPermission, setupMessageListener } from './services/notifications';
 // FUNCIONALIDAD SOCIAL DESACTIVADA TEMPORALMENTE - FUTURO
@@ -19,19 +18,19 @@ import './theme-light.css';
 type View = 'home' | 'workout' | 'history' | 'assigned' | 'social' | 'admin';
 
 const ADMIN_EMAIL = 'max@max.es';
-const APP_VERSION = '2.0.0'; // Incrementar con cada deploy importante
+// APP_VERSION importada desde Auth.tsx
 
 function App() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentView, setCurrentView] = useState<View>('home');
   const [isAdmin, setIsAdmin] = useState(false);
+  const [userRole, setUserRole] = useState<'admin' | 'coach' | 'usuario'>('usuario');
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [lightTheme, setLightTheme] = useState(false);
   const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const [runTour, setRunTour] = useState(false);
   const [showSuggestionModal, setShowSuggestionModal] = useState(false);
   const [suggestionText, setSuggestionText] = useState('');
   const [sendingSuggestion, setSendingSuggestion] = useState(false);
@@ -83,23 +82,7 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
-  // Verificar si es la primera vez del usuario y mostrar tour + asignar tabla de ejemplo
-  useEffect(() => {
-    const setupNewUser = async () => {
-      if (user && !isAdmin) {
-        const hasSeenTour = localStorage.getItem(`tour_seen_${user.uid}`);
-        
-        // Mostrar tour si es primera vez
-        if (!hasSeenTour) {
-          setTimeout(() => {
-            setRunTour(true);
-          }, 1500);
-        }
-      }
-    };
 
-    setupNewUser();
-  }, [user, isAdmin]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -107,29 +90,34 @@ function App() {
       const adminStatus = user?.email === ADMIN_EMAIL;
       setIsAdmin(adminStatus);
       
-      // Cargar foto de perfil del usuario
-      if (user && !adminStatus) {
+      // Determinar el rol del usuario
+      if (adminStatus) {
+        setUserRole('admin');
+      } else if (user) {
         try {
           const userDoc = await getDoc(doc(db, 'users', user.uid));
-          if (userDoc.exists() && userDoc.data().profilePhotoUrl) {
-            setProfilePhotoUrl(userDoc.data().profilePhotoUrl);
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            setUserRole(userData.role || 'usuario');
+            
+            // Cargar foto de perfil
+            if (userData.profilePhotoUrl) {
+              setProfilePhotoUrl(userData.profilePhotoUrl);
+            }
           }
         } catch (error) {
-          console.error('Error loading profile photo:', error);
+          console.error('Error loading user data:', error);
         }
       }
       
-      // Si es admin, mostrar directamente el panel de admin
+      // Si es admin o coach, mostrar directamente el panel de administración
       if (adminStatus) {
         setCurrentView('admin');
-        
-        // PUSH NOTIFICATIONS DESACTIVADAS - Ahora usa email
-        // try {
-        //   await requestNotificationPermission();
-        //   setupMessageListener();
-        // } catch (error) {
-        //   console.error('Error setting up notifications:', error);
-        // }
+      } else if (user) {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists() && userDoc.data().role === 'coach') {
+          setCurrentView('admin');
+        }
       }
       
       setLoading(false);
@@ -237,20 +225,7 @@ function App() {
     }
   };
 
-  const handleTourFinish = () => {
-    if (user) {
-      localStorage.setItem(`tour_seen_${user.uid}`, 'true');
-    }
-    setRunTour(false);
-  };
 
-  const handleStartTour = () => {
-    setShowUserMenu(false);
-    setCurrentView('workout'); // Ir a la vista principal para el tour
-    setTimeout(() => {
-      setRunTour(true);
-    }, 500);
-  };
 
   const handleOpenSuggestion = () => {
     setShowUserMenu(false);
@@ -331,7 +306,7 @@ function App() {
       <div className="App">
         <div className="welcome-header">
           <h1>🏋️‍♂️ MAXGYM</h1>
-          <p>Tu aplicación para trackear entrenamientos de gimnasio</p>
+          <p>Seguimiento profesional de tus entrenamientos</p>
         </div>
         <Auth onAuthSuccess={() => {}} />
       </div>
@@ -342,16 +317,12 @@ function App() {
     <div className={`App ${lightTheme ? 'light-theme' : ''}`}>
       {!isAdmin && (
         <>
-          <div className="user-avatar-button" data-tour="user-avatar" onClick={() => setShowUserMenu(!showUserMenu)}>
+          <div className="user-avatar-button" onClick={() => setShowUserMenu(!showUserMenu)}>
             {profilePhotoUrl ? (
               <img src={profilePhotoUrl} alt="Avatar" className="avatar-image" />
             ) : (
               getUserInitials()
             )}
-          </div>
-
-          <div className="theme-toggle-button" data-tour="theme-toggle" onClick={toggleTheme} title={lightTheme ? 'Cambiar a tema oscuro' : 'Cambiar a tema claro'}>
-            {lightTheme ? '🌙' : '☀️'}
           </div>
           
           {showUserMenu && (
@@ -359,9 +330,6 @@ function App() {
               <div className="user-menu-email">{user.email}</div>
               <button onClick={() => { setShowPhotoModal(true); setShowUserMenu(false); }} className="user-menu-option">
                 📷 Cambiar Foto
-              </button>
-              <button onClick={handleStartTour} className="user-menu-option">
-                🎓 Ver Tutorial
               </button>
               <button onClick={handleOpenSuggestion} className="user-menu-option">
                 💡 Sugerencias APP
@@ -400,14 +368,14 @@ function App() {
         </>
       )}
       <main>
-        {isAdmin ? (
-          <AdminPanel user={user} />
+        {isAdmin || userRole === 'coach' ? (
+          <AdminPanel user={user} userRole={userRole} />
         ) : (
           <>
             {currentView === 'home' && (
               <div className="home-view">
-                <h2 style={{ textAlign: 'center', marginBottom: '2rem', color: '#e0e0e0' }}>🏋️‍♂️ MAXGYM</h2>
-                <p style={{ textAlign: 'center', color: '#b0b0b0', marginBottom: '3rem' }}>Selecciona una opción para continuar</p>
+                <h2 style={{ textAlign: 'center', marginBottom: '1.5rem', color: '#e0e0e0', fontSize: '2rem' }}>🏋️‍♂️ MAXGYM</h2>
+                <p style={{ textAlign: 'center', color: '#b0b0b0', marginBottom: '3rem', fontSize: '1.1rem' }}>Tu entrenamiento, tu progreso</p>
               </div>
             )}
             {currentView === 'workout' && (
@@ -518,9 +486,6 @@ function App() {
           </div>
         </div>
       )}
-
-      {/* Tour de la aplicación */}
-      {!isAdmin && <AppTour run={runTour} onFinish={handleTourFinish} onChangeView={setCurrentView} />}
     </div>
   );
 }

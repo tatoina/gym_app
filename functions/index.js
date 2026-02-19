@@ -1,6 +1,7 @@
 const {onDocumentCreated} = require("firebase-functions/v2/firestore");
 const {onCall} = require("firebase-functions/v2/https");
 const {initializeApp} = require("firebase-admin/app");
+const {getFirestore} = require("firebase-admin/firestore");
 const {getAuth} = require("firebase-admin/auth");
 const logger = require("firebase-functions/logger");
 const nodemailer = require("nodemailer");
@@ -33,10 +34,21 @@ exports.sendNotificationToAdmin = onDocumentCreated(
           },
         });
 
+        // Obtener email de notificaciones configurado en Firestore (si existe)
+        let targetEmail = "inaviciba@gmail.com";
+        try {
+          const configSnap = await getFirestore().doc("config/email").get();
+          if (configSnap.exists && configSnap.data().notificationsEmail) {
+            targetEmail = configSnap.data().notificationsEmail;
+          }
+        } catch (err) {
+          logger.warn("No se pudo leer config/email, usando email por defecto", err);
+        }
+
         // Configurar el email
         const mailOptions = {
           from: `"MAXGYM Notificaciones" <${gmailEmail.value()}>`,
-          to: "inaviciba@gmail.com",
+          to: targetEmail,
           subject: "📬 Nueva solicitud de cambio en MAXGYM",
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
@@ -111,10 +123,21 @@ exports.sendSuggestionEmail = onDocumentCreated(
           },
         });
 
+        // Obtener email de notificaciones configurado en Firestore (si existe)
+        let targetEmail = "inaviciba@gmail.com";
+        try {
+          const configSnap = await getFirestore().doc("config/email").get();
+          if (configSnap.exists && configSnap.data().notificationsEmail) {
+            targetEmail = configSnap.data().notificationsEmail;
+          }
+        } catch (err) {
+          logger.warn("No se pudo leer config/email, usando email por defecto", err);
+        }
+
         // Configurar el email
         const mailOptions = {
           from: `"MAXGYM Sugerencias" <${gmailEmail.value()}>`,
-          to: "inaviciba@gmail.com",
+          to: targetEmail,
           subject: "💡 Nueva sugerencia para MAXGYM App",
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
@@ -358,7 +381,9 @@ exports.sendTableAssignedEmail = onCall(
                   ${coachName || "Tu coach"} te ha asignado una nueva tabla de entrenamiento.
                 </p>
 
-                <div style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%); padding: 25px; border-radius: 12px; margin: 30px 0; border: 2px solid rgba(102, 126, 234, 0.3);">
+                <div
+                  style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%); padding: 25px; border-radius: 12px; margin: 30px 0; border: 2px solid rgba(102, 126, 234, 0.3);"
+                >
                   <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 15px;">
                     <span style="font-size: 48px;">📋</span>
                   </div>

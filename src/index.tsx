@@ -13,4 +13,21 @@ root.render(
   </React.StrictMode>
 );
 
-serviceWorkerRegistration.register();
+// Registrar service worker con actualización automática
+serviceWorkerRegistration.register({
+  onUpdate: (registration) => {
+    // Cuando hay una actualización disponible
+    console.log('Nueva versión disponible. Actualizando...');
+    
+    if (registration && registration.waiting) {
+      // Activar el nuevo service worker
+      registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+      
+      // Recargar la página para aplicar la actualización
+      window.location.reload();
+    }
+  },
+  onSuccess: (registration) => {
+    console.log('Service Worker registrado correctamente');
+  }
+});

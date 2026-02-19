@@ -390,7 +390,89 @@
 
 @media (max-width: 768px) {
   .history-container {
-    padding: 1rem 0.75rem;
+    padding: 0.75rem 0.5rem 1rem;
+    overflow-x: hidden;
+  }
+
+  /* Tabla de ejercicios más compacta en móvil */
+  .exercises-table-container {
+    margin: 0;
+    overflow-x: hidden;
+  }
+
+  .exercises-table {
+    font-size: 12px;
+    max-width: 100%;
+  }
+
+  .exercises-table th,
+  .exercises-table td {
+    padding: 3px 4px;
+  }
+
+  .exercises-table .col-machine {
+    width: 25%;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    word-break: break-word;
+  }
+
+  .exercises-table th.col-compact,
+  .exercises-table td.col-compact {
+    width: 5%;
+    padding-left: 2px;
+    padding-right: 2px;
+    font-size: 12px;
+  }
+
+  .exercises-table .col-actions {
+    width: 17%;
+    padding-left: 2px;
+    padding-right: 2px;
+  }
+
+  .workout-group {
+    margin-bottom: 8px;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .group-header {
+    padding: 12px 14px;
+  }
+
+  .group-title {
+    font-size: 15px;
+  }
+
+  .exercises-count-badge {
+    font-size: 11px;
+    padding: 2px 8px;
+  }
+
+  .exercises-detail {
+    padding: 8px 4px 10px;
+  }
+
+  .edit-input {
+    max-width: 100%;
+    width: 100%;
+    padding: 2px 2px;
+    font-size: 11px;
+    box-sizing: border-box;
+  }
+
+  .action-buttons {
+    gap: 2px;
+  }
+
+  .btn-edit,
+  .btn-delete,
+  .btn-save,
+  .btn-cancel {
+    padding: 4px 6px;
+    font-size: 14px;
   }
 
   .history-header {
@@ -678,14 +760,15 @@
 }
 
 .col-machine {
-  min-width: 150px;
+  width: 40%;
   font-weight: 500;
 }
 
 .col-compact {
-  width: 50px;
+  width: 14%;
   text-align: center;
   font-weight: 600;
+  font-size: 15px;
 }
 
 .col-photo {
@@ -694,7 +777,7 @@
 }
 
 .col-actions {
-  width: 100px;
+  width: 18%;
   text-align: center;
 }
 
