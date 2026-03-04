@@ -559,6 +559,27 @@
   font-size: 0.9rem;
 }
 
+.view-media-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 7px 14px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s;
+}
+
+.view-media-btn:hover {
+  opacity: 0.88;
+  transform: scale(1.03);
+}
+
 .machine-modal-backdrop {
   position: fixed;
   inset: 0;

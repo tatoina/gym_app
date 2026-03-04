@@ -34,6 +34,7 @@ interface Machine {
   categoryName?: string;
   description?: string;
   photoUrl?: string;
+  videoUrl?: string;
   userId?: string;
   isGlobal?: boolean;
   exercises?: Exercise[];
@@ -119,6 +120,20 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory, user
   };
 
   useEffect(() => { loadCategories(); }, []);
+  // Modal para ver foto/video de un ejercicio
+  const [exerciseMediaModal, setExerciseMediaModal] = useState<{
+    show: boolean;
+    url: string;
+    type: 'image' | 'video';
+    title: string;
+  }>({ show: false, url: '', type: 'image', title: '' });
+
+  const openExerciseMedia = (machine: Machine) => {
+    const url = machine.videoUrl || machine.photoUrl || '';
+    const type = machine.videoUrl ? 'video' : 'image';
+    setExerciseMediaModal({ show: true, url, type, title: machine.name });
+  };
+
   const [machinePreview, setMachinePreview] = useState<string>('');
   const [exerciseError, setExerciseError] = useState('');
   const [sharePublicly, setSharePublicly] = useState(false);
@@ -147,6 +162,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory, user
           categoryName: data.categoryName,
           description: data.description,
           photoUrl: data.photoUrl || '',
+          videoUrl: data.videoUrl || '',
           isGlobal: true,
         };
       });
@@ -826,6 +842,15 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory, user
                           {selectedMachine.description && (
                             <p className="machine-summary-description">{selectedMachine.description}</p>
                           )}
+                          {(selectedMachine.photoUrl || selectedMachine.videoUrl) && (
+                            <button
+                              type="button"
+                              className="view-media-btn"
+                              onClick={() => openExerciseMedia(selectedMachine)}
+                            >
+                              {selectedMachine.videoUrl ? '▶ Ver vídeo de ejecución' : '🖼 Ver imagen de ejecución'}
+                            </button>
+                          )}
                         </div>
                       </div>
                     )}
@@ -1039,6 +1064,49 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory, user
           Abrir Historial y Estadísticas
         </button>
       </div>
+
+      {/* Modal media de ejercicio */}
+      {exerciseMediaModal.show && (
+        <div
+          className="machine-modal-backdrop"
+          onClick={() => setExerciseMediaModal(m => ({ ...m, show: false }))}
+        >
+          <div
+            className="machine-modal"
+            style={{ maxWidth: '90vw', maxHeight: '90vh', overflow: 'hidden' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="machine-modal-header">
+              <h3>{exerciseMediaModal.title}</h3>
+              <button
+                type="button"
+                className="close-button"
+                onClick={() => setExerciseMediaModal(m => ({ ...m, show: false }))}
+                aria-label="Cerrar"
+              >
+                ×
+              </button>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '16px' }}>
+              {exerciseMediaModal.type === 'video' ? (
+                <video
+                  src={exerciseMediaModal.url}
+                  controls
+                  autoPlay
+                  playsInline
+                  style={{ maxWidth: '100%', maxHeight: '70vh', borderRadius: '8px' }}
+                />
+              ) : (
+                <img
+                  src={exerciseMediaModal.url}
+                  alt={exerciseMediaModal.title}
+                  style={{ maxWidth: '100%', maxHeight: '70vh', borderRadius: '8px', objectFit: 'contain' }}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {machineModalOpen && (
         <div className="machine-modal-backdrop" role="dialog" aria-modal="true">

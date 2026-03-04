@@ -162,7 +162,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ user, userRole }) => {
   const [showMachinesSection, setShowMachinesSection] = useState(false);
   const [showCategoryManagement, setShowCategoryManagement] = useState(false);
   const [currentTableDate, setCurrentTableDate] = useState<Date | null>(null);
-  const [activeTab, setActiveTab] = useState<'tablas' | 'ejercicios' | 'usuarios' | 'reproductor' | null>(null);
+  const [activeTab, setActiveTab] = useState<'tablas' | 'ejercicios' | 'usuarios' | 'reproductor' | 'seguimiento' | null>(null);
   
   // Estados para gestión de usuarios
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -212,6 +212,49 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ user, userRole }) => {
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [categoryFormName, setCategoryFormName] = useState('');
   const [showUserMenu, setShowUserMenu] = useState(false);
+
+  // Estados para Seguimiento de usuarios
+  const [trackingUserId, setTrackingUserId] = useState<string>('');
+  const [trackingWorkouts, setTrackingWorkouts] = useState<Array<{
+    id: string;
+    date: string;
+    name: string;
+    machineName: string;
+    machinePhotoUrl?: string;
+    sets: number;
+    reps: number;
+    weight: number;
+    createdAt: any;
+  }>>([]);
+  const [trackingLoading, setTrackingLoading] = useState(false);
+  const [trackingDateFrom, setTrackingDateFrom] = useState('');
+  const [trackingDateTo, setTrackingDateTo] = useState('');
+  const [trackingExerciseFilter, setTrackingExerciseFilter] = useState('Todos');
+  const [trackingExpandedDate, setTrackingExpandedDate] = useState<string | null>(null);
+
+  const loadTrackingWorkouts = async (uid: string) => {
+    if (!uid) { setTrackingWorkouts([]); return; }
+    setTrackingLoading(true);
+    try {
+      const snap = await getDocs(query(
+        collection(db, 'workouts'),
+        where('userId', '==', uid)
+      ));
+      const data = snap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+      data.sort((a: any, b: any) => {
+        const dc = b.date.localeCompare(a.date);
+        if (dc !== 0) return dc;
+        const ta = a.createdAt?.seconds ?? 0;
+        const tb = b.createdAt?.seconds ?? 0;
+        return tb - ta;
+      });
+      setTrackingWorkouts(data);
+    } catch (e) {
+      console.error('Error loading tracking workouts:', e);
+    } finally {
+      setTrackingLoading(false);
+    }
+  };
   const [showEmailConfigModal, setShowEmailConfigModal] = useState(false);
   const [emailConfig, setEmailConfig] = useState({
     notificationsEmail: 'inaviciba@gmail.com'
@@ -486,6 +529,29 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ user, userRole }) => {
     setMessage({ type: 'success', text: 'Tabla vaciada correctamente' });
   };
 
+  // Elimina campos undefined para que Firestore no los rechace
+  const sanitizeExercises = (exs: typeof exercises) => {
+    const result: any = {};
+    for (const [day, list] of Object.entries(exs)) {
+      result[day] = (list as AssignedExercise[]).map(ex => {
+        const clean: any = {
+          categoryId: ex.categoryId ?? '',
+          categoryName: ex.categoryName ?? '',
+          series: ex.series ?? 3,
+          reps: ex.reps ?? 10,
+          notes: ex.notes ?? ''
+        };
+        if (ex.exerciseId !== undefined) clean.exerciseId = ex.exerciseId;
+        if (ex.exerciseName !== undefined) clean.exerciseName = ex.exerciseName;
+        if (ex.exercisePhotoUrl !== undefined) clean.exercisePhotoUrl = ex.exercisePhotoUrl;
+        if (ex.mediaType !== undefined) clean.mediaType = ex.mediaType;
+        if (ex.weight !== undefined) clean.weight = ex.weight;
+        return clean;
+      });
+    }
+    return result;
+  };
+
   const saveTable = async (sendEmail: boolean = true) => {
     if (!selectedUserId) {
       setMessage({ type: 'error', text: 'Selecciona un usuario' });
@@ -522,7 +588,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ user, userRole }) => {
       if (!snapshot.empty) {
         tableRef = doc(db, 'assignedTables', snapshot.docs[0].id);
         await updateDoc(tableRef, {
-          exercises: exercises,
+          exercises: sanitizeExercises(exercises),
           assignedBy: auth.currentUser.uid,
           assignedByName: currentUserData ? `${currentUserData.firstName} ${currentUserData.lastName}` : 'Monitor',
           updatedAt: serverTimestamp(),
@@ -532,7 +598,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ user, userRole }) => {
         tableRef = doc(collection(db, 'assignedTables'));
         await setDoc(tableRef, {
           userId: selectedUserId,
-          exercises: exercises,
+          exercises: sanitizeExercises(exercises),
           assignedBy: auth.currentUser.uid,
           assignedByName: currentUserData ? `${currentUserData.firstName} ${currentUserData.lastName}` : 'Monitor',
           createdAt: serverTimestamp(),
@@ -1378,6 +1444,21 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ user, userRole }) => {
         <div className="admin-title-section">
           <h1>Panel de Coach</h1>
           <p>Gestiona tus ejercicios, videos y tablas de entrenamiento</p>
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: '8px',
+            marginTop: '10px', padding: '6px 16px',
+            background: 'linear-gradient(135deg, rgba(102,126,234,0.2) 0%, rgba(118,75,162,0.2) 100%)',
+            border: '1px solid rgba(102,126,234,0.4)',
+            borderRadius: '20px', fontSize: '14px', color: '#e0e0e0'
+          }}>
+            <span style={{ fontSize: '18px' }}>👥</span>
+            <span>
+              <strong style={{ color: '#667eea', fontSize: '18px' }}>
+                {users.filter(u => u.role !== 'coach').length}
+              </strong>
+              {' '}alumno{users.filter(u => u.role !== 'coach').length !== 1 ? 's' : ''} registrado{users.filter(u => u.role !== 'coach').length !== 1 ? 's' : ''}
+            </span>
+          </div>
         </div>
         <div className="admin-user-info">
           <div className="admin-date-info" style={{ 
@@ -4493,6 +4574,236 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ user, userRole }) => {
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* Sección Seguimiento de Alumnos */}
+      {activeTab === 'seguimiento' && (
+        <div style={{ padding: '0 0 40px 0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+            <button
+              onClick={() => { setActiveTab(null); setTrackingUserId(''); setTrackingWorkouts([]); }}
+              style={{ background: 'none', border: 'none', color: '#667eea', fontSize: '22px', cursor: 'pointer', flexShrink: 0 }}
+              aria-label="Volver"
+            >&#8592;</button>
+            <h2 style={{ margin: 0, color: '#e0e0e0', fontSize: '22px' }}>📊 Seguimiento de Alumnos</h2>
+          </div>
+
+          {/* Selector de usuario */}
+          <div style={{ background: '#2d2d2d', borderRadius: '12px', padding: '20px', marginBottom: '20px' }}>
+            <label style={{ color: '#b0b0b0', fontSize: '14px', display: 'block', marginBottom: '8px' }}>Selecciona un alumno</label>
+            <select
+              value={trackingUserId}
+              onChange={e => {
+                const uid = e.target.value;
+                setTrackingUserId(uid);
+                setTrackingDateFrom('');
+                setTrackingDateTo('');
+                setTrackingExerciseFilter('Todos');
+                setTrackingExpandedDate(null);
+                loadTrackingWorkouts(uid);
+              }}
+              style={{
+                width: '100%', padding: '10px 12px', borderRadius: '8px',
+                background: '#1a1a1a', color: '#e0e0e0', border: '1px solid #444', fontSize: '15px'
+              }}
+            >
+              <option value="">-- Elige un usuario --</option>
+              {users
+                .filter(u => u.role !== 'coach')
+                .sort((a, b) => `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`))
+                .map(u => (
+                  <option key={u.id} value={u.id}>
+                    {u.firstName} {u.lastName} ({u.email})
+                  </option>
+                ))}
+            </select>
+          </div>
+
+          {/* Filtros */}
+          {trackingUserId && !trackingLoading && trackingWorkouts.length > 0 && (() => {
+            const exerciseNames = Array.from(new Set(trackingWorkouts.map(w => w.machineName))).sort();
+            return (
+              <div style={{
+                background: '#2d2d2d', borderRadius: '12px', padding: '16px 20px',
+                marginBottom: '20px', display: 'flex', flexWrap: 'wrap', gap: '14px', alignItems: 'flex-end'
+              }}>
+                <div style={{ flex: '1 1 140px' }}>
+                  <label style={{ color: '#b0b0b0', fontSize: '13px', display: 'block', marginBottom: '5px' }}>📅 Desde</label>
+                  <input
+                    type="date"
+                    value={trackingDateFrom}
+                    onChange={e => setTrackingDateFrom(e.target.value)}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', background: '#1a1a1a', color: '#e0e0e0', border: '1px solid #444', fontSize: '14px' }}
+                  />
+                </div>
+                <div style={{ flex: '1 1 140px' }}>
+                  <label style={{ color: '#b0b0b0', fontSize: '13px', display: 'block', marginBottom: '5px' }}>📅 Hasta</label>
+                  <input
+                    type="date"
+                    value={trackingDateTo}
+                    onChange={e => setTrackingDateTo(e.target.value)}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', background: '#1a1a1a', color: '#e0e0e0', border: '1px solid #444', fontSize: '14px' }}
+                  />
+                </div>
+                <div style={{ flex: '1 1 180px' }}>
+                  <label style={{ color: '#b0b0b0', fontSize: '13px', display: 'block', marginBottom: '5px' }}>🏋 Ejercicio</label>
+                  <select
+                    value={trackingExerciseFilter}
+                    onChange={e => setTrackingExerciseFilter(e.target.value)}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', background: '#1a1a1a', color: '#e0e0e0', border: '1px solid #444', fontSize: '14px' }}
+                  >
+                    <option value="Todos">Todos los ejercicios</option>
+                    {exerciseNames.map(n => <option key={n} value={n}>{n}</option>)}
+                  </select>
+                </div>
+                {(trackingDateFrom || trackingDateTo || trackingExerciseFilter !== 'Todos') && (
+                  <button
+                    onClick={() => { setTrackingDateFrom(''); setTrackingDateTo(''); setTrackingExerciseFilter('Todos'); }}
+                    style={{ padding: '8px 14px', borderRadius: '8px', background: '#444', border: 'none', color: '#e0e0e0', fontSize: '13px', cursor: 'pointer', alignSelf: 'flex-end' }}
+                  >
+                    ✕ Limpiar filtros
+                  </button>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* Contenido */}
+          {!trackingUserId && (
+            <div style={{ textAlign: 'center', padding: '40px 20px', color: '#666' }}>
+              <div style={{ fontSize: '48px', marginBottom: '12px' }}>👤</div>
+              <p>Selecciona un alumno para ver su historial de entrenamientos</p>
+            </div>
+          )}
+
+          {trackingUserId && trackingLoading && (
+            <div style={{ textAlign: 'center', padding: '40px', color: '#b0b0b0' }}>Cargando…</div>
+          )}
+
+          {trackingUserId && !trackingLoading && (() => {
+            const filtered = trackingWorkouts.filter(w => {
+              if (trackingDateFrom && w.date < trackingDateFrom) return false;
+              if (trackingDateTo && w.date > trackingDateTo) return false;
+              if (trackingExerciseFilter !== 'Todos' && w.machineName !== trackingExerciseFilter) return false;
+              return true;
+            });
+
+            if (filtered.length === 0) {
+              return (
+                <div style={{ textAlign: 'center', padding: '40px 20px', color: '#666' }}>
+                  <div style={{ fontSize: '40px', marginBottom: '10px' }}>🔍</div>
+                  <p>No hay entrenamientos con los filtros seleccionados</p>
+                </div>
+              );
+            }
+
+            // Agrupar por fecha
+            const byDate: { [d: string]: typeof filtered } = {};
+            filtered.forEach(w => {
+              if (!byDate[w.date]) byDate[w.date] = [];
+              byDate[w.date].push(w);
+            });
+            const dates = Object.keys(byDate).sort((a, b) => b.localeCompare(a));
+
+            // Stats rápidas
+            const totalSessions = dates.length;
+            const totalSets = filtered.reduce((s, w) => s + (w.sets || 0), 0);
+            const maxWeight = filtered.reduce((m, w) => Math.max(m, w.weight || 0), 0);
+
+            return (
+              <>
+                {/* Tarjetas de resumen */}
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '20px' }}>
+                  {[
+                    { label: 'Sesiones', value: totalSessions, icon: '📊' },
+                    { label: 'Ejercicios totales', value: filtered.length, icon: '🏋' },
+                    { label: 'Series totales', value: totalSets, icon: '🔁' },
+                    { label: 'Peso máx.', value: `${maxWeight} kg`, icon: '🏆' },
+                  ].map(card => (
+                    <div key={card.label} style={{
+                      flex: '1 1 100px', background: '#2d2d2d', borderRadius: '10px',
+                      padding: '14px 12px', textAlign: 'center'
+                    }}>
+                      <div style={{ fontSize: '24px' }}>{card.icon}</div>
+                      <div style={{ fontSize: '20px', fontWeight: 700, color: '#667eea', marginTop: '4px' }}>{card.value}</div>
+                      <div style={{ fontSize: '11px', color: '#888', marginTop: '2px' }}>{card.label}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Historial agrupado por fecha */}
+                {dates.map(date => {
+                  const isExpanded = trackingExpandedDate === date;
+                  const dayWorkouts = byDate[date];
+                  const dateLabel = new Date(date + 'T12:00:00').toLocaleDateString('es-ES', {
+                    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+                  });
+                  return (
+                    <div key={date} style={{ marginBottom: '10px' }}>
+                      <button
+                        onClick={() => setTrackingExpandedDate(isExpanded ? null : date)}
+                        style={{
+                          width: '100%', display: 'flex', justifyContent: 'space-between',
+                          alignItems: 'center', padding: '14px 18px',
+                          background: isExpanded ? 'linear-gradient(135deg,#667eea,#764ba2)' : '#2d2d2d',
+                          border: 'none', borderRadius: isExpanded ? '12px 12px 0 0' : '12px',
+                          color: '#fff', cursor: 'pointer', textAlign: 'left'
+                        }}
+                      >
+                        <span style={{ fontWeight: 600, fontSize: '15px', textTransform: 'capitalize' }}>{dateLabel}</span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{
+                            background: 'rgba(255,255,255,0.2)', borderRadius: '20px',
+                            padding: '2px 10px', fontSize: '13px'
+                          }}>{dayWorkouts.length} ejercicio{dayWorkouts.length !== 1 ? 's' : ''}</span>
+                          <span style={{ fontSize: '18px', transition: 'transform 0.2s', transform: isExpanded ? 'rotate(180deg)' : 'none' }}>&#9660;</span>
+                        </span>
+                      </button>
+
+                      {isExpanded && (
+                        <div style={{
+                          background: '#242424', borderRadius: '0 0 12px 12px',
+                          border: '1px solid #667eea', borderTop: 'none', overflow: 'hidden'
+                        }}>
+                          {dayWorkouts.map((w, i) => (
+                            <div key={w.id} style={{
+                              display: 'flex', alignItems: 'center', gap: '12px',
+                              padding: '12px 18px',
+                              borderBottom: i < dayWorkouts.length - 1 ? '1px solid #333' : 'none'
+                            }}>
+                              {w.machinePhotoUrl && (
+                                <img src={w.machinePhotoUrl} alt={w.machineName}
+                                  style={{ width: 44, height: 44, borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }} />
+                              )}
+                              <div style={{ flex: 1 }}>
+                                <p style={{ margin: 0, fontWeight: 600, color: '#e0e0e0', fontSize: '15px' }}>{w.name || w.machineName}</p>
+                                {w.name && w.name !== w.machineName && (
+                                  <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#888' }}>{w.machineName}</p>
+                                )}
+                              </div>
+                              <div style={{
+                                textAlign: 'right', fontSize: '13px', color: '#b0b0b0',
+                                background: '#1a1a1a', borderRadius: '8px', padding: '6px 12px', flexShrink: 0
+                              }}>
+                                <span style={{ color: '#667eea', fontWeight: 700 }}>{w.sets}</span> x{' '}
+                                <span style={{ color: '#667eea', fontWeight: 700 }}>{w.reps}</span> rep
+                                {w.weight > 0 && (
+                                  <span style={{ color: '#FFD700', marginLeft: '6px', fontWeight: 700 }}>
+                                    @ {w.weight} kg
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </>
+            );
+          })()}
         </div>
       )}
 

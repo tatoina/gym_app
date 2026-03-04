@@ -35,6 +35,12 @@ function App() {
   const [suggestionText, setSuggestionText] = useState('');
   const [sendingSuggestion, setSendingSuggestion] = useState(false);
 
+  // Navegar y cerrar menú de usuario al mismo tiempo
+  const navigateTo = (view: View) => {
+    setCurrentView(view);
+    setShowUserMenu(false);
+  };
+
   // Verificar versión y limpiar caché si hay actualización
   useEffect(() => {
     const storedVersion = localStorage.getItem('app_version');
@@ -53,6 +59,19 @@ function App() {
       window.location.reload();
     }
   }, []);
+
+  // Cerrar menú de usuario al hacer click fuera
+  useEffect(() => {
+    if (!showUserMenu) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.user-dropdown-menu') && !target.closest('.user-avatar-button')) {
+        setShowUserMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showUserMenu]);
 
   // Cargar preferencia de tema desde localStorage
   useEffect(() => {
@@ -90,33 +109,30 @@ function App() {
       const adminStatus = user?.email === ADMIN_EMAIL;
       setIsAdmin(adminStatus);
       
-      // Determinar el rol del usuario
+      // Determinar el rol del usuario (un solo getDoc)
       if (adminStatus) {
         setUserRole('admin');
+        setCurrentView('admin');
       } else if (user) {
         try {
           const userDoc = await getDoc(doc(db, 'users', user.uid));
           if (userDoc.exists()) {
             const userData = userDoc.data();
-            setUserRole(userData.role || 'usuario');
+            const role = userData.role || 'usuario';
+            setUserRole(role);
             
             // Cargar foto de perfil
             if (userData.profilePhotoUrl) {
               setProfilePhotoUrl(userData.profilePhotoUrl);
             }
+
+            // Si es coach, ir al panel de admin
+            if (role === 'coach') {
+              setCurrentView('admin');
+            }
           }
         } catch (error) {
           console.error('Error loading user data:', error);
-        }
-      }
-      
-      // Si es admin o coach, mostrar directamente el panel de administración
-      if (adminStatus) {
-        setCurrentView('admin');
-      } else if (user) {
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        if (userDoc.exists() && userDoc.data().role === 'coach') {
-          setCurrentView('admin');
         }
       }
       
@@ -344,21 +360,21 @@ function App() {
             <nav className="main-navigation">
             <button
               className="main-nav-btn"
-              onClick={() => setCurrentView('workout')}
+              onClick={() => navigateTo('workout')}
               data-tour="nav-entrenar"
             >
               🏋 Entrenar
             </button>
             <button
               className="main-nav-btn"
-              onClick={() => setCurrentView('history')}
+              onClick={() => navigateTo('history')}
               data-tour="nav-historial"
             >
               📊 Historial
             </button>
             <button
               className="main-nav-btn"
-              onClick={() => setCurrentView('assigned')}
+              onClick={() => navigateTo('assigned')}
               data-tour="nav-tablas"
             >
               📋 Mis Tablas
@@ -378,32 +394,26 @@ function App() {
                 <p style={{ textAlign: 'center', color: '#b0b0b0', marginBottom: '3rem', fontSize: '1.1rem' }}>Tu entrenamiento, tu progreso</p>
               </div>
             )}
-            {currentView === 'workout' && (
-              <>
-                <button onClick={() => setCurrentView('home')} className="back-btn-top-right">
-                  ←
-                </button>
-                <WorkoutLogger onNavigateToHistory={() => setCurrentView('history')} user={user} />
-              </>
-            )}
-            {currentView === 'history' && (
-              <>
-                <button onClick={() => setCurrentView('home')} className="back-btn-top-right">
-                  ←
-                </button>
-                <History onBack={() => setCurrentView('home')} lightTheme={lightTheme} user={user} />
-              </>
-            )}
-            {currentView === 'assigned' && (
-              <>
-                <button onClick={() => setCurrentView('home')} className="back-btn-top-right">
-                  ←
-                </button>
-                <AssignedTable user={user} />
-              </>
-            )}
-            {/* FUNCIONALIDAD SOCIAL DESACTIVADA TEMPORALMENTE - FUTURO */}
-            {/* {currentView === 'social' && <SocialFeed />} */}
+
+            {/* Vistas siempre montadas, mostradas/ocultas con CSS para evitar re-fetches */}
+            <div style={{ display: currentView === 'workout' ? 'block' : 'none' }}>
+              <button onClick={() => navigateTo('home')} className="back-btn-top-right">
+                ←
+              </button>
+              <WorkoutLogger onNavigateToHistory={() => navigateTo('history')} user={user} />
+            </div>
+            <div style={{ display: currentView === 'history' ? 'block' : 'none' }}>
+              <button onClick={() => navigateTo('home')} className="back-btn-top-right">
+                ←
+              </button>
+              <History onBack={() => navigateTo('home')} lightTheme={lightTheme} user={user} />
+            </div>
+            <div style={{ display: currentView === 'assigned' ? 'block' : 'none' }}>
+              <button onClick={() => navigateTo('home')} className="back-btn-top-right">
+                ←
+              </button>
+              <AssignedTable user={user} />
+            </div>
           </>
         )}
       </main>
