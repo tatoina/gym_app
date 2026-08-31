@@ -16,6 +16,12 @@ service cloud.firestore {
     function isAdmin() {
       return request.auth != null && request.auth.token.email == 'max@max.es';
     }
+
+    // Regla para verificar si es coach
+    function isCoach() {
+      return isAuthenticated() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'coach';
+    }
     
     // Colección de usuarios
     match /users/{userId} {
@@ -41,7 +47,7 @@ service cloud.firestore {
     
     // Colección de entrenamientos
     match /workouts/{workoutId} {
-      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isCoach());
       allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
       allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
@@ -113,6 +119,15 @@ service cloud.firestore {
     match /config/{configId} {
       // Solo el admin puede leer y escribir configuración
       allow read, write: if isAdmin();
+    }
+
+    // Colección de medidas corporales
+    match /bodyMeasurements/{measurementId} {
+      // El propio usuario puede leer sus medidas; coaches y admin también
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isCoach() || isAdmin());
+      // Coaches y admin pueden crear/editar; el alumno no puede
+      allow create, update: if isAuthenticated() && (isCoach() || isAdmin());
+      allow delete: if isAuthenticated() && (isCoach() || isAdmin());
     }
   }
 }

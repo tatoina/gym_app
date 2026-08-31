@@ -128,9 +128,17 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory, user
     title: string;
   }>({ show: false, url: '', type: 'image', title: '' });
 
+  const hasMedia = (machine: Machine) => {
+    const hasVideo = !!(machine.videoUrl?.trim()) && machine.videoUrl!.includes('http');
+    const hasPhoto = !!(machine.photoUrl?.trim()) && machine.photoUrl!.includes('http');
+    return hasVideo || hasPhoto;
+  };
+
   const openExerciseMedia = (machine: Machine) => {
-    const url = machine.videoUrl || machine.photoUrl || '';
-    const type = machine.videoUrl ? 'video' : 'image';
+    const url = (machine.videoUrl?.trim() && machine.videoUrl.includes('http'))
+      ? machine.videoUrl
+      : machine.photoUrl || '';
+    const type = (machine.videoUrl?.trim() && machine.videoUrl.includes('http')) ? 'video' : 'image';
     setExerciseMediaModal({ show: true, url, type, title: machine.name });
   };
 
@@ -842,13 +850,13 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ onNavigateToHistory, user
                           {selectedMachine.description && (
                             <p className="machine-summary-description">{selectedMachine.description}</p>
                           )}
-                          {(selectedMachine.photoUrl || selectedMachine.videoUrl) && (
+                          {hasMedia(selectedMachine) && (
                             <button
                               type="button"
                               className="view-media-btn"
                               onClick={() => openExerciseMedia(selectedMachine)}
                             >
-                              {selectedMachine.videoUrl ? '▶ Ver vídeo de ejecución' : '🖼 Ver imagen de ejecución'}
+                              {(selectedMachine.videoUrl?.trim() && selectedMachine.videoUrl.includes('http')) ? '▶ Ver vídeo de ejecución' : '🖼 Ver imagen de ejecución'}
                             </button>
                           )}
                         </div>

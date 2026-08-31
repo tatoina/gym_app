@@ -4,6 +4,9 @@ import { User as FirebaseUser } from 'firebase/auth';
 import { auth, db, storage, functions } from '../services/firebase';
 import { ref, uploadBytes, getDownloadURL, deleteObject, uploadBytesResumable } from 'firebase/storage';
 import { httpsCallable } from 'firebase/functions';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import Calendar from 'react-calendar';
+import 'react-calendar/dist/Calendar.css';
 import './AdminPanel.css';
 
 interface User {
@@ -83,6 +86,26 @@ interface Notification {
   comment: string;
   createdAt: any;
   read: boolean;
+}
+
+interface BodyMeasurement {
+  id: string;
+  userId: string;
+  date: string;
+  peso?: number;
+  altura?: number;
+  grasaCorporal?: number;
+  cintura?: number;
+  pecho?: number;
+  cadera?: number;
+  brazoDerecho?: number;
+  brazoIzquierdo?: number;
+  musloDerecho?: number;
+  musloIzquierdo?: number;
+  gemeloDerecho?: number;
+  gemeloIzquierdo?: number;
+  notas?: string;
+  createdAt?: any;
 }
 
 interface AdminPanelProps {
@@ -231,6 +254,96 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ user, userRole }) => {
   const [trackingDateTo, setTrackingDateTo] = useState('');
   const [trackingExerciseFilter, setTrackingExerciseFilter] = useState('Todos');
   const [trackingExpandedDate, setTrackingExpandedDate] = useState<string | null>(null);
+  const [trackingChartExercise, setTrackingChartExercise] = useState<string>('');
+  const [trackingChartMetric, setTrackingChartMetric] = useState<'weight' | 'volumen'>('weight');
+
+  // ==================== MEDIDAS CORPORALES ====================
+  const [bodyMeasurementsUserId, setBodyMeasurementsUserId] = useState<string | null>(null);
+  const [bodyMeasurements, setBodyMeasurements] = useState<BodyMeasurement[]>([]);
+  const [bodyMeasurementsLoading, setBodyMeasurementsLoading] = useState(false);
+  const [bodyMeasurementTab, setBodyMeasurementTab] = useState<'historial' | 'nueva' | 'grafico'>('historial');
+  const [bodyMeasurementChartMetric, setBodyMeasurementChartMetric] = useState<string>('peso');
+  const [savingBodyMeasurement, setSavingBodyMeasurement] = useState(false);
+  const [bodyMeasurementForm, setBodyMeasurementForm] = useState({
+    date: new Date().toISOString().split('T')[0],
+    peso: '', altura: '', grasaCorporal: '',
+    cintura: '', pecho: '', cadera: '',
+    brazoDerecho: '', brazoIzquierdo: '',
+    musloDerecho: '', musloIzquierdo: '',
+    gemeloDerecho: '', gemeloIzquierdo: '',
+    notas: ''
+  });
+
+  const BODY_METRICS = [
+    { key: 'peso', label: 'Peso', unit: 'kg', icon: '⚖️' },
+    { key: 'grasaCorporal', label: '% Grasa', unit: '%', icon: '📉' },
+    { key: 'cintura', label: 'Cintura', unit: 'cm', icon: '📏' },
+    { key: 'pecho', label: 'Pecho', unit: 'cm', icon: '📏' },
+    { key: 'cadera', label: 'Cadera', unit: 'cm', icon: '📏' },
+    { key: 'brazoDerecho', label: 'Brazo D', unit: 'cm', icon: '💪' },
+    { key: 'musloDerecho', label: 'Muslo D', unit: 'cm', icon: '🦵' },
+    { key: 'gemeloDerecho', label: 'Gemelo D', unit: 'cm', icon: '🦵' },
+  ];
+
+  const loadBodyMeasurements = async (uid: string) => {
+    setBodyMeasurementsLoading(true);
+    try {
+      const snap = await getDocs(query(collection(db, 'bodyMeasurements'), where('userId', '==', uid)));
+      const data = snap.docs.map(d => ({ id: d.id, ...d.data() } as BodyMeasurement));
+      data.sort((a, b) => b.date.localeCompare(a.date));
+      setBodyMeasurements(data);
+    } catch (e) { console.error('Error loading body measurements:', e); }
+    finally { setBodyMeasurementsLoading(false); }
+  };
+
+  const saveBodyMeasurement = async () => {
+    if (!bodyMeasurementsUserId) return;
+    setSavingBodyMeasurement(true);
+    try {
+      const parseField = (v: string) => v.trim() !== '' ? parseFloat(v) : null;
+      const raw: any = {
+        userId: bodyMeasurementsUserId,
+        date: bodyMeasurementForm.date,
+        peso: parseField(bodyMeasurementForm.peso),
+        altura: parseField(bodyMeasurementForm.altura),
+        grasaCorporal: parseField(bodyMeasurementForm.grasaCorporal),
+        cintura: parseField(bodyMeasurementForm.cintura),
+        pecho: parseField(bodyMeasurementForm.pecho),
+        cadera: parseField(bodyMeasurementForm.cadera),
+        brazoDerecho: parseField(bodyMeasurementForm.brazoDerecho),
+        brazoIzquierdo: parseField(bodyMeasurementForm.brazoIzquierdo),
+        musloDerecho: parseField(bodyMeasurementForm.musloDerecho),
+        musloIzquierdo: parseField(bodyMeasurementForm.musloIzquierdo),
+        gemeloDerecho: parseField(bodyMeasurementForm.gemeloDerecho),
+        gemeloIzquierdo: parseField(bodyMeasurementForm.gemeloIzquierdo),
+        notas: bodyMeasurementForm.notas.trim(),
+        createdAt: serverTimestamp()
+      };
+      // Eliminar nulos
+      Object.keys(raw).forEach(k => raw[k] === null && delete raw[k]);
+      await addDoc(collection(db, 'bodyMeasurements'), raw);
+      await loadBodyMeasurements(bodyMeasurementsUserId);
+      setBodyMeasurementTab('historial');
+      setBodyMeasurementForm({
+        date: new Date().toISOString().split('T')[0],
+        peso: '', altura: '', grasaCorporal: '',
+        cintura: '', pecho: '', cadera: '',
+        brazoDerecho: '', brazoIzquierdo: '',
+        musloDerecho: '', musloIzquierdo: '',
+        gemeloDerecho: '', gemeloIzquierdo: '',
+        notas: ''
+      });
+    } catch (e) { console.error('Error saving body measurement:', e); }
+    finally { setSavingBodyMeasurement(false); }
+  };
+
+  const deleteBodyMeasurement = async (id: string) => {
+    if (!window.confirm('¿Eliminar esta medición?')) return;
+    try {
+      await deleteDoc(doc(db, 'bodyMeasurements', id));
+      setBodyMeasurements(prev => prev.filter(m => m.id !== id));
+    } catch (e) { console.error('Error deleting body measurement:', e); }
+  };
 
   const loadTrackingWorkouts = async (uid: string) => {
     if (!uid) { setTrackingWorkouts([]); return; }
@@ -1508,7 +1621,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ user, userRole }) => {
             className="nav-tab"
             onClick={() => setActiveTab('ejercicios')}
           >
-            💪 Mis Ejercicios
+            💪 Ejercicios
           </button>
           <button 
             className="nav-tab"
@@ -1521,6 +1634,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ user, userRole }) => {
             onClick={() => setActiveTab('reproductor')}
           >
             🎬 Reproductor de Entrenamientos
+          </button>
+          <button 
+            className="nav-tab"
+            onClick={() => setActiveTab('seguimiento')}
+          >
+            📊 Seguimiento de Alumnos
           </button>
         </div>
       )}
@@ -1751,7 +1870,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ user, userRole }) => {
             {window.innerWidth > 768 && (
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: '1fr 90px 1fr 200px',
+                gridTemplateColumns: '1fr 90px 1fr 120px',
                 gap: '12px',
                 padding: '12px 16px',
                 background: 'rgba(102, 126, 234, 0.15)',
@@ -1783,7 +1902,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ user, userRole }) => {
                   key={user.id}
                   style={{
                     display: window.innerWidth > 768 ? 'grid' : 'block',
-                    gridTemplateColumns: window.innerWidth > 768 ? '1fr 90px 1fr 200px' : undefined,
+                    gridTemplateColumns: window.innerWidth > 768 ? '1fr 90px 1fr 120px' : undefined,
                     gap: window.innerWidth > 768 ? '12px' : undefined,
                     padding: window.innerWidth > 768 ? '12px 16px' : '12px',
                     borderBottom: index < filteredArray.length - 1 ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
@@ -1897,11 +2016,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ user, userRole }) => {
                   {/* Acciones */}
                   <div style={{ 
                     display: 'flex', 
-                    gap: window.innerWidth <= 768 ? '6px' : '8px',
-                    justifyContent: window.innerWidth <= 768 ? 'flex-start' : 'center',
-                    marginTop: window.innerWidth <= 768 ? '8px' : '0'
+                    flexDirection: 'column',
+                    gap: '4px',
+                    marginTop: window.innerWidth <= 768 ? '8px' : '0',
                   }}>
                     <button
+                      title="Editar usuario"
                       onClick={() => {
                         setEditingUser(user);
                         setUserForm({
@@ -1913,47 +2033,68 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ user, userRole }) => {
                         });
                       }}
                       style={{
-                        padding: window.innerWidth <= 768 ? '5px 10px' : '6px 12px',
+                        flex: 'none',
+                        padding: '4px 7px',
                         background: 'rgba(102, 126, 234, 0.2)',
                         border: '1px solid #667eea',
-                        borderRadius: window.innerWidth <= 768 ? '5px' : '6px',
+                        borderRadius: '5px',
                         color: '#667eea',
-                        fontSize: window.innerWidth <= 768 ? '11px' : '12px',
+                        fontSize: '10px',
                         cursor: 'pointer',
                         fontWeight: 'bold',
-                        transition: 'all 0.2s ease'
+                        transition: 'all 0.2s ease',
+                        whiteSpace: 'nowrap',
+                        flexShrink: 0
                       }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = 'rgba(102, 126, 234, 0.3)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = 'rgba(102, 126, 234, 0.2)';
-                      }}
-                    >
-                      {window.innerWidth <= 768 ? '✏️' : '✏️ Editar'}
-                    </button>
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(102, 126, 234, 0.35)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(102, 126, 234, 0.2)'; }}
+                    >✏️ Editar</button>
                     <button
+                      title="Cambiar contraseña"
                       onClick={() => setResetPasswordUserId(user.id)}
                       style={{
-                        padding: window.innerWidth <= 768 ? '5px 10px' : '6px 12px',
+                        flex: 'none',
+                        padding: '4px 7px',
                         background: 'rgba(255, 152, 0, 0.2)',
                         border: '1px solid #ff9800',
-                        borderRadius: window.innerWidth <= 768 ? '5px' : '6px',
+                        borderRadius: '5px',
                         color: '#ff9800',
-                        fontSize: window.innerWidth <= 768 ? '11px' : '12px',
+                        fontSize: '10px',
                         cursor: 'pointer',
                         fontWeight: 'bold',
-                        transition: 'all 0.2s ease'
+                        transition: 'all 0.2s ease',
+                        whiteSpace: 'nowrap',
+                        flexShrink: 0
                       }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = 'rgba(255, 152, 0, 0.3)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = 'rgba(255, 152, 0, 0.2)';
-                      }}
-                    >
-                      {window.innerWidth <= 768 ? '🔑' : '🔑 Contraseña'}
-                    </button>
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255, 152, 0, 0.35)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255, 152, 0, 0.2)'; }}
+                    >🔑 Clave</button>
+                    {user.role !== 'coach' && (
+                      <button
+                        title="Medidas corporales"
+                        onClick={() => {
+                          setBodyMeasurementsUserId(user.id);
+                          setBodyMeasurementTab('historial');
+                          loadBodyMeasurements(user.id);
+                        }}
+                        style={{
+                          flex: 'none',
+                          padding: '4px 7px',
+                          background: 'rgba(99, 206, 155, 0.2)',
+                          border: '1px solid #63ce9b',
+                          borderRadius: '5px',
+                          color: '#63ce9b',
+                          fontSize: '10px',
+                          cursor: 'pointer',
+                          fontWeight: 'bold',
+                          transition: 'all 0.2s ease',
+                          whiteSpace: 'nowrap',
+                          flexShrink: 0
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(99, 206, 155, 0.35)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(99, 206, 155, 0.2)'; }}
+                      >📏 Medidas</button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -4578,161 +4719,195 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ user, userRole }) => {
       )}
 
       {/* Sección Seguimiento de Alumnos */}
-      {activeTab === 'seguimiento' && (
-        <div style={{ padding: '0 0 40px 0' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-            <button
-              onClick={() => { setActiveTab(null); setTrackingUserId(''); setTrackingWorkouts([]); }}
-              style={{ background: 'none', border: 'none', color: '#667eea', fontSize: '22px', cursor: 'pointer', flexShrink: 0 }}
-              aria-label="Volver"
-            >&#8592;</button>
-            <h2 style={{ margin: 0, color: '#e0e0e0', fontSize: '22px' }}>📊 Seguimiento de Alumnos</h2>
-          </div>
+      {activeTab === 'seguimiento' && (() => {
+        const filtered = trackingWorkouts.filter(w => {
+          if (trackingDateFrom && w.date < trackingDateFrom) return false;
+          if (trackingDateTo && w.date > trackingDateTo) return false;
+          if (trackingExerciseFilter !== 'Todos' && w.machineName !== trackingExerciseFilter) return false;
+          return true;
+        });
+        const byDate: { [d: string]: typeof filtered } = {};
+        filtered.forEach(w => { if (!byDate[w.date]) byDate[w.date] = []; byDate[w.date].push(w); });
+        const dates = Object.keys(byDate).sort((a, b) => b.localeCompare(a));
+        const exerciseNames = Array.from(new Set(trackingWorkouts.map(w => w.machineName))).sort();
 
-          {/* Selector de usuario */}
-          <div style={{ background: '#2d2d2d', borderRadius: '12px', padding: '20px', marginBottom: '20px' }}>
-            <label style={{ color: '#b0b0b0', fontSize: '14px', display: 'block', marginBottom: '8px' }}>Selecciona un alumno</label>
-            <select
-              value={trackingUserId}
-              onChange={e => {
-                const uid = e.target.value;
-                setTrackingUserId(uid);
-                setTrackingDateFrom('');
-                setTrackingDateTo('');
-                setTrackingExerciseFilter('Todos');
-                setTrackingExpandedDate(null);
-                loadTrackingWorkouts(uid);
-              }}
-              style={{
-                width: '100%', padding: '10px 12px', borderRadius: '8px',
-                background: '#1a1a1a', color: '#e0e0e0', border: '1px solid #444', fontSize: '15px'
-              }}
-            >
-              <option value="">-- Elige un usuario --</option>
-              {users
-                .filter(u => u.role !== 'coach')
-                .sort((a, b) => `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`))
-                .map(u => (
-                  <option key={u.id} value={u.id}>
-                    {u.firstName} {u.lastName} ({u.email})
-                  </option>
-                ))}
-            </select>
-          </div>
+        return (
+          <div style={{ padding: '0 0 60px 0', maxWidth: '100%', overflowX: 'hidden' }}>
+          <div style={{
+              marginBottom: '16px',
+              padding: '6px 12px',
+              background: 'rgba(102, 126, 234, 0.08)',
+              borderRadius: '8px',
+              borderLeft: '3px solid #667eea',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              <h2 style={{ margin: 0, color: '#667eea', fontSize: '15px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                📊 Seguimiento de Alumnos
+              </h2>
+              <button
+                onClick={() => { setActiveTab(null); setTrackingUserId(''); setTrackingWorkouts([]); }}
+                style={{ padding: '4px 12px', background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '6px', color: '#b0b0b0', fontSize: '12px', cursor: 'pointer', transition: 'all 0.2s ease' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = '#e0e0e0'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#b0b0b0'; }}
+              >
+                ← Volver
+              </button>
+            </div>
 
-          {/* Filtros */}
-          {trackingUserId && !trackingLoading && trackingWorkouts.length > 0 && (() => {
-            const exerciseNames = Array.from(new Set(trackingWorkouts.map(w => w.machineName))).sort();
-            return (
-              <div style={{
-                background: '#2d2d2d', borderRadius: '12px', padding: '16px 20px',
-                marginBottom: '20px', display: 'flex', flexWrap: 'wrap', gap: '14px', alignItems: 'flex-end'
-              }}>
-                <div style={{ flex: '1 1 140px' }}>
-                  <label style={{ color: '#b0b0b0', fontSize: '13px', display: 'block', marginBottom: '5px' }}>📅 Desde</label>
-                  <input
-                    type="date"
-                    value={trackingDateFrom}
-                    onChange={e => setTrackingDateFrom(e.target.value)}
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', background: '#1a1a1a', color: '#e0e0e0', border: '1px solid #444', fontSize: '14px' }}
+            {/* Selector de alumno */}
+            <div style={{ background: '#2d2d2d', borderRadius: '12px', padding: '16px', marginBottom: '16px' }}>
+              <label style={{ color: '#b0b0b0', fontSize: '13px', display: 'block', marginBottom: '8px' }}>Alumno</label>
+              <select
+                value={trackingUserId}
+                onChange={e => {
+                  const uid = e.target.value;
+                  setTrackingUserId(uid);
+                  setTrackingWorkouts([]);
+                  setTrackingDateFrom('');
+                  setTrackingDateTo('');
+                  setTrackingExerciseFilter('Todos');
+                  setTrackingExpandedDate(null);
+                  setTrackingChartExercise('');
+                  loadTrackingWorkouts(uid);
+                }}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', background: '#1a1a1a', color: '#e0e0e0', border: '1px solid #444', fontSize: '15px', boxSizing: 'border-box' }}
+              >
+                <option value="">-- Elige un alumno --</option>
+                {users
+                  .filter(u => u.role !== 'coach')
+                  .sort((a, b) => `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`))
+                  .map(u => (
+                    <option key={u.id} value={u.id}>
+                      {u.firstName} {u.lastName}
+                    </option>
+                  ))}
+              </select>
+            </div>
+
+            {/* Estado vacío inicial */}
+            {!trackingUserId && (
+              <div style={{ textAlign: 'center', padding: '48px 20px', color: '#555' }}>
+                <div style={{ fontSize: '48px', marginBottom: '12px' }}>👤</div>
+                <p style={{ margin: 0 }}>Selecciona un alumno para ver su historial</p>
+              </div>
+            )}
+
+            {/* Cargando */}
+            {trackingUserId && trackingLoading && (
+              <div style={{ textAlign: 'center', padding: '48px 20px', color: '#b0b0b0' }}>
+                <div style={{ fontSize: '32px', marginBottom: '12px' }}>⏳</div>
+                <p style={{ margin: 0 }}>Cargando entrenamientos…</p>
+              </div>
+            )}
+
+            {/* Sin entrenamientos */}
+            {trackingUserId && !trackingLoading && trackingWorkouts.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '48px 20px', color: '#555' }}>
+                <div style={{ fontSize: '40px', marginBottom: '12px' }}>🏋️</div>
+                <p style={{ margin: 0 }}>Este alumno aún no tiene entrenamientos registrados</p>
+              </div>
+            )}
+
+            {/* Filtros — solo si hay datos */}
+            {trackingUserId && !trackingLoading && trackingWorkouts.length > 0 && (
+              <div style={{ background: '#2d2d2d', borderRadius: '12px', padding: '16px', marginBottom: '16px' }}>
+                <p style={{ margin: '0 0 12px 0', color: '#b0b0b0', fontSize: '13px', fontWeight: 600 }}>Filtros</p>
+
+                {/* Calendario visual */}
+                <div style={{ marginBottom: '12px' }}>
+                  <label style={{ color: '#888', fontSize: '12px', display: 'block', marginBottom: '8px' }}>
+                    📅 Selecciona un día para filtrar
+                    {(trackingDateFrom) && (
+                      <span style={{ marginLeft: '8px', color: '#63ce9b', fontWeight: 700 }}>
+                        — {new Date(trackingDateFrom + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      </span>
+                    )}
+                  </label>
+                  <style>{`
+                    .tracking-calendar { width: 100%; background: #1a1a1a !important; border: 1px solid #444 !important; border-radius: 10px !important; color: #e0e0e0 !important; }
+                    .tracking-calendar .react-calendar__navigation { background: #222 !important; border-radius: 10px 10px 0 0; }
+                    .tracking-calendar .react-calendar__navigation button { color: #e0e0e0 !important; font-size: 14px !important; }
+                    .tracking-calendar .react-calendar__navigation button:enabled:hover { background: #333 !important; }
+                    .tracking-calendar .react-calendar__month-view__weekdays { color: #888 !important; font-size: 11px !important; }
+                    .tracking-calendar .react-calendar__tile { color: #ccc !important; background: transparent !important; font-size: 12px !important; }
+                    .tracking-calendar .react-calendar__tile:enabled:hover { background: #333 !important; border-radius: 6px; }
+                    .tracking-calendar .react-calendar__tile--active { background: #667eea !important; border-radius: 6px !important; color: #fff !important; }
+                    .tracking-calendar .react-calendar__tile--now { background: rgba(102,126,234,0.15) !important; border-radius: 6px; }
+                    .tracking-calendar .has-workout { background: rgba(99,206,155,0.25) !important; border-radius: 6px; color: #63ce9b !important; font-weight: 700; }
+                    .tracking-calendar .has-workout.react-calendar__tile--active { background: #63ce9b !important; color: #000 !important; }
+                  `}</style>
+                  <Calendar
+                    className="tracking-calendar"
+                    value={trackingDateFrom ? new Date(trackingDateFrom + 'T12:00:00') : null}
+                    onChange={(val: any) => {
+                      if (!val) return;
+                      const d = val as Date;
+                      const iso = d.toISOString().slice(0, 10);
+                      if (trackingDateFrom === iso) {
+                        setTrackingDateFrom('');
+                        setTrackingDateTo('');
+                      } else {
+                        setTrackingDateFrom(iso);
+                        setTrackingDateTo(iso);
+                      }
+                    }}
+                    tileClassName={({ date }: { date: Date }) => {
+                      const iso = date.toISOString().slice(0, 10);
+                      const workoutDays = Array.from(new Set(trackingWorkouts.map(w => w.date)));
+                      return workoutDays.includes(iso) ? 'has-workout' : null;
+                    }}
+                    locale="es-ES"
                   />
                 </div>
-                <div style={{ flex: '1 1 140px' }}>
-                  <label style={{ color: '#b0b0b0', fontSize: '13px', display: 'block', marginBottom: '5px' }}>📅 Hasta</label>
-                  <input
-                    type="date"
-                    value={trackingDateTo}
-                    onChange={e => setTrackingDateTo(e.target.value)}
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', background: '#1a1a1a', color: '#e0e0e0', border: '1px solid #444', fontSize: '14px' }}
-                  />
-                </div>
-                <div style={{ flex: '1 1 180px' }}>
-                  <label style={{ color: '#b0b0b0', fontSize: '13px', display: 'block', marginBottom: '5px' }}>🏋 Ejercicio</label>
-                  <select
-                    value={trackingExerciseFilter}
-                    onChange={e => setTrackingExerciseFilter(e.target.value)}
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', background: '#1a1a1a', color: '#e0e0e0', border: '1px solid #444', fontSize: '14px' }}
-                  >
+
+                {/* Filtro de ejercicio */}
+                <div>
+                  <label style={{ color: '#888', fontSize: '12px', display: 'block', marginBottom: '4px' }}>Ejercicio</label>
+                  <select value={trackingExerciseFilter} onChange={e => setTrackingExerciseFilter(e.target.value)}
+                    style={{ width: '100%', padding: '8px', borderRadius: '8px', background: '#1a1a1a', color: '#e0e0e0', border: '1px solid #444', fontSize: '13px', boxSizing: 'border-box' }}>
                     <option value="Todos">Todos los ejercicios</option>
                     {exerciseNames.map(n => <option key={n} value={n}>{n}</option>)}
                   </select>
                 </div>
-                {(trackingDateFrom || trackingDateTo || trackingExerciseFilter !== 'Todos') && (
-                  <button
-                    onClick={() => { setTrackingDateFrom(''); setTrackingDateTo(''); setTrackingExerciseFilter('Todos'); }}
-                    style={{ padding: '8px 14px', borderRadius: '8px', background: '#444', border: 'none', color: '#e0e0e0', fontSize: '13px', cursor: 'pointer', alignSelf: 'flex-end' }}
-                  >
+                {(trackingDateFrom || trackingExerciseFilter !== 'Todos') && (
+                  <button onClick={() => { setTrackingDateFrom(''); setTrackingDateTo(''); setTrackingExerciseFilter('Todos'); }}
+                    style={{ marginTop: '10px', width: '100%', padding: '8px', borderRadius: '8px', background: '#444', border: 'none', color: '#e0e0e0', fontSize: '13px', cursor: 'pointer' }}>
                     ✕ Limpiar filtros
                   </button>
                 )}
               </div>
-            );
-          })()}
+            )}
 
-          {/* Contenido */}
-          {!trackingUserId && (
-            <div style={{ textAlign: 'center', padding: '40px 20px', color: '#666' }}>
-              <div style={{ fontSize: '48px', marginBottom: '12px' }}>👤</div>
-              <p>Selecciona un alumno para ver su historial de entrenamientos</p>
-            </div>
-          )}
-
-          {trackingUserId && trackingLoading && (
-            <div style={{ textAlign: 'center', padding: '40px', color: '#b0b0b0' }}>Cargando…</div>
-          )}
-
-          {trackingUserId && !trackingLoading && (() => {
-            const filtered = trackingWorkouts.filter(w => {
-              if (trackingDateFrom && w.date < trackingDateFrom) return false;
-              if (trackingDateTo && w.date > trackingDateTo) return false;
-              if (trackingExerciseFilter !== 'Todos' && w.machineName !== trackingExerciseFilter) return false;
-              return true;
-            });
-
-            if (filtered.length === 0) {
-              return (
-                <div style={{ textAlign: 'center', padding: '40px 20px', color: '#666' }}>
-                  <div style={{ fontSize: '40px', marginBottom: '10px' }}>🔍</div>
-                  <p>No hay entrenamientos con los filtros seleccionados</p>
-                </div>
-              );
-            }
-
-            // Agrupar por fecha
-            const byDate: { [d: string]: typeof filtered } = {};
-            filtered.forEach(w => {
-              if (!byDate[w.date]) byDate[w.date] = [];
-              byDate[w.date].push(w);
-            });
-            const dates = Object.keys(byDate).sort((a, b) => b.localeCompare(a));
-
-            // Stats rápidas
-            const totalSessions = dates.length;
-            const totalSets = filtered.reduce((s, w) => s + (w.sets || 0), 0);
-            const maxWeight = filtered.reduce((m, w) => Math.max(m, w.weight || 0), 0);
-
-            return (
+            {/* Estadísticas + historial */}
+            {trackingUserId && !trackingLoading && trackingWorkouts.length > 0 && (
               <>
-                {/* Tarjetas de resumen */}
-                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '20px' }}>
+                {/* Stats */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', marginBottom: '16px' }}>
                   {[
-                    { label: 'Sesiones', value: totalSessions, icon: '📊' },
-                    { label: 'Ejercicios totales', value: filtered.length, icon: '🏋' },
-                    { label: 'Series totales', value: totalSets, icon: '🔁' },
-                    { label: 'Peso máx.', value: `${maxWeight} kg`, icon: '🏆' },
-                  ].map(card => (
-                    <div key={card.label} style={{
-                      flex: '1 1 100px', background: '#2d2d2d', borderRadius: '10px',
-                      padding: '14px 12px', textAlign: 'center'
-                    }}>
-                      <div style={{ fontSize: '24px' }}>{card.icon}</div>
-                      <div style={{ fontSize: '20px', fontWeight: 700, color: '#667eea', marginTop: '4px' }}>{card.value}</div>
-                      <div style={{ fontSize: '11px', color: '#888', marginTop: '2px' }}>{card.label}</div>
+                    { label: 'Sesiones', value: dates.length, icon: '📊' },
+                    { label: 'Ejercicios', value: filtered.length, icon: '🏋️' },
+                    { label: 'Series', value: filtered.reduce((s, w) => s + (w.sets || 0), 0), icon: '🔁' },
+                    { label: 'Peso máx.', value: `${filtered.reduce((m, w) => Math.max(m, w.weight || 0), 0)} kg`, icon: '🏆' },
+                  ].map(c => (
+                    <div key={c.label} style={{ background: '#2d2d2d', borderRadius: '10px', padding: '14px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '22px' }}>{c.icon}</div>
+                      <div style={{ fontSize: '22px', fontWeight: 700, color: '#667eea', margin: '4px 0 2px' }}>{c.value}</div>
+                      <div style={{ fontSize: '11px', color: '#888' }}>{c.label}</div>
                     </div>
                   ))}
                 </div>
 
-                {/* Historial agrupado por fecha */}
+                {/* Sin resultados con filtros */}
+                {filtered.length === 0 && (
+                  <div style={{ textAlign: 'center', padding: '32px 20px', color: '#555' }}>
+                    <div style={{ fontSize: '36px', marginBottom: '10px' }}>🔍</div>
+                    <p style={{ margin: 0 }}>No hay entrenamientos con estos filtros</p>
+                  </div>
+                )}
+
+                {/* Historial por fecha */}
                 {dates.map(date => {
                   const isExpanded = trackingExpandedDate === date;
                   const dayWorkouts = byDate[date];
@@ -4740,59 +4915,43 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ user, userRole }) => {
                     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
                   });
                   return (
-                    <div key={date} style={{ marginBottom: '10px' }}>
+                    <div key={date} style={{ marginBottom: '8px' }}>
                       <button
                         onClick={() => setTrackingExpandedDate(isExpanded ? null : date)}
                         style={{
-                          width: '100%', display: 'flex', justifyContent: 'space-between',
-                          alignItems: 'center', padding: '14px 18px',
-                          background: isExpanded ? 'linear-gradient(135deg,#667eea,#764ba2)' : '#2d2d2d',
+                          width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                          padding: '13px 16px', background: isExpanded ? 'linear-gradient(135deg,#667eea,#764ba2)' : '#2d2d2d',
                           border: 'none', borderRadius: isExpanded ? '12px 12px 0 0' : '12px',
-                          color: '#fff', cursor: 'pointer', textAlign: 'left'
+                          color: '#fff', cursor: 'pointer', textAlign: 'left', boxSizing: 'border-box'
                         }}
                       >
-                        <span style={{ fontWeight: 600, fontSize: '15px', textTransform: 'capitalize' }}>{dateLabel}</span>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <span style={{
-                            background: 'rgba(255,255,255,0.2)', borderRadius: '20px',
-                            padding: '2px 10px', fontSize: '13px'
-                          }}>{dayWorkouts.length} ejercicio{dayWorkouts.length !== 1 ? 's' : ''}</span>
-                          <span style={{ fontSize: '18px', transition: 'transform 0.2s', transform: isExpanded ? 'rotate(180deg)' : 'none' }}>&#9660;</span>
+                        <span style={{ fontWeight: 600, fontSize: '14px', textTransform: 'capitalize', flex: 1, marginRight: '8px' }}>{dateLabel}</span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                          <span style={{ background: 'rgba(255,255,255,0.2)', borderRadius: '20px', padding: '2px 10px', fontSize: '12px', whiteSpace: 'nowrap' }}>
+                            {dayWorkouts.length} ej.
+                          </span>
+                          <span style={{ fontSize: '14px', transition: 'transform 0.2s', transform: isExpanded ? 'rotate(180deg)' : 'none', display: 'inline-block' }}>▼</span>
                         </span>
                       </button>
-
                       {isExpanded && (
-                        <div style={{
-                          background: '#242424', borderRadius: '0 0 12px 12px',
-                          border: '1px solid #667eea', borderTop: 'none', overflow: 'hidden'
-                        }}>
+                        <div style={{ background: '#242424', borderRadius: '0 0 12px 12px', border: '1px solid #667eea', borderTop: 'none' }}>
                           {dayWorkouts.map((w, i) => (
                             <div key={w.id} style={{
-                              display: 'flex', alignItems: 'center', gap: '12px',
-                              padding: '12px 18px',
+                              display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 14px',
                               borderBottom: i < dayWorkouts.length - 1 ? '1px solid #333' : 'none'
                             }}>
                               {w.machinePhotoUrl && (
-                                <img src={w.machinePhotoUrl} alt={w.machineName}
-                                  style={{ width: 44, height: 44, borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }} />
+                                <img src={w.machinePhotoUrl} alt="" style={{ width: 40, height: 40, borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }} />
                               )}
-                              <div style={{ flex: 1 }}>
-                                <p style={{ margin: 0, fontWeight: 600, color: '#e0e0e0', fontSize: '15px' }}>{w.name || w.machineName}</p>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <p style={{ margin: 0, fontWeight: 600, color: '#e0e0e0', fontSize: '14px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{w.name || w.machineName}</p>
                                 {w.name && w.name !== w.machineName && (
-                                  <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#888' }}>{w.machineName}</p>
+                                  <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#888', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{w.machineName}</p>
                                 )}
                               </div>
-                              <div style={{
-                                textAlign: 'right', fontSize: '13px', color: '#b0b0b0',
-                                background: '#1a1a1a', borderRadius: '8px', padding: '6px 12px', flexShrink: 0
-                              }}>
-                                <span style={{ color: '#667eea', fontWeight: 700 }}>{w.sets}</span> x{' '}
-                                <span style={{ color: '#667eea', fontWeight: 700 }}>{w.reps}</span> rep
-                                {w.weight > 0 && (
-                                  <span style={{ color: '#FFD700', marginLeft: '6px', fontWeight: 700 }}>
-                                    @ {w.weight} kg
-                                  </span>
-                                )}
+                              <div style={{ fontSize: '12px', color: '#b0b0b0', background: '#1a1a1a', borderRadius: '8px', padding: '5px 10px', flexShrink: 0, textAlign: 'center', lineHeight: '1.5' }}>
+                                <span style={{ color: '#667eea', fontWeight: 700 }}>{w.sets}×{w.reps}</span>
+                                {w.weight > 0 && <><br /><span style={{ color: '#FFD700', fontWeight: 700 }}>{w.weight}kg</span></>}
                               </div>
                             </div>
                           ))}
@@ -4802,10 +4961,370 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ user, userRole }) => {
                   );
                 })}
               </>
-            );
-          })()}
-        </div>
-      )}
+            )}
+
+            {/* ===== Gráfico de evolución ===== */}
+            {trackingUserId && !trackingLoading && trackingWorkouts.length > 0 && (() => {
+              const exerciseNames2 = Array.from(new Set(trackingWorkouts.map(w => w.machineName))).sort();
+              const selectedEx = trackingChartExercise || exerciseNames2[0] || '';
+
+              // Agrupar por fecha: máx peso y volumen total del día
+              const byDateMap: { [d: string]: { maxWeight: number; volumen: number } } = {};
+              trackingWorkouts
+                .filter(w => w.machineName === selectedEx)
+                .forEach(w => {
+                  if (!byDateMap[w.date]) byDateMap[w.date] = { maxWeight: 0, volumen: 0 };
+                  byDateMap[w.date].maxWeight = Math.max(byDateMap[w.date].maxWeight, w.weight || 0);
+                  byDateMap[w.date].volumen += (w.sets || 0) * (w.reps || 0) * (w.weight || 0);
+                });
+
+              const chartData2 = Object.entries(byDateMap)
+                .sort(([a], [b]) => a.localeCompare(b))
+                .map(([date, vals]) => ({
+                  label: new Date(date + 'T12:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }),
+                  value: trackingChartMetric === 'weight' ? vals.maxWeight : Math.round(vals.volumen)
+                }));
+
+              const metricLabel = trackingChartMetric === 'weight' ? 'Peso máx (kg)' : 'Volumen (kg×reps×series)';
+              const lineColor = trackingChartMetric === 'weight' ? '#667eea' : '#63ce9b';
+
+              if (!selectedEx) return null;
+
+              return (
+                <div style={{ background: '#2d2d2d', borderRadius: '12px', padding: '16px', marginTop: '16px' }}>
+                  <h3 style={{ margin: '0 0 14px 0', color: '#e0e0e0', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    📈 Evolución por ejercicio
+                  </h3>
+
+                  {/* Selects */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '8px', marginBottom: '14px' }}>
+                    <select
+                      value={selectedEx}
+                      onChange={e => setTrackingChartExercise(e.target.value)}
+                      style={{ padding: '8px', borderRadius: '8px', background: '#1a1a1a', color: '#e0e0e0', border: '1px solid #444', fontSize: '13px' }}
+                    >
+                      {exerciseNames2.map(n => <option key={n} value={n}>{n}</option>)}
+                    </select>
+                    <select
+                      value={trackingChartMetric}
+                      onChange={e => setTrackingChartMetric(e.target.value as 'weight' | 'volumen')}
+                      style={{ padding: '8px', borderRadius: '8px', background: '#1a1a1a', color: '#e0e0e0', border: '1px solid #444', fontSize: '13px' }}
+                    >
+                      <option value="weight">⚖️ Peso máx</option>
+                      <option value="volumen">🔢 Volumen</option>
+                    </select>
+                  </div>
+
+                  {chartData2.length < 2 ? (
+                    <div style={{ textAlign: 'center', padding: '32px 0', color: '#555', fontSize: '13px' }}>
+                      Se necesitan al menos 2 sesiones con este ejercicio para mostrar evolución
+                    </div>
+                  ) : (
+                    <>
+                      {/* Stats rápidas */}
+                      {(() => {
+                        const values = chartData2.map(d => d.value);
+                        const first = values[0];
+                        const last = values[values.length - 1];
+                        const max = Math.max(...values);
+                        const diff = last - first;
+                        return (
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '14px' }}>
+                            {[
+                              { label: 'Inicio', val: first, color: '#b0b0b0' },
+                              { label: 'Actual', val: last, color: lineColor },
+                              { label: diff >= 0 ? '↑ Mejora' : '↓ Cambio', val: (diff >= 0 ? '+' : '') + diff, color: diff >= 0 ? '#63ce9b' : '#ff5c5c' },
+                            ].map(s => (
+                              <div key={s.label} style={{ background: '#1a1a1a', borderRadius: '8px', padding: '10px', textAlign: 'center' }}>
+                                <div style={{ fontSize: '16px', fontWeight: 700, color: s.color }}>{s.val}</div>
+                                <div style={{ fontSize: '10px', color: '#666', marginTop: '2px' }}>{s.label}</div>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })()}
+
+                      <ResponsiveContainer width="100%" height={200}>
+                        <LineChart data={chartData2} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                          <XAxis dataKey="label" tick={{ fill: '#888', fontSize: 11 }} />
+                          <YAxis tick={{ fill: '#888', fontSize: 11 }} />
+                          <Tooltip
+                            contentStyle={{ background: '#1a1a1a', border: `1px solid ${lineColor}`, borderRadius: '8px' }}
+                            labelStyle={{ color: '#e0e0e0', fontSize: 12 }}
+                            formatter={(v: any) => [`${v}`, metricLabel]}
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="value"
+                            stroke={lineColor}
+                            strokeWidth={2.5}
+                            dot={{ fill: lineColor, r: 4 }}
+                            activeDot={{ r: 6 }}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </>
+                  )}
+                </div>
+              );
+            })()}
+
+          </div>
+        );
+      })()}
+
+      {/* ==================== MODAL MEDIDAS CORPORALES ==================== */}
+      {bodyMeasurementsUserId && (() => {
+        const targetUser = users.find(u => u.id === bodyMeasurementsUserId);
+        const chartData = bodyMeasurements
+          .filter(m => (m as any)[bodyMeasurementChartMetric] != null)
+          .sort((a, b) => a.date.localeCompare(b.date))
+          .map(m => ({
+            date: new Date(m.date + 'T12:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: '2-digit' }),
+            value: (m as any)[bodyMeasurementChartMetric]
+          }));
+
+        const inputStyle: React.CSSProperties = {
+          width: '100%', padding: '9px 12px', borderRadius: '8px',
+          background: '#1a1a1a', color: '#e0e0e0', border: '1px solid #3d3d3d',
+          fontSize: '14px', boxSizing: 'border-box'
+        };
+
+        return (
+          <div
+            style={{
+              position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)',
+              zIndex: 9999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center'
+            }}
+            onClick={() => setBodyMeasurementsUserId(null)}
+          >
+            <div
+              style={{
+                background: '#1a1a1a', borderRadius: '20px 20px 0 0', width: '100%',
+                maxWidth: '540px', maxHeight: '92vh', display: 'flex', flexDirection: 'column',
+                overflow: 'hidden'
+              }}
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div style={{
+                padding: '16px 20px 12px', background: 'linear-gradient(135deg,#63ce9b,#2eb87d)',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0
+              }}>
+                <div>
+                  <div style={{ color: 'white', fontWeight: 700, fontSize: '16px' }}>
+                    📏 Medidas Corporales
+                  </div>
+                  <div style={{ color: 'rgba(255,255,255,0.85)', fontSize: '13px', marginTop: '2px' }}>
+                    {targetUser ? `${targetUser.firstName} ${targetUser.lastName}` : ''}
+                  </div>
+                </div>
+                <button
+                  onClick={() => setBodyMeasurementsUserId(null)}
+                  style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '50%', width: 36, height: 36, color: 'white', fontSize: '18px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >✕</button>
+              </div>
+
+              {/* Tabs */}
+              <div style={{ display: 'flex', background: '#242424', flexShrink: 0 }}>
+                {([['historial', '📋 Historial'], ['nueva', '➕ Añadir'], ['grafico', '📈 Gráfico']] as const).map(([tab, label]) => (
+                  <button
+                    key={tab}
+                    onClick={() => setBodyMeasurementTab(tab)}
+                    style={{
+                      flex: 1, padding: '12px 4px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600,
+                      background: bodyMeasurementTab === tab ? '#1a1a1a' : 'transparent',
+                      color: bodyMeasurementTab === tab ? '#63ce9b' : '#888',
+                      borderBottom: bodyMeasurementTab === tab ? '2px solid #63ce9b' : '2px solid transparent',
+                      transition: 'all 0.2s'
+                    }}
+                  >{label}</button>
+                ))}
+              </div>
+
+              {/* Contenido scrollable */}
+              <div style={{ overflowY: 'auto', flex: 1, padding: '16px' }}>
+
+                {/* TAB: HISTORIAL */}
+                {bodyMeasurementTab === 'historial' && (
+                  <>
+                    {bodyMeasurementsLoading && (
+                      <div style={{ textAlign: 'center', padding: '40px', color: '#888' }}>⏳ Cargando...</div>
+                    )}
+                    {!bodyMeasurementsLoading && bodyMeasurements.length === 0 && (
+                      <div style={{ textAlign: 'center', padding: '48px 20px', color: '#555' }}>
+                        <div style={{ fontSize: '48px', marginBottom: '12px' }}>📏</div>
+                        <p style={{ margin: 0, color: '#666' }}>Sin mediciones todavía</p>
+                        <button
+                          onClick={() => setBodyMeasurementTab('nueva')}
+                          style={{ marginTop: '16px', padding: '10px 24px', background: '#63ce9b', border: 'none', borderRadius: '10px', color: '#111', fontWeight: 700, fontSize: '14px', cursor: 'pointer' }}
+                        >➕ Añadir primera medición</button>
+                      </div>
+                    )}
+                    {!bodyMeasurementsLoading && bodyMeasurements.map((m) => {
+                      const dateLabel = new Date(m.date + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' });
+                      const fields = [
+                        ['⚖️ Peso', m.peso, 'kg'], ['📉 % Grasa', m.grasaCorporal, '%'],
+                        ['📏 Cintura', m.cintura, 'cm'], ['📏 Pecho', m.pecho, 'cm'],
+                        ['📏 Cadera', m.cadera, 'cm'], ['💪 Brazo D', m.brazoDerecho, 'cm'],
+                        ['💪 Brazo I', m.brazoIzquierdo, 'cm'], ['🦵 Muslo D', m.musloDerecho, 'cm'],
+                        ['🦵 Muslo I', m.musloIzquierdo, 'cm'], ['🦿 Gemelo D', m.gemeloDerecho, 'cm'],
+                        ['🦿 Gemelo I', m.gemeloIzquierdo, 'cm'],
+                      ].filter(([, v]) => v != null) as [string, number, string][];
+
+                      return (
+                        <div key={m.id} style={{ background: '#2d2d2d', borderRadius: '12px', marginBottom: '10px', overflow: 'hidden' }}>
+                          <div style={{ padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                              <div style={{ color: '#63ce9b', fontWeight: 700, fontSize: '14px', textTransform: 'capitalize' }}>{dateLabel}</div>
+                              {m.altura && <div style={{ color: '#888', fontSize: '12px', marginTop: '2px' }}>Altura: {m.altura} cm</div>}
+                            </div>
+                            <button
+                              onClick={() => deleteBodyMeasurement(m.id)}
+                              style={{ background: 'rgba(255,100,100,0.15)', border: '1px solid rgba(255,100,100,0.4)', borderRadius: '6px', color: '#ff6b6b', fontSize: '12px', padding: '4px 10px', cursor: 'pointer' }}
+                            >🗑️</button>
+                          </div>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '1px', background: '#1a1a1a' }}>
+                            {fields.map(([label, val, unit]) => (
+                              <div key={label} style={{ background: '#2d2d2d', padding: '10px 8px', textAlign: 'center' }}>
+                                <div style={{ fontSize: '16px', fontWeight: 700, color: '#e0e0e0' }}>{val}<span style={{ fontSize: '11px', color: '#888', fontWeight: 400 }}> {unit}</span></div>
+                                <div style={{ fontSize: '10px', color: '#666', marginTop: '2px' }}>{label}</div>
+                              </div>
+                            ))}
+                          </div>
+                          {m.notas && (
+                            <div style={{ padding: '10px 14px', borderTop: '1px solid #333', color: '#888', fontSize: '12px', fontStyle: 'italic' }}>
+                              💬 {m.notas}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </>
+                )}
+
+                {/* TAB: NUEVA MEDICIÓN */}
+                {bodyMeasurementTab === 'nueva' && (
+                  <div>
+                    <div style={{ marginBottom: '16px' }}>
+                      <label style={{ color: '#888', fontSize: '12px', display: 'block', marginBottom: '6px' }}>Fecha</label>
+                      <input type="date" value={bodyMeasurementForm.date}
+                        onChange={e => setBodyMeasurementForm(p => ({ ...p, date: e.target.value }))}
+                        style={inputStyle} />
+                    </div>
+
+                    <p style={{ color: '#63ce9b', fontWeight: 600, fontSize: '13px', margin: '0 0 10px 0' }}>Básicos</p>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px' }}>
+                      {[['peso', '⚖️ Peso (kg)', 'kg', '75.5'], ['altura', '📐 Altura (cm)', 'cm', '175'], ['grasaCorporal', '📉 % Grasa corporal', '%', '18']].map(([key, label, , ph]) => (
+                        <div key={key} style={{ gridColumn: key === 'grasaCorporal' ? 'span 2' : undefined }}>
+                          <label style={{ color: '#888', fontSize: '12px', display: 'block', marginBottom: '4px' }}>{label}</label>
+                          <input type="number" step="0.1" min="0" placeholder={ph}
+                            value={(bodyMeasurementForm as any)[key]}
+                            onChange={e => setBodyMeasurementForm(p => ({ ...p, [key]: e.target.value }))}
+                            style={inputStyle} />
+                        </div>
+                      ))}
+                    </div>
+
+                    <p style={{ color: '#63ce9b', fontWeight: 600, fontSize: '13px', margin: '0 0 10px 0' }}>Perímetros (cm)</p>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px' }}>
+                      {[['cintura', '📏 Cintura'], ['pecho', '📏 Pecho'], ['cadera', '📏 Cadera'], ['brazoDerecho', '💪 Brazo D'], ['brazoIzquierdo', '💪 Brazo I'], ['musloDerecho', '🦵 Muslo D'], ['musloIzquierdo', '🦵 Muslo I'], ['gemeloDerecho', '🦿 Gemelo D'], ['gemeloIzquierdo', '🦿 Gemelo I']].map(([key, label]) => (
+                        <div key={key}>
+                          <label style={{ color: '#888', fontSize: '12px', display: 'block', marginBottom: '4px' }}>{label}</label>
+                          <input type="number" step="0.1" min="0"
+                            value={(bodyMeasurementForm as any)[key]}
+                            onChange={e => setBodyMeasurementForm(p => ({ ...p, [key]: e.target.value }))}
+                            style={inputStyle} />
+                        </div>
+                      ))}
+                    </div>
+
+                    <div style={{ marginBottom: '20px' }}>
+                      <label style={{ color: '#888', fontSize: '12px', display: 'block', marginBottom: '6px' }}>💬 Notas del coach</label>
+                      <textarea
+                        value={bodyMeasurementForm.notas}
+                        onChange={e => setBodyMeasurementForm(p => ({ ...p, notas: e.target.value }))}
+                        placeholder="Observaciones, objetivos, contexto..."
+                        rows={3}
+                        style={{ ...inputStyle, resize: 'vertical', fontFamily: 'inherit' }}
+                      />
+                    </div>
+
+                    <button
+                      onClick={saveBodyMeasurement}
+                      disabled={savingBodyMeasurement}
+                      style={{
+                        width: '100%', padding: '14px', background: 'linear-gradient(135deg,#63ce9b,#2eb87d)',
+                        border: 'none', borderRadius: '12px', color: '#111', fontWeight: 700, fontSize: '16px',
+                        cursor: savingBodyMeasurement ? 'not-allowed' : 'pointer', opacity: savingBodyMeasurement ? 0.7 : 1
+                      }}
+                    >{savingBodyMeasurement ? 'Guardando...' : '💾 Guardar medición'}</button>
+                  </div>
+                )}
+
+                {/* TAB: GRÁFICO */}
+                {bodyMeasurementTab === 'grafico' && (
+                  <>
+                    <div style={{ marginBottom: '16px' }}>
+                      <label style={{ color: '#888', fontSize: '12px', display: 'block', marginBottom: '6px' }}>Métrica a visualizar</label>
+                      <select
+                        value={bodyMeasurementChartMetric}
+                        onChange={e => setBodyMeasurementChartMetric(e.target.value)}
+                        style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', background: '#1a1a1a', color: '#e0e0e0', border: '1px solid #3d3d3d', fontSize: '14px', boxSizing: 'border-box' }}
+                      >
+                        {BODY_METRICS.map(m => <option key={m.key} value={m.key}>{m.icon} {m.label} ({m.unit})</option>)}
+                      </select>
+                    </div>
+
+                    {chartData.length < 2 ? (
+                      <div style={{ textAlign: 'center', padding: '40px 20px', color: '#555' }}>
+                        <div style={{ fontSize: '36px', marginBottom: '12px' }}>📊</div>
+                        <p style={{ margin: 0 }}>Necesitas al menos 2 mediciones para ver el gráfico</p>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Stats */}
+                        {(() => {
+                          const vals = chartData.map(d => d.value);
+                          const first = vals[0]; const last = vals[vals.length - 1];
+                          const diff = Math.round((last - first) * 10) / 10;
+                          const metric = BODY_METRICS.find(m => m.key === bodyMeasurementChartMetric);
+                          return (
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '8px', marginBottom: '20px' }}>
+                              {[['Inicial', first, metric?.unit], ['Actual', last, metric?.unit], ['Cambio', (diff > 0 ? '+' : '') + diff, metric?.unit]].map(([label, val, unit]) => (
+                                <div key={label as string} style={{ background: '#2d2d2d', borderRadius: '10px', padding: '12px', textAlign: 'center' }}>
+                                  <div style={{ fontSize: '18px', fontWeight: 700, color: label === 'Cambio' ? (diff < 0 ? '#51cf66' : diff > 0 ? (bodyMeasurementChartMetric === 'peso' || bodyMeasurementChartMetric === 'grasaCorporal' || bodyMeasurementChartMetric === 'cintura' || bodyMeasurementChartMetric === 'cadera' ? '#ff6b6b' : '#51cf66') : '#888') : '#63ce9b' }}>
+                                    {val}<span style={{ fontSize: '11px' }}> {unit}</span>
+                                  </div>
+                                  <div style={{ fontSize: '11px', color: '#666', marginTop: '3px' }}>{label}</div>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })()}
+                        <ResponsiveContainer width="100%" height={220}>
+                          <LineChart data={chartData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                            <XAxis dataKey="date" stroke="#666" tick={{ fill: '#888', fontSize: 11 }} />
+                            <YAxis stroke="#666" tick={{ fill: '#888', fontSize: 11 }} domain={['auto', 'auto']} />
+                            <Tooltip
+                              contentStyle={{ background: '#2d2d2d', border: '1px solid #63ce9b', borderRadius: '8px', color: '#e0e0e0' }}
+                              formatter={(v: any) => [`${v} ${BODY_METRICS.find(m => m.key === bodyMeasurementChartMetric)?.unit}`, BODY_METRICS.find(m => m.key === bodyMeasurementChartMetric)?.label]}
+                            />
+                            <Line type="monotone" dataKey="value" stroke="#63ce9b" strokeWidth={2.5} dot={{ fill: '#63ce9b', r: 5 }} activeDot={{ r: 8 }} />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </>
+                    )}
+                  </>
+                )}
+
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
     </div>
   );
